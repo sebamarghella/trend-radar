@@ -411,6 +411,11 @@ _FMT_PRICE = JsCode("function(p) { return p.value != null ? p.value.toPrecision(
 _FMT_INT = JsCode("function(p) { return p.value != null ? p.value.toFixed(0) : ''; }")
 _FMT_WIN = JsCode("function(p) { return p.value != null ? p.value.toFixed(0) + '%' : '—'; }")
 
+# TradingView chart layout ID — your saved chart template. To change: open a
+# chart on tradingview.com, the URL path segment after /chart/ is the ID.
+# A blank ID (`/chart/`) works too and opens TV's default chart layout.
+TV_CHART_ID = "6O2rb5Ql"
+
 _TV_VALUE_FMT = JsCode("function(p) { return p.value ? 'TV ↗' : ''; }")
 
 _TV_CELL_STYLE = {
@@ -420,13 +425,13 @@ _TV_CELL_STYLE = {
     "textAlign": "center",
 }
 
-_TV_CLICK_HANDLER = JsCode("""
-function(event) {
-    if (event.colDef.field === 'tv' && event.data && event.data.pair) {
-        const url = 'https://www.tradingview.com/symbols/' + event.data.pair + '/?exchange=BINANCE';
+_TV_CLICK_HANDLER = JsCode(f"""
+function(event) {{
+    if (event.colDef.field === 'tv' && event.data && event.data.pair) {{
+        const url = 'https://www.tradingview.com/chart/{TV_CHART_ID}/?symbol=BINANCE%3A' + event.data.pair;
         window.open(url, '_blank', 'noopener,noreferrer');
-    }
-}
+    }}
+}}
 """)
 
 
