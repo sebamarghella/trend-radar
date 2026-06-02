@@ -411,30 +411,21 @@ _FMT_PRICE = JsCode("function(p) { return p.value != null ? p.value.toPrecision(
 _FMT_INT = JsCode("function(p) { return p.value != null ? p.value.toFixed(0) : ''; }")
 _FMT_WIN = JsCode("function(p) { return p.value != null ? p.value.toFixed(0) + '%' : '—'; }")
 
-_TV_LINK_RENDERER = JsCode("""
-function(p) {
-    if (!p.value) return '';
-    const url = 'https://www.tradingview.com/symbols/' + p.value + '/?exchange=BINANCE';
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.title = 'Open ' + p.value + ' on TradingView';
-    a.style.color = '#00752d';
-    a.style.textDecoration = 'none';
-    a.style.display = 'inline-flex';
-    a.style.alignItems = 'center';
-    a.style.justifyContent = 'center';
-    a.style.height = '100%';
-    a.style.width = '100%';
-    a.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" '
-        + 'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
-        + 'stroke-linejoin="round">'
-        + '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>'
-        + '<polyline points="15 3 21 3 21 9"></polyline>'
-        + '<line x1="10" y1="14" x2="21" y2="3"></line></svg>';
-    a.addEventListener('click', function(e) { e.stopPropagation(); });
-    return a;
+_TV_VALUE_FMT = JsCode("function(p) { return p.value ? 'TV ↗' : ''; }")
+
+_TV_CELL_STYLE = {
+    "cursor": "pointer",
+    "color": "#00752d",
+    "fontWeight": "600",
+    "textAlign": "center",
+}
+
+_TV_CLICK_HANDLER = JsCode("""
+function(event) {
+    if (event.colDef.field === 'tv' && event.data && event.data.pair) {
+        const url = 'https://www.tradingview.com/symbols/' + event.data.pair + '/?exchange=BINANCE';
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
 }
 """)
 
@@ -489,10 +480,12 @@ def build_grid_options(df: pd.DataFrame) -> dict:
         maxWidth=70,
         sortable=False,
         filter=False,
-        cellRenderer=_TV_LINK_RENDERER,
+        valueFormatter=_TV_VALUE_FMT,
+        cellStyle=_TV_CELL_STYLE,
     )
     for hidden in ("last_filt", "last_hband", "last_lband"):
         gb.configure_column(hidden, hide=True)
+    gb.configure_grid_options(onCellClicked=_TV_CLICK_HANDLER)
     return gb.build()
 
 
