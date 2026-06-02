@@ -1,0 +1,130 @@
+"""Top-100 crypto universe and Binance symbol candidates."""
+
+from __future__ import annotations
+
+# Top 100 by market cap (snapshot from CoinGecko, ranks may shift over time).
+# The Streamlit app filters this list against Binance's live tradable symbols at runtime.
+TOP_100: list[dict] = [
+    {"rank": 1, "symbol": "BTC", "name": "Bitcoin"},
+    {"rank": 2, "symbol": "ETH", "name": "Ethereum"},
+    {"rank": 3, "symbol": "USDT", "name": "Tether"},
+    {"rank": 4, "symbol": "BNB", "name": "BNB"},
+    {"rank": 5, "symbol": "XRP", "name": "XRP"},
+    {"rank": 6, "symbol": "USDC", "name": "USDC"},
+    {"rank": 7, "symbol": "SOL", "name": "Solana"},
+    {"rank": 8, "symbol": "TRX", "name": "TRON"},
+    {"rank": 9, "symbol": "FIGR_HELOC", "name": "Figure Heloc"},
+    {"rank": 10, "symbol": "HYPE", "name": "Hyperliquid"},
+    {"rank": 11, "symbol": "DOGE", "name": "Dogecoin"},
+    {"rank": 12, "symbol": "USDS", "name": "USDS"},
+    {"rank": 13, "symbol": "ZEC", "name": "Zcash"},
+    {"rank": 14, "symbol": "LEO", "name": "LEO Token"},
+    {"rank": 15, "symbol": "RAIN", "name": "Rain"},
+    {"rank": 16, "symbol": "ADA", "name": "Cardano"},
+    {"rank": 17, "symbol": "XLM", "name": "Stellar"},
+    {"rank": 18, "symbol": "XMR", "name": "Monero"},
+    {"rank": 19, "symbol": "LINK", "name": "Chainlink"},
+    {"rank": 20, "symbol": "LAB", "name": "LAB"},
+    {"rank": 21, "symbol": "WBT", "name": "WhiteBIT Coin"},
+    {"rank": 22, "symbol": "CC", "name": "Canton"},
+    {"rank": 23, "symbol": "BCH", "name": "Bitcoin Cash"},
+    {"rank": 24, "symbol": "TON", "name": "Toncoin"},
+    {"rank": 25, "symbol": "USD1", "name": "USD1"},
+    {"rank": 26, "symbol": "USDE", "name": "Ethena USDe"},
+    {"rank": 27, "symbol": "DAI", "name": "Dai"},
+    {"rank": 28, "symbol": "M", "name": "MemeCore"},
+    {"rank": 29, "symbol": "HBAR", "name": "Hedera"},
+    {"rank": 30, "symbol": "LTC", "name": "Litecoin"},
+    {"rank": 31, "symbol": "AVAX", "name": "Avalanche"},
+    {"rank": 32, "symbol": "NEAR", "name": "NEAR Protocol"},
+    {"rank": 33, "symbol": "SUI", "name": "Sui"},
+    {"rank": 34, "symbol": "SHIB", "name": "Shiba Inu"},
+    {"rank": 35, "symbol": "PYUSD", "name": "PayPal USD"},
+    {"rank": 36, "symbol": "USYC", "name": "Circle USYC"},
+    {"rank": 37, "symbol": "CRO", "name": "Cronos"},
+    {"rank": 38, "symbol": "XAUT", "name": "Tether Gold"},
+    {"rank": 39, "symbol": "USDG", "name": "Global Dollar"},
+    {"rank": 40, "symbol": "BUIDL", "name": "BlackRock USD Institutional Digital Liquidity"},
+    {"rank": 41, "symbol": "TAO", "name": "Bittensor"},
+    {"rank": 42, "symbol": "USDY", "name": "Ondo US Dollar Yield"},
+    {"rank": 43, "symbol": "PAXG", "name": "PAX Gold"},
+    {"rank": 44, "symbol": "MNT", "name": "Mantle"},
+    {"rank": 45, "symbol": "WLFI", "name": "World Liberty Financial"},
+    {"rank": 46, "symbol": "DOT", "name": "Polkadot"},
+    {"rank": 47, "symbol": "RLUSD", "name": "Ripple USD"},
+    {"rank": 48, "symbol": "OKB", "name": "OKB"},
+    {"rank": 49, "symbol": "UNI", "name": "Uniswap"},
+    {"rank": 50, "symbol": "ONDO", "name": "Ondo"},
+    {"rank": 51, "symbol": "ASTER", "name": "Aster"},
+    {"rank": 52, "symbol": "USDF", "name": "Falcon USD"},
+    {"rank": 53, "symbol": "ICP", "name": "Internet Computer"},
+    {"rank": 54, "symbol": "HTX", "name": "HTX DAO"},
+    {"rank": 55, "symbol": "SKY", "name": "Sky"},
+    {"rank": 56, "symbol": "PI", "name": "Pi Network"},
+    {"rank": 57, "symbol": "USDD", "name": "USDD"},
+    {"rank": 58, "symbol": "BGB", "name": "Bitget Token"},
+    {"rank": 59, "symbol": "WLD", "name": "Worldcoin"},
+    {"rank": 60, "symbol": "PEPE", "name": "Pepe"},
+    {"rank": 61, "symbol": "BFUSD", "name": "BFUSD"},
+    {"rank": 62, "symbol": "MORPHO", "name": "Morpho"},
+    {"rank": 63, "symbol": "ETC", "name": "Ethereum Classic"},
+    {"rank": 64, "symbol": "H", "name": "Humanity"},
+    {"rank": 65, "symbol": "AAVE", "name": "Aave"},
+    {"rank": 66, "symbol": "RENDER", "name": "Render"},
+    {"rank": 67, "symbol": "QNT", "name": "Quant"},
+    {"rank": 68, "symbol": "USDTB", "name": "USDtb"},
+    {"rank": 69, "symbol": "ALGO", "name": "Algorand"},
+    {"rank": 70, "symbol": "KCS", "name": "KuCoin"},
+    {"rank": 71, "symbol": "EUTBL", "name": "Spiko EU T-Bills"},
+    {"rank": 72, "symbol": "POL", "name": "POL (ex-MATIC)"},
+    {"rank": 73, "symbol": "BCAP", "name": "Blockchain Capital"},
+    {"rank": 74, "symbol": "U", "name": "United Stables"},
+    {"rank": 75, "symbol": "ATOM", "name": "Cosmos Hub"},
+    {"rank": 76, "symbol": "USTB", "name": "Superstate Short Duration"},
+    {"rank": 77, "symbol": "JTRSY", "name": "Janus Henderson Anemoy Treasury"},
+    {"rank": 78, "symbol": "VVV", "name": "Venice Token"},
+    {"rank": 79, "symbol": "DEXE", "name": "DeXe"},
+    {"rank": 80, "symbol": "STABLE", "name": "Stable"},
+    {"rank": 81, "symbol": "JST", "name": "JUST"},
+    {"rank": 82, "symbol": "NEXO", "name": "NEXO"},
+    {"rank": 83, "symbol": "KAS", "name": "Kaspa"},
+    {"rank": 84, "symbol": "ENA", "name": "Ethena"},
+    {"rank": 85, "symbol": "GT", "name": "Gate"},
+    {"rank": 86, "symbol": "FIL", "name": "Filecoin"},
+    {"rank": 87, "symbol": "APT", "name": "Aptos"},
+    {"rank": 88, "symbol": "INJ", "name": "Injective"},
+    {"rank": 89, "symbol": "JUP", "name": "Jupiter"},
+    {"rank": 90, "symbol": "XDC", "name": "XDC Network"},
+    {"rank": 91, "symbol": "NIGHT", "name": "Midnight"},
+    {"rank": 92, "symbol": "FLR", "name": "Flare"},
+    {"rank": 93, "symbol": "BNLIFE", "name": "Binance Life"},
+    {"rank": 94, "symbol": "BDX", "name": "Beldex"},
+    {"rank": 95, "symbol": "PUMP", "name": "Pump.fun"},
+    {"rank": 96, "symbol": "FET", "name": "Artificial Superintelligence Alliance"},
+    {"rank": 97, "symbol": "ARB", "name": "Arbitrum"},
+    {"rank": 98, "symbol": "GHO", "name": "GHO"},
+    {"rank": 99, "symbol": "HASH", "name": "Provenance Blockchain"},
+    {"rank": 100, "symbol": "USD0", "name": "Usual USD"},
+]
+
+# Stablecoins + tokenized RWAs + wrapped fiat — no meaningful trend signal.
+EXCLUDED_SYMBOLS = {
+    "USDT", "USDC", "DAI", "USDS", "PYUSD", "USDE", "USD1", "USDG", "USDY",
+    "USDF", "USDD", "BFUSD", "USDTB", "USTB", "RLUSD", "GHO", "USD0",
+    "BUIDL", "EUTBL", "JTRSY", "USYC", "BCAP", "U", "STABLE",
+    "PAXG", "XAUT",
+    "FIGR_HELOC", "BNLIFE", "HASH",
+}
+
+def candidate_symbols(base: str, quotes: tuple[str, ...] = ("USDT", "USDC", "FDUSD")) -> list[str]:
+    """Binance candidate symbols, in priority order.
+
+    USDT first (deepest liquidity), then USDC and FDUSD as fallbacks for
+    coins that only trade against stablecoins other than USDT.
+    """
+    return [f"{base}{q}" for q in quotes]
+
+
+def tradable_universe() -> list[dict]:
+    """Top 100 minus stablecoins/RWAs."""
+    return [c for c in TOP_100 if c["symbol"] not in EXCLUDED_SYMBOLS]
