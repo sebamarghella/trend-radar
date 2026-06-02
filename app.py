@@ -92,12 +92,31 @@ def _load_telegram_secrets() -> tuple[str, str]:
 
 
 _secret_token, _secret_chat = _load_telegram_secrets()
-alerts_enabled = st.sidebar.checkbox(
-    "Fire on state flips", value=bool(_secret_token and _secret_chat),
-    help="Sends a Telegram message when any coin flips FLAT↔LONG.",
-)
-bot_token = st.sidebar.text_input("Bot token", value=_secret_token, type="password")
-chat_id = st.sidebar.text_input("Chat ID", value=_secret_chat)
+_has_server_secrets = bool(_secret_token and _secret_chat)
+
+if _has_server_secrets:
+    # Public deployment: don't display credential fields at all. Visitors of the
+    # URL can't see, reveal, or extract the token. The toggle and test button
+    # still work — they use the server-side secrets internally.
+    st.sidebar.success("Telegram configured from server secrets")
+    bot_token, chat_id = _secret_token, _secret_chat
+    alerts_enabled = st.sidebar.checkbox(
+        "Fire on state flips", value=True,
+        help="Sends a Telegram message when any coin flips FLAT↔LONG.",
+    )
+else:
+    # Local dev / no secrets.toml: show fields so the user can type credentials.
+    alerts_enabled = st.sidebar.checkbox(
+        "Fire on state flips", value=False,
+        help="Sends a Telegram message when any coin flips FLAT↔LONG.",
+    )
+    bot_token = st.sidebar.text_input("Bot token", type="password")
+    chat_id = st.sidebar.text_input("Chat ID")
+    st.sidebar.caption(
+        "Persist by saving to `.streamlit/secrets.toml` "
+        "(local) or the Secrets panel (Streamlit Cloud)."
+    )
+
 if st.sidebar.button("Send test alert", help="Verify your token + chat ID"):
     ok, err = alerts.send_telegram(bot_token, chat_id, "Trend Radar: test alert ✅")
     if ok:
@@ -358,7 +377,7 @@ df_display["tv"] = df_display["pair"]  # value used by the TV link renderer
 _CELLSTYLE_STATE = JsCode("""
 function(p) {
     if (p.value === 'LONG') {
-        return { backgroundColor: '', color: 'black', fontWeight: 700 };
+        return { backgroundColor: '#0aff68', color: 'black', fontWeight: 700 };
     }
     return { backgroundColor: '#2b2b2b', color: '#aaaaaa' };
 }
@@ -374,7 +393,7 @@ function(p) {{
 
 _CELLSTYLE_FILTER = JsCode("""
 function(p) {
-    if (p.value === true) return { color: '', fontWeight: 600 };
+    if (p.value === true) return { color: '#0aff68', fontWeight: 600 };
     return { color: '#ff0a5a', fontWeight: 600 };
 }
 """)
@@ -396,9 +415,26 @@ _TV_LINK_RENDERER = JsCode("""
 function(p) {
     if (!p.value) return '';
     const url = 'https://www.tradingview.com/symbols/' + p.value + '/?exchange=BINANCE';
-    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" '
-        + 'style="color:#0aff68;text-decoration:none;font-weight:600;" '
-        + 'onclick="event.stopPropagation();">TV ↗</a>';
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.title = 'Open ' + p.value + ' on TradingView';
+    a.style.color = '#00752d';
+    a.style.textDecoration = 'none';
+    a.style.display = 'inline-flex';
+    a.style.alignItems = 'center';
+    a.style.justifyContent = 'center';
+    a.style.height = '100%';
+    a.style.width = '100%';
+    a.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" '
+        + 'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        + 'stroke-linejoin="round">'
+        + '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>'
+        + '<polyline points="15 3 21 3 21 9"></polyline>'
+        + '<line x1="10" y1="14" x2="21" y2="3"></line></svg>';
+    a.addEventListener('click', function(e) { e.stopPropagation(); });
+    return a;
 }
 """)
 
