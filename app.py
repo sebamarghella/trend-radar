@@ -358,7 +358,7 @@ df_display["tv"] = df_display["pair"]  # value used by the TV link renderer
 _CELLSTYLE_STATE = JsCode("""
 function(p) {
     if (p.value === 'LONG') {
-        return { backgroundColor: '#0aff68', color: 'black', fontWeight: 700 };
+        return { backgroundColor: '', color: 'black', fontWeight: 700 };
     }
     return { backgroundColor: '#2b2b2b', color: '#aaaaaa' };
 }
@@ -374,7 +374,7 @@ function(p) {{
 
 _CELLSTYLE_FILTER = JsCode("""
 function(p) {
-    if (p.value === true) return { color: '#0aff68', fontWeight: 600 };
+    if (p.value === true) return { color: '', fontWeight: 600 };
     return { color: '#ff0a5a', fontWeight: 600 };
 }
 """)
@@ -382,7 +382,7 @@ function(p) {
 _CELLSTYLE_PCT = JsCode("""
 function(p) {
     if (p.value == null) return {};
-    return p.value > 0 ? { color: '#0aff68' } : { color: '#ff0a5a' };
+    return p.value > 0 ? { color: '#00752d' } : { color: '#ff0a5a' };
 }
 """)
 
