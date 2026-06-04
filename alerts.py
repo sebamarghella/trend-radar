@@ -31,13 +31,15 @@ class Flip:
     filter_up: bool
     close_vs_hband_pct: float
     interval_minutes: int
+    exchange: str = ""
 
     def format(self) -> str:
         tf = _tf_label(self.interval_minutes)
         emoji = "🟢" if self.direction == "ENTRY" else "🔴"
         verb = "LONG" if self.direction == "ENTRY" else "EXIT"
+        venue = f" on {self.exchange}" if self.exchange else ""
         lines = [
-            f"{emoji} {verb}: {self.symbol} ({self.pair}) — {tf}",
+            f"{emoji} {verb}: {self.symbol} ({self.pair}){venue} — {tf}",
             f"Price: {self.price:.6g}",
             f"Filter: {'rising' if self.filter_up else 'falling'} · "
             f"close vs HBand {self.close_vs_hband_pct:+.2f}%",
@@ -71,28 +73,36 @@ def save_state(state: dict[str, str]) -> None:
         pass
 
 
-def _key(symbol: str, interval_minutes: int) -> str:
-    return f"{symbol}|{interval_minutes}"
+def _key(asset_class: str, symbol: str, interval_minutes: int) -> str:
+    return f"{asset_class}|{symbol}|{interval_minutes}"
 
 
 def detect_flips(
     signals: Iterable[dict],
     interval_minutes: int,
     prev_state: dict[str, str],
+    asset_class: str = "crypto",
 ) -> tuple[list[Flip], dict[str, str]]:
     """Diff current signal states against the saved state.
 
     Returns (flips_to_alert, new_state_to_persist). On the very first run
     (empty prev_state), no flips are emitted — we seed silently.
     """
-    new_state: dict[str, str] = {}
+    new_state: dict[str, str] = dict(prev_state)  # preserve other-class keys
     flips: list[Flip] = []
-    first_run = not prev_state
+    # First-run detection at the asset-class level: did we have ANY prior keys
+    # for this asset_class + interval combo?
+    class_prefix = f"{asset_class}|"
+    interval_suffix = f"|{interval_minutes}"
+    class_keys_existed = any(
+        k.startswith(class_prefix) and k.endswith(interval_suffix)
+        for k in prev_state
+    )
     for s in signals:
-        k = _key(s["symbol"], interval_minutes)
+        k = _key(asset_class, s["symbol"], interval_minutes)
         current = s["state"]  # "LONG" or "FLAT"
         new_state[k] = current
-        if first_run:
+        if not class_keys_existed:
             continue
         prev = prev_state.get(k)
         if prev is None or prev == current:
@@ -108,6 +118,7 @@ def detect_flips(
             filter_up=bool(s.get("filter_up", False)),
             close_vs_hband_pct=float(s.get("close_vs_hband_pct", 0.0)),
             interval_minutes=interval_minutes,
+            exchange=s.get("exchange", ""),
         ))
     return flips, new_state
 

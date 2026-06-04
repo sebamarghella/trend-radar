@@ -155,19 +155,27 @@ def test_alerts_flip_detection():
          "stoch_k": 50.0, "filter_up": False, "close_vs_hband_pct": -3.4},
     ]
     # First run: silent seed
-    flips, new_state = alerts.detect_flips(sigs, 240, prev_state={})
+    flips, new_state = alerts.detect_flips(sigs, 240, prev_state={}, asset_class="crypto")
     assert flips == []
-    assert "BTC|240" in new_state and new_state["BTC|240"] == "LONG"
+    assert "crypto|BTC|240" in new_state and new_state["crypto|BTC|240"] == "LONG"
 
     # No change: no flips
-    flips, _ = alerts.detect_flips(sigs, 240, prev_state=new_state)
+    flips, _ = alerts.detect_flips(sigs, 240, prev_state=new_state, asset_class="crypto")
     assert flips == []
 
     # BTC flips to FLAT: should fire EXIT
     sigs[0]["state"] = "FLAT"
-    flips, _ = alerts.detect_flips(sigs, 240, prev_state=new_state)
-    assert len(flips) == 1 and flips[0].symbol == "BTC" and flips[0].direction == "EXIT"
-    msg = flips[0].format()
+    btc_flips, _ = alerts.detect_flips(sigs, 240, prev_state=new_state, asset_class="crypto")
+    assert len(btc_flips) == 1 and btc_flips[0].symbol == "BTC" and btc_flips[0].direction == "EXIT"
+
+    # Different asset class with same symbol shouldn't pollute
+    stock_sigs = [{"symbol": "AAPL", "pair": "AAPL", "state": "LONG", "last_close": 200.0,
+                   "stoch_k": 50.0, "filter_up": True, "close_vs_hband_pct": 1.0}]
+    stock_flips, post = alerts.detect_flips(stock_sigs, 1440, prev_state=new_state, asset_class="stocks")
+    assert stock_flips == [], "stocks first-run should be silent even when crypto baseline exists"
+    assert "crypto|BTC|240" in post, "must preserve other-class state"
+    assert "stocks|AAPL|1440" in post, "must add new-class state"
+    msg = btc_flips[0].format()
     assert "EXIT" in msg and "BTC" in msg and "BTCUSDT" in msg
     # Encode-safe preview (the actual Telegram message is unicode over HTTP).
     preview = msg.encode("ascii", "replace").decode("ascii")

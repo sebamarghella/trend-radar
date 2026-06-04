@@ -116,15 +116,6 @@ EXCLUDED_SYMBOLS = {
     "FIGR_HELOC", "BNLIFE", "HASH",
 }
 
-def candidate_symbols(base: str, quotes: tuple[str, ...] = ("USDT", "USDC", "FDUSD")) -> list[str]:
-    """Binance candidate symbols, in priority order.
-
-    USDT first (deepest liquidity), then USDC and FDUSD as fallbacks for
-    coins that only trade against stablecoins other than USDT.
-    """
-    return [f"{base}{q}" for q in quotes]
-
-
 def tradable_universe() -> list[dict]:
     """Top 100 minus stablecoins/RWAs."""
     return [c for c in TOP_100 if c["symbol"] not in EXCLUDED_SYMBOLS]

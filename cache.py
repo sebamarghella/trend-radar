@@ -15,13 +15,13 @@ CACHE_DIR = Path(__file__).parent / ".cache" / "ohlc"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _path(pair: str, interval_minutes: int) -> Path:
-    safe_pair = pair.replace("/", "_").replace(":", "_")
-    return CACHE_DIR / f"{safe_pair}__{interval_minutes}m.pkl"
+def _path(source: str, pair: str, interval_minutes: int) -> Path:
+    safe = f"{source}_{pair}".replace("/", "_").replace(":", "_")
+    return CACHE_DIR / f"{safe}__{interval_minutes}m.pkl"
 
 
-def load(pair: str, interval_minutes: int) -> pd.DataFrame | None:
-    p = _path(pair, interval_minutes)
+def load(source: str, pair: str, interval_minutes: int) -> pd.DataFrame | None:
+    p = _path(source, pair, interval_minutes)
     if not p.exists():
         return None
     try:
@@ -30,9 +30,9 @@ def load(pair: str, interval_minutes: int) -> pd.DataFrame | None:
         return None
 
 
-def save(pair: str, interval_minutes: int, df: pd.DataFrame) -> None:
+def save(source: str, pair: str, interval_minutes: int, df: pd.DataFrame) -> None:
     try:
-        df.to_pickle(_path(pair, interval_minutes))
+        df.to_pickle(_path(source, pair, interval_minutes))
     except Exception:
         # Cache failure should never break the app.
         pass

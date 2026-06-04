@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OHLC cache — refetched on every run, not worth committing
+.cache/ohlc/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
