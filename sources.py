@@ -281,9 +281,13 @@ class YahooSource(DataSource):
         )
         if df is None or df.empty:
             raise SourceError(f"no data for {symbol}")
-        # yfinance returns multi-level columns when downloading one ticker too.
+        # yfinance returns multi-level columns when downloading even a single
+        # ticker (level 0 = "Open"/"High"/..., level 1 = ticker name).
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
+        # Drop the residual columns.name ("Price") — Altair/Vega-Lite trips on
+        # a named columns Index and silently renders an empty chart.
+        df.columns = pd.Index(list(df.columns), name=None)
         df = df.rename(columns={
             "Open": "open", "High": "high", "Low": "low",
             "Close": "close", "Volume": "volume",
@@ -293,8 +297,10 @@ class YahooSource(DataSource):
             idx = idx.tz_localize("UTC")
         else:
             idx = idx.tz_convert("UTC")
-        df.index = idx
-        df.index.name = "ts"  # match Binance/Gate/Kraken so app chart code works
+        # Normalize precision to ns to match the other sources (Binance is ms,
+        # Kraken/Gate are s — all upcast cleanly to ns).
+        df.index = pd.DatetimeIndex(idx).astype("datetime64[ns, UTC]")
+        df.index.name = "ts"
         keep = [c for c in ("open", "high", "low", "close", "volume") if c in df.columns]
         return df[keep].sort_index().dropna()
 
