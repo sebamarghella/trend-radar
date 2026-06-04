@@ -539,6 +539,16 @@ def render_radar(ac: AssetClass) -> None:
     soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
     hard_refresh = r2.button("Force", key=f"force_{key}", help="Ignore disk cache")
 
+    # Assignment hint: this tab uses (logic, preset); how to make it permanent.
+    if _gh_token and _gh_repo:
+        _persist = "Sidebar → **⬆ Commit presets to repo** saves this choice permanently (and for alerts)."
+    else:
+        _persist = "Add a GitHub token in secrets to enable permanent saving (sidebar)."
+    st.caption(
+        f"**{ac.label}** uses **{logic_labels[chosen_logic]}** · preset "
+        f"**{chosen_preset}**. {_persist}"
+    )
+
     # Param editor (returns the strategy with live-edited params for this session)
     strategy = _render_strategy_editor(key, chosen_logic, presets[chosen_preset], preset_widget_key)
 
