@@ -294,6 +294,7 @@ class YahooSource(DataSource):
         else:
             idx = idx.tz_convert("UTC")
         df.index = idx
+        df.index.name = "ts"  # match Binance/Gate/Kraken so app chart code works
         keep = [c for c in ("open", "high", "low", "close", "volume") if c in df.columns]
         return df[keep].sort_index().dropna()
 
