@@ -332,37 +332,51 @@ function(event) {{
 """)
 
 
+# Per-column width as a percentage of the table. AgGrid has no literal percent
+# unit, but `flex` weights distribute width proportionally — so weights that sum
+# to 100 make each column occupy that % of the pane. No maxWidth anywhere, so
+# the grid always fills 100% width; minWidth is just a readability floor that
+# triggers horizontal scroll only when the pane gets very narrow.
+COLUMN_FLEX = {
+    "rank": 3, "symbol": 6, "name": 12, "exchange_short": 5, "pair": 8,
+    "state": 6, "bar_color": 9, "filter_up": 4, "bars_in_state": 5,
+    "close_vs_hband_pct": 7, "stoch_k": 5, "last_close": 7, "trades": 6,
+    "net_pct": 7, "win_pct": 6, "tv": 4,
+}  # sums to 100
+
+assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
+
+
 def build_grid_options(df: pd.DataFrame) -> dict:
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(resizable=True, sortable=True, filterable=False)
     gb.configure_selection(selection_mode="single", use_checkbox=False, suppressRowDeselection=True)
-    gb.configure_column("rank", header_name="#", maxWidth=60, type=["numericColumn"])
-    gb.configure_column("symbol", header_name="Sym", maxWidth=90, pinned="left")
-    # Name flexes to absorb any leftover width so the table always fills 100%
-    # of the pane — no blank space on the right.
-    gb.configure_column("name", header_name="Name", minWidth=140, flex=1)
-    gb.configure_column("exchange_short", header_name="Src", maxWidth=70)
-    gb.configure_column("pair", header_name="Pair", maxWidth=120)
+    F = COLUMN_FLEX
+    gb.configure_column("rank", header_name="#", flex=F["rank"], minWidth=40, type=["numericColumn"])
+    gb.configure_column("symbol", header_name="Sym", flex=F["symbol"], minWidth=55)
+    gb.configure_column("name", header_name="Name", flex=F["name"], minWidth=90)
+    gb.configure_column("exchange_short", header_name="Src", flex=F["exchange_short"], minWidth=45)
+    gb.configure_column("pair", header_name="Pair", flex=F["pair"], minWidth=65)
     gb.configure_column("exchange", hide=True)
     gb.configure_column("tv_prefix", hide=True)
-    gb.configure_column("state", header_name="Pos", maxWidth=70, cellStyle=_CELLSTYLE_STATE)
-    gb.configure_column("bar_color", header_name="Bar", maxWidth=120, cellStyle=_CELLSTYLE_BAR)
-    gb.configure_column("filter_up", header_name="F↑", maxWidth=60, cellStyle=_CELLSTYLE_FILTER)
-    gb.configure_column("bars_in_state", header_name="Bars", maxWidth=70, type=["numericColumn"])
+    gb.configure_column("state", header_name="Pos", flex=F["state"], minWidth=55, cellStyle=_CELLSTYLE_STATE)
+    gb.configure_column("bar_color", header_name="Bar", flex=F["bar_color"], minWidth=80, cellStyle=_CELLSTYLE_BAR)
+    gb.configure_column("filter_up", header_name="F↑", flex=F["filter_up"], minWidth=40, cellStyle=_CELLSTYLE_FILTER)
+    gb.configure_column("bars_in_state", header_name="Bars", flex=F["bars_in_state"], minWidth=45, type=["numericColumn"])
     gb.configure_column(
-        "close_vs_hband_pct", header_name="vs HB", maxWidth=90,
+        "close_vs_hband_pct", header_name="vs HB", flex=F["close_vs_hband_pct"], minWidth=60,
         type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=_CELLSTYLE_PCT,
     )
-    gb.configure_column("stoch_k", header_name="StK", maxWidth=70, type=["numericColumn"], valueFormatter=_FMT_K)
-    gb.configure_column("last_close", header_name="Close", type=["numericColumn"], valueFormatter=_FMT_PRICE)
-    gb.configure_column("trades", header_name="Trades", maxWidth=80, type=["numericColumn"], valueFormatter=_FMT_INT)
+    gb.configure_column("stoch_k", header_name="StK", flex=F["stoch_k"], minWidth=45, type=["numericColumn"], valueFormatter=_FMT_K)
+    gb.configure_column("last_close", header_name="Close", flex=F["last_close"], minWidth=60, type=["numericColumn"], valueFormatter=_FMT_PRICE)
+    gb.configure_column("trades", header_name="Trades", flex=F["trades"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_INT)
     gb.configure_column(
-        "net_pct", header_name="Net %", maxWidth=100,
+        "net_pct", header_name="Net %", flex=F["net_pct"], minWidth=60,
         type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=_CELLSTYLE_PCT,
     )
-    gb.configure_column("win_pct", header_name="Win %", maxWidth=85, type=["numericColumn"], valueFormatter=_FMT_WIN)
+    gb.configure_column("win_pct", header_name="Win %", flex=F["win_pct"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_WIN)
     gb.configure_column(
-        "tv", header_name="TV", maxWidth=70,
+        "tv", header_name="TV", flex=F["tv"], minWidth=45,
         sortable=False, filter=False,
         valueFormatter=_TV_VALUE_FMT, cellStyle=_TV_CELL_STYLE,
     )
