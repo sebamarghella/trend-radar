@@ -64,9 +64,26 @@ strategy from a dropdown. A *strategy* is a named preset: a logic + its paramete
 - **Assignment persistence**: which strategy each class uses is stored in
   `strategy_assignments.json`.
 
-**Streamlit Cloud caveat**: uploaded presets and assignment changes live only for
-the session (ephemeral disk). To make them permanent *and* drive the alert cron,
-commit the `strategies/*.json` and `strategy_assignments.json` to the repo.
+**Persisting presets (Commit button)**: Streamlit Cloud's disk is ephemeral, so
+saved presets and assignment changes live only for the session by default. Add a
+GitHub token to secrets and the sidebar shows a **⬆ Commit presets to repo**
+button that pushes `strategies/*.json` + `strategy_assignments.json` to the repo
+(via the GitHub Contents API) — making them permanent *and* picked up by the alert
+cron. Token setup:
+
+```toml
+# .streamlit/secrets.toml  (or Streamlit Cloud "Secrets" panel)
+[github]
+token = "<fine-grained PAT with Contents: Read and write on this repo>"
+repo = "sebamarghella/trend-radar"
+branch = "main"
+```
+
+Without a token, commit `strategies/*.json` to the repo manually.
+
+**Security**: the commit button is server-side (the token is never exposed to the
+browser), but anyone who can open the app can click it. Keep the deployed app's
+sharing set to "Only specific people" if commit is enabled.
 
 ## Files
 

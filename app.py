@@ -59,10 +59,45 @@ _template = json.dumps(
     indent=2,
 )
 st.sidebar.download_button("Download template JSON", _template, file_name="strategy_template.json")
-st.sidebar.caption(
-    "On Streamlit Cloud, uploads last for the session. For permanence + alerts, "
-    "commit the JSON to `strategies/` in the repo."
-)
+
+
+def _github_secrets() -> tuple[str, str, str]:
+    try:
+        gh = st.secrets.get("github", {})
+        return str(gh.get("token", "")), str(gh.get("repo", "")), str(gh.get("branch", "") or "main")
+    except Exception:
+        return "", "", "main"
+
+
+_gh_token, _gh_repo, _gh_branch = _github_secrets()
+if _gh_token and _gh_repo:
+    if st.sidebar.button("⬆ Commit presets to repo", help="Push saved presets + per-class assignments to GitHub so they persist across restarts and drive the alert cron."):
+        import repo_sync
+        with st.spinner("Committing presets to GitHub…"):
+            res = repo_sync.sync_presets(
+                _gh_repo, _gh_token, _gh_branch,
+                strat_registry.STRATEGIES_DIR, strat_registry.ASSIGNMENTS_FILE,
+            )
+        n = len(res["created"]) + len(res["updated"]) + len(res["deleted"])
+        if res["errors"]:
+            st.sidebar.error("Commit errors: " + "; ".join(res["errors"][:3]))
+        elif n == 0:
+            st.sidebar.info("Nothing to commit — repo already up to date.")
+        else:
+            st.sidebar.success(
+                f"Committed {n} change(s) to {_gh_repo}. Presets now persist "
+                "(the app may briefly redeploy)."
+            )
+    st.sidebar.caption(
+        "Saved presets persist for this session. Click **Commit presets** to push "
+        "them to the repo (permanent + used by alerts)."
+    )
+else:
+    st.sidebar.caption(
+        "On Streamlit Cloud, uploads/saves last for the session. Add a GitHub "
+        "token in secrets (`[github] token, repo`) to enable a **Commit presets** "
+        "button. For now, commit `strategies/*.json` to the repo manually."
+    )
 
 st.sidebar.header("Backtest")
 lookback_days = st.sidebar.slider(
