@@ -397,46 +397,64 @@ SORT_MAP = {
 }
 
 
-def _render_param_editor(ac_key: str, strategy: Strategy) -> Strategy:
-    """Show the selected strategy's params as editable widgets in an expander.
-    Returns a Strategy reflecting the (possibly edited) values for this session.
-    Widget keys are scoped to (asset, strategy name) so switching strategy resets
-    the editor to that strategy's saved params."""
-    logic = strat_registry.LOGICS[strategy.logic_key]
+def _render_strategy_editor(
+    ac_key: str, logic_key: str, base: Strategy, preset_widget_key: str,
+) -> Strategy:
+    """Editable params for the chosen preset, plus Save / Delete. Returns a
+    Strategy reflecting the live-edited param values for this session."""
+    logic = strat_registry.LOGICS[logic_key]
     edited: dict = {}
     with st.expander("⚙ Strategy parameters", expanded=False):
         st.caption(logic.description)
         cols = st.columns(2)
         for i, p in enumerate(logic.param_schema):
             col = cols[i % 2]
-            wkey = f"param_{ac_key}_{strategy.name}_{p.key}"
-            base = strategy.params.get(p.key, p.default)
+            wkey = f"param_{ac_key}_{base.name}_{p.key}"
+            baseval = base.params.get(p.key, p.default)
             if p.kind == "bool":
-                edited[p.key] = col.checkbox(p.label, value=bool(base), key=wkey)
+                edited[p.key] = col.checkbox(p.label, value=bool(baseval), key=wkey)
             elif p.kind == "int":
                 edited[p.key] = col.number_input(
-                    p.label, value=int(base),
+                    p.label, value=int(baseval),
                     min_value=int(p.min) if p.min is not None else None,
                     max_value=int(p.max) if p.max is not None else None,
                     step=int(p.step or 1), key=wkey,
                 )
             else:  # float
                 edited[p.key] = col.number_input(
-                    p.label, value=float(base),
+                    p.label, value=float(baseval),
                     min_value=float(p.min) if p.min is not None else None,
                     max_value=float(p.max) if p.max is not None else None,
                     step=float(p.step or 0.1), format="%.4f", key=wkey,
                 )
-        save_col, name_col = st.columns([1, 2])
-        new_name = name_col.text_input("Preset name", value="", key=f"newpreset_{ac_key}",
-                                       placeholder="e.g. Crypto 4h aggressive")
-        if save_col.button("💾 Save as preset", key=f"savepreset_{ac_key}"):
-            if new_name.strip():
-                strat_registry.save_strategy(Strategy(new_name.strip(), strategy.logic_key, edited))
-                st.success(f"Saved '{new_name.strip()}'. Select it from the Strategy dropdown.")
+
+        st.divider()
+        name_col, save_col = st.columns([2, 1])
+        new_name = name_col.text_input(
+            "Save current params as a new preset", value="",
+            key=f"newpreset_{ac_key}", placeholder="e.g. Crypto 4h aggressive",
+        )
+        save_col.write("")
+        if save_col.button("💾 Save preset", key=f"savepreset_{ac_key}"):
+            nm = new_name.strip()
+            if nm:
+                strat_registry.save_strategy(Strategy(nm, logic_key, edited))
+                strat_registry.save_assignment(ac_key, nm)
+                st.session_state[preset_widget_key] = nm  # auto-select on rerun
+                st.rerun()
             else:
                 st.warning("Enter a preset name first.")
-    return Strategy(strategy.name, strategy.logic_key, edited)
+
+        if not strat_registry.is_builtin(base.name):
+            if st.button(f"🗑 Delete preset “{base.name}”", key=f"delpreset_{ac_key}"):
+                strat_registry.delete_strategy(base.name)
+                st.session_state.pop(preset_widget_key, None)
+                strat_registry.save_assignment(ac_key, strat_registry.DEFAULT_STRATEGY_NAME)
+                st.rerun()
+        else:
+            st.caption("Built-in presets can't be deleted. Save a copy under a new name to edit.")
+
+    return Strategy(base.name, logic_key, edited)
 
 
 def render_radar(ac: AssetClass) -> None:
@@ -449,33 +467,45 @@ def render_radar(ac: AssetClass) -> None:
 
     st.caption(ac.description)
 
-    # Strategy selection (persisted per asset class)
+    # --- Strategy (logic) + Preset selection, persisted per asset class ---
     all_strategies = strat_registry.load_strategies()
-    strat_names = list(all_strategies.keys())
-    assigned = strat_registry.get_assignment(key)
-    default_idx = strat_names.index(assigned) if assigned in strat_names else 0
+    assigned_name = strat_registry.get_assignment(key)
+    assigned_strat = all_strategies.get(assigned_name)
+    assigned_logic = assigned_strat.logic_key if assigned_strat else strat_registry.DEFAULT_LOGIC_KEY
 
-    # Per-tab controls row
-    c0, c1, c2, c3, c4 = st.columns([3, 2, 2, 1, 1])
-    chosen_name = c0.selectbox("Strategy", strat_names, index=default_idx, key=f"strat_{key}")
-    if chosen_name != assigned:
-        strat_registry.save_assignment(key, chosen_name)
-    interval_label = c1.selectbox(
+    logics = strat_registry.list_logics()
+    logic_keys = [k for k, _ in logics]
+    logic_labels = dict(logics)
+
+    c0, c1, c2, c3 = st.columns([3, 3, 2, 2])
+    logic_idx = logic_keys.index(assigned_logic) if assigned_logic in logic_keys else 0
+    chosen_logic = c0.selectbox(
+        "Strategy", logic_keys, index=logic_idx,
+        format_func=lambda k: logic_labels[k], key=f"logic_{key}",
+    )
+    presets = strat_registry.presets_for_logic(chosen_logic, all_strategies)
+    preset_names = list(presets.keys())
+    # Preset dropdown key is scoped to the logic so switching strategy gives a
+    # clean preset list (no stale-selection error).
+    preset_widget_key = f"preset_{key}_{chosen_logic}"
+    preset_idx = preset_names.index(assigned_name) if assigned_name in preset_names else 0
+    chosen_preset = c1.selectbox("Preset", preset_names, index=preset_idx, key=preset_widget_key)
+    if chosen_preset != assigned_name:
+        strat_registry.save_assignment(key, chosen_preset)
+
+    interval_label = c2.selectbox(
         "Timeframe", options=ac.interval_options,
-        format_func=lambda x: x[0], index=ac.default_interval_idx,
-        key=f"tf_{key}",
+        format_func=lambda x: x[0], index=ac.default_interval_idx, key=f"tf_{key}",
     )
     interval_minutes = interval_label[1]
-    sort_by = c2.selectbox("Sort by", list(SORT_MAP.keys()), key=f"sort_{key}")
-    with c3:
-        st.write("")
-        soft_refresh = st.button("Refresh", key=f"refresh_{key}", type="primary")
-    with c4:
-        st.write("")
-        hard_refresh = st.button("Force", key=f"force_{key}", help="Ignore disk cache")
+    sort_by = c3.selectbox("Sort by", list(SORT_MAP.keys()), key=f"sort_{key}")
+
+    r1, r2, _sp = st.columns([1, 1, 8])
+    soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
+    hard_refresh = r2.button("Force", key=f"force_{key}", help="Ignore disk cache")
 
     # Param editor (returns the strategy with live-edited params for this session)
-    strategy = _render_param_editor(key, all_strategies[chosen_name])
+    strategy = _render_strategy_editor(key, chosen_logic, presets[chosen_preset], preset_widget_key)
 
     if soft_refresh or hard_refresh:
         st.session_state.bust[key] += 1

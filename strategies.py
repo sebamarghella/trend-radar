@@ -172,6 +172,20 @@ def _builtin_strategies() -> list[Strategy]:
 
 
 DEFAULT_STRATEGY_NAME = "GaussianChannel v3.1 (default)"
+DEFAULT_LOGIC_KEY = "gaussian_channel_v3_1"
+
+
+def _builtin_names() -> set[str]:
+    return {s.name for s in _builtin_strategies()}
+
+
+def is_builtin(name: str) -> bool:
+    return name in _builtin_names()
+
+
+def list_logics() -> list[tuple[str, str]]:
+    """(key, label) for every registered logic — drives the Strategy dropdown."""
+    return [(spec.key, spec.label) for spec in LOGICS.values()]
 
 
 # --- Persistence ---------------------------------------------------------------
@@ -217,6 +231,28 @@ def load_strategies() -> dict[str, Strategy]:
         except (json.JSONDecodeError, ValueError, OSError) as e:
             print(f"[warn] skipping bad strategy file {p.name}: {e}")
     return out
+
+
+def presets_for_logic(logic_key: str, strategies: dict[str, Strategy] | None = None) -> dict[str, Strategy]:
+    """Presets that belong to one logic — drives the Preset dropdown."""
+    strategies = strategies if strategies is not None else load_strategies()
+    return {name: s for name, s in strategies.items() if s.logic_key == logic_key}
+
+
+def delete_strategy(name: str) -> bool:
+    """Delete a user preset's JSON file. Built-ins can't be deleted. Returns True
+    if a file was removed. Matches by the strategy's `name` field, not filename."""
+    if is_builtin(name):
+        return False
+    for p in STRATEGIES_DIR.glob("*.json"):
+        try:
+            d = json.loads(p.read_text())
+            if d.get("name") == name:
+                p.unlink()
+                return True
+        except (json.JSONDecodeError, OSError):
+            continue
+    return False
 
 
 # --- Per-asset-class assignment ------------------------------------------------
