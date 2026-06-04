@@ -108,11 +108,12 @@ TOP_100: list[dict] = [
 ]
 
 # Stablecoins + tokenized RWAs + wrapped fiat — no meaningful trend signal.
+# NOTE: gold tokens (PAXG, XAUT) are intentionally NOT excluded — they trend and
+# Signum lists them. Only pegged/peg-like assets are dropped here.
 EXCLUDED_SYMBOLS = {
     "USDT", "USDC", "DAI", "USDS", "PYUSD", "USDE", "USD1", "USDG", "USDY",
     "USDF", "USDD", "BFUSD", "USDTB", "USTB", "RLUSD", "GHO", "USD0",
     "BUIDL", "EUTBL", "JTRSY", "USYC", "BCAP", "U", "STABLE",
-    "PAXG", "XAUT",
     "FIGR_HELOC", "BNLIFE", "HASH",
 }
 

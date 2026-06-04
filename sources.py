@@ -236,6 +236,57 @@ class KrakenSource(DataSource):
         return df.set_index("ts")[["open", "high", "low", "close", "volume"]].sort_index()
 
 
+# --- KuCoin --------------------------------------------------------------------
+
+
+class KuCoinSource(DataSource):
+    name = "KuCoin"
+    short = "KUC"
+    tv_prefix = "KUCOIN"
+
+    BASE_URL = "https://api.kucoin.com/api/v1"
+    INTERVAL_MAP: dict[int, str] = {
+        60: "1hour", 240: "4hour", 360: "6hour", 480: "8hour", 720: "12hour",
+        1440: "1day", 10080: "1week",
+    }
+    INTERVAL_SECONDS: dict[int, int] = {
+        60: 3600, 240: 14400, 360: 21600, 480: 28800, 720: 43200,
+        1440: 86400, 10080: 604800,
+    }
+
+    def tradable_symbols(self) -> set[str]:
+        data = _get_json(f"{self.BASE_URL}/symbols")
+        items = data.get("data", []) if isinstance(data, dict) else []
+        return {s["symbol"] for s in items if s.get("enableTrading")}
+
+    def candidate_symbols(self, base: str) -> list[str]:
+        return [f"{base}-USDT", f"{base}-USDC"]
+
+    def fetch_klines(self, symbol: str, interval_minutes: int) -> pd.DataFrame:
+        ktype = self.INTERVAL_MAP.get(interval_minutes)
+        if ktype is None:
+            raise SourceError(f"unsupported interval {interval_minutes}m for KuCoin")
+        # KuCoin caps at 1500 candles/request; bound the window explicitly.
+        import time as _time
+        end_at = int(_time.time())
+        start_at = end_at - self.INTERVAL_SECONDS[interval_minutes] * 1500
+        payload = _get_json(
+            f"{self.BASE_URL}/market/candles",
+            {"symbol": symbol, "type": ktype, "startAt": start_at, "endAt": end_at},
+        )
+        rows = payload.get("data", []) if isinstance(payload, dict) else []
+        if not rows:
+            raise SourceError(f"no klines for {symbol}")
+        # KuCoin candle: [time_s, open, close, high, low, volume, turnover], newest first.
+        df = pd.DataFrame(
+            rows, columns=["ts_s", "open", "close", "high", "low", "volume", "turnover"],
+        )
+        df["ts"] = pd.to_datetime(df["ts_s"].astype("int64"), unit="s", utc=True)
+        for col in ("open", "high", "low", "close", "volume"):
+            df[col] = pd.to_numeric(df[col])
+        return df.set_index("ts")[["open", "high", "low", "close", "volume"]].sort_index()
+
+
 # --- Yahoo Finance -------------------------------------------------------------
 
 
@@ -308,7 +359,9 @@ class YahooSource(DataSource):
 # --- Multi-source resolver -----------------------------------------------------
 
 
-DEFAULT_PRIORITY: list[type[DataSource]] = [BinanceSource, GateIOSource, KrakenSource]
+DEFAULT_PRIORITY: list[type[DataSource]] = [
+    BinanceSource, GateIOSource, KrakenSource, KuCoinSource,
+]
 
 
 class Resolver:
