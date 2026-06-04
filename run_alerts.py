@@ -8,15 +8,13 @@ Required env vars:
     TELEGRAM_BOT_TOKEN
     TELEGRAM_CHAT_ID
 
+Each asset class uses the strategy assigned to it in strategy_assignments.json
+(falling back to the default GaussianChannel v3.1). Strategy params come from the
+preset; there are no per-param env vars anymore — edit the preset JSON instead.
+
 Optional:
     TR_ASSET_CLASSES       comma-separated keys to scan; default: all
                            (e.g. "crypto,stocks")
-    TR_GC_POLES            default 4
-    TR_GC_PERIOD           default 144
-    TR_GC_MULT             default 1.414
-    TR_RSI_LEN             default 14
-    TR_STOCH_LEN           default 14
-    TR_SMOOTH_K            default 3
     TR_MAX_WORKERS         default 20
 """
 
@@ -27,8 +25,8 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import alerts
+import strategies as strat_registry
 from asset_classes import ASSET_CLASSES, AssetClass
-from gaussian_channel import GCParams, gaussian_channel, replay_strategy, stoch_rsi_k
 from sources import Resolver, SourceError
 
 
@@ -53,18 +51,21 @@ def fetch_one(base: str, resolver: Resolver, interval_minutes: int) -> dict | No
 
 def scan_class(
     ac: AssetClass,
-    gc_params: GCParams,
-    rsi_len: int,
-    stoch_len: int,
-    sm_k: int,
     max_workers: int,
     prev_state: dict[str, str],
     bot_token: str,
     chat_id: str,
 ) -> dict[str, str]:
-    """Scan one asset class, send alerts, return the updated state map."""
+    """Scan one asset class with its assigned strategy, send alerts, return state."""
     interval = ac.interval_options[ac.default_interval_idx][1]
-    print(f"\n-- {ac.label} (TF={interval}m) --")
+
+    all_strategies = strat_registry.load_strategies()
+    assigned_name = strat_registry.get_assignment(ac.key)
+    strategy = all_strategies.get(assigned_name)
+    if strategy is None:
+        strategy = all_strategies[strat_registry.DEFAULT_STRATEGY_NAME]
+        assigned_name = strategy.name
+    print(f"\n-- {ac.label} (TF={interval}m · strategy='{assigned_name}') --")
 
     resolver = ac.resolver_factory()
     coverage = resolver.coverage()
@@ -88,9 +89,8 @@ def scan_class(
     signals: list[dict] = []
     for r in rows:
         df = r["df"]
-        channel = gaussian_channel(df, gc_params)
-        k = stoch_rsi_k(df["close"].to_numpy(), rsi_len, stoch_len, sm_k)
-        snap, _state, _trades = replay_strategy(df, channel, k)
+        result = strat_registry.run_strategy(strategy, df)
+        snap = result.snapshot
         signals.append({
             "symbol": r["symbol"],
             "pair": r["pair"],
@@ -139,14 +139,6 @@ def main() -> int:
         print("ERROR: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set", file=sys.stderr)
         return 2
 
-    gc_params = GCParams(
-        poles=int(_env("TR_GC_POLES", "4")),
-        period=int(_env("TR_GC_PERIOD", "144")),
-        multiplier=float(_env("TR_GC_MULT", "1.414")),
-    )
-    rsi_len = int(_env("TR_RSI_LEN", "14"))
-    stoch_len = int(_env("TR_STOCH_LEN", "14"))
-    sm_k = int(_env("TR_SMOOTH_K", "3"))
     max_workers = int(_env("TR_MAX_WORKERS", "20"))
 
     requested = _env("TR_ASSET_CLASSES", "").strip()
@@ -159,14 +151,13 @@ def main() -> int:
     else:
         classes = list(ASSET_CLASSES)
 
-    print(f"== Trend Radar alerts ==")
-    print(f"poles={gc_params.poles} period={gc_params.period} mult={gc_params.multiplier}")
+    print("== Trend Radar alerts ==")
     print(f"asset classes: {[ac.label for ac in classes]}")
+    print(f"strategy assignments: {strat_registry.load_assignments()}")
 
     state = alerts.load_state()
     for ac in classes:
-        state = scan_class(ac, gc_params, rsi_len, stoch_len, sm_k, max_workers,
-                           state, bot_token, chat_id)
+        state = scan_class(ac, max_workers, state, bot_token, chat_id)
         alerts.save_state(state)
 
     return 0

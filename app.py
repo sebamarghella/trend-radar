@@ -15,18 +15,15 @@ import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 from st_aggrid.shared import JsCode
 
+import json
+
 import alerts
 import cache as ohlc_cache
+import strategies as strat_registry
 from asset_classes import ASSET_CLASSES, AssetClass
-from gaussian_channel import (
-    BAR_COLORS,
-    GCParams,
-    compute_stats,
-    gaussian_channel,
-    replay_strategy,
-    stoch_rsi_k,
-)
+from gaussian_channel import BAR_COLORS, compute_stats
 from sources import Resolver, SourceError
+from strategies import Strategy
 
 
 st.set_page_config(
@@ -38,21 +35,33 @@ st.set_page_config(
 
 # --- Global sidebar (shared across all tabs) -----------------------------------
 
-st.sidebar.header("Gaussian Channel")
-poles = st.sidebar.slider("Poles (N)", 1, 9, 4)
-period = st.sidebar.number_input("Sampling period", min_value=2, value=144, step=1)
-multiplier = st.sidebar.number_input("TR multiplier", min_value=0.0, value=1.414, step=0.1, format="%.3f")
-reduced_lag = st.sidebar.checkbox("Reduced lag mode", value=False)
-fast_response = st.sidebar.checkbox("Fast response mode", value=False)
-
-st.sidebar.header("Stoch RSI")
-rsi_length = st.sidebar.number_input("RSI length", min_value=2, value=14, step=1)
-stoch_length = st.sidebar.number_input("Stoch length", min_value=2, value=14, step=1)
-smooth_k = st.sidebar.number_input("Smooth K", min_value=1, value=3, step=1)
-
+st.sidebar.header("Strategies")
 st.sidebar.caption(
-    "Strategy: long when Gaussian filter is rising AND close > upper band AND "
-    "stoch K > 80 or < 20. Exit when close crosses below upper band."
+    "Each tab picks its own strategy. Edit params inline on a tab, or upload a "
+    "preset JSON here. Format: `{name, logic_key, params}`."
+)
+_uploaded = st.sidebar.file_uploader("Upload strategy JSON", type=["json"], key="strat_upload")
+if _uploaded is not None:
+    try:
+        _d = json.load(_uploaded)
+        _strat = strat_registry.parse_strategy_dict(_d)
+        strat_registry.save_strategy(_strat)
+        st.sidebar.success(f"Added '{_strat.name}'. Pick it in a tab's Strategy dropdown.")
+    except Exception as e:  # noqa: BLE001
+        st.sidebar.error(f"Invalid strategy JSON: {e}")
+
+# Downloadable template so users know the schema.
+_template = json.dumps(
+    strat_registry.Strategy(
+        "My strategy", "gaussian_channel_v3_1",
+        strat_registry.LOGICS["gaussian_channel_v3_1"].defaults(),
+    ).to_dict(),
+    indent=2,
+)
+st.sidebar.download_button("Download template JSON", _template, file_name="strategy_template.json")
+st.sidebar.caption(
+    "On Streamlit Cloud, uploads last for the session. For permanence + alerts, "
+    "commit the JSON to `strategies/` in the repo."
 )
 
 st.sidebar.header("Backtest")
@@ -205,19 +214,11 @@ def load_universe_data(
     return ok, skipped
 
 
-def compute_signal(
-    row: dict,
-    gc_params: GCParams,
-    rsi_len: int,
-    stoch_len: int,
-    sm_k: int,
-    lookback_days_: int,
-) -> dict:
+def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
     df = row["df"]
-    channel = gaussian_channel(df, gc_params)
-    k = stoch_rsi_k(df["close"].to_numpy(), rsi_len, stoch_len, sm_k)
-    snap, state, trades = replay_strategy(df, channel, k)
-    stats = compute_stats(trades, now=df.index[-1], lookback_days=lookback_days_)
+    result = strat_registry.run_strategy(strategy, df)
+    snap = result.snapshot
+    stats = compute_stats(result.trades, now=df.index[-1], lookback_days=lookback_days_)
     return {
         "rank": row["rank"],
         "symbol": row["symbol"],
@@ -233,15 +234,12 @@ def compute_signal(
         "close_vs_hband_pct": snap.close_vs_hband_pct,
         "stoch_k": snap.stoch_k,
         "last_close": snap.last_close,
-        "last_filt": snap.last_filt,
-        "last_hband": snap.last_hband,
-        "last_lband": snap.last_lband,
         "trades": stats.trades,
         "net_pct": stats.net_pct,
         "win_pct": stats.win_pct,
         "_df": df,
-        "_channel": channel,
-        "_state_series": state,
+        "_overlays": result.overlays,
+        "_state_series": result.state_series,
     }
 
 
@@ -380,8 +378,6 @@ def build_grid_options(df: pd.DataFrame) -> dict:
         sortable=False, filter=False,
         valueFormatter=_TV_VALUE_FMT, cellStyle=_TV_CELL_STYLE,
     )
-    for hidden in ("last_filt", "last_hband", "last_lband"):
-        gb.configure_column(hidden, hide=True)
     gb.configure_grid_options(onCellClicked=_TV_CLICK_HANDLER)
     return gb.build()
 
@@ -401,7 +397,49 @@ SORT_MAP = {
 }
 
 
-def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
+def _render_param_editor(ac_key: str, strategy: Strategy) -> Strategy:
+    """Show the selected strategy's params as editable widgets in an expander.
+    Returns a Strategy reflecting the (possibly edited) values for this session.
+    Widget keys are scoped to (asset, strategy name) so switching strategy resets
+    the editor to that strategy's saved params."""
+    logic = strat_registry.LOGICS[strategy.logic_key]
+    edited: dict = {}
+    with st.expander("⚙ Strategy parameters", expanded=False):
+        st.caption(logic.description)
+        cols = st.columns(2)
+        for i, p in enumerate(logic.param_schema):
+            col = cols[i % 2]
+            wkey = f"param_{ac_key}_{strategy.name}_{p.key}"
+            base = strategy.params.get(p.key, p.default)
+            if p.kind == "bool":
+                edited[p.key] = col.checkbox(p.label, value=bool(base), key=wkey)
+            elif p.kind == "int":
+                edited[p.key] = col.number_input(
+                    p.label, value=int(base),
+                    min_value=int(p.min) if p.min is not None else None,
+                    max_value=int(p.max) if p.max is not None else None,
+                    step=int(p.step or 1), key=wkey,
+                )
+            else:  # float
+                edited[p.key] = col.number_input(
+                    p.label, value=float(base),
+                    min_value=float(p.min) if p.min is not None else None,
+                    max_value=float(p.max) if p.max is not None else None,
+                    step=float(p.step or 0.1), format="%.4f", key=wkey,
+                )
+        save_col, name_col = st.columns([1, 2])
+        new_name = name_col.text_input("Preset name", value="", key=f"newpreset_{ac_key}",
+                                       placeholder="e.g. Crypto 4h aggressive")
+        if save_col.button("💾 Save as preset", key=f"savepreset_{ac_key}"):
+            if new_name.strip():
+                strat_registry.save_strategy(Strategy(new_name.strip(), strategy.logic_key, edited))
+                st.success(f"Saved '{new_name.strip()}'. Select it from the Strategy dropdown.")
+            else:
+                st.warning("Enter a preset name first.")
+    return Strategy(strategy.name, strategy.logic_key, edited)
+
+
+def render_radar(ac: AssetClass) -> None:
     """Render the radar UI for one asset class."""
     key = ac.key
     if "bust" not in st.session_state:
@@ -411,8 +449,17 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
 
     st.caption(ac.description)
 
+    # Strategy selection (persisted per asset class)
+    all_strategies = strat_registry.load_strategies()
+    strat_names = list(all_strategies.keys())
+    assigned = strat_registry.get_assignment(key)
+    default_idx = strat_names.index(assigned) if assigned in strat_names else 0
+
     # Per-tab controls row
-    c1, c2, c3, c4 = st.columns([2, 2, 1, 1])
+    c0, c1, c2, c3, c4 = st.columns([3, 2, 2, 1, 1])
+    chosen_name = c0.selectbox("Strategy", strat_names, index=default_idx, key=f"strat_{key}")
+    if chosen_name != assigned:
+        strat_registry.save_assignment(key, chosen_name)
     interval_label = c1.selectbox(
         "Timeframe", options=ac.interval_options,
         format_func=lambda x: x[0], index=ac.default_interval_idx,
@@ -426,6 +473,9 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
     with c4:
         st.write("")
         hard_refresh = st.button("Force", key=f"force_{key}", help="Ignore disk cache")
+
+    # Param editor (returns the strategy with live-edited params for this session)
+    strategy = _render_param_editor(key, all_strategies[chosen_name])
 
     if soft_refresh or hard_refresh:
         st.session_state.bust[key] += 1
@@ -459,10 +509,7 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
             st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]])
         return
 
-    signals = [
-        compute_signal(r, gc_params, rsi_length, stoch_length, smooth_k, lookback_days)
-        for r in ok_rows
-    ]
+    signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
 
     # Alert detection — per-asset-class state key prevents cross-contamination
     prev_alert_state = alerts.load_state()
@@ -515,7 +562,7 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
 
     # Grid + drilldown
     df = pd.DataFrame(signals)
-    df_display = df.drop(columns=["_df", "_channel", "_state_series"]).copy()
+    df_display = df.drop(columns=["_df", "_overlays", "_state_series"]).copy()
     sort_col, ascending = SORT_MAP[sort_by]
     df_display = df_display.sort_values(sort_col, ascending=ascending, na_position="last").reset_index(drop=True)
     df_display["tv"] = df_display["pair"]
@@ -560,35 +607,39 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
             st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
 
             chart_df = sel["_df"].copy()
-            chart_df["filt"] = sel["_channel"]["filt"]
-            chart_df["hband"] = sel["_channel"]["hband"]
-            chart_df["lband"] = sel["_channel"]["lband"]
+            overlays = sel.get("_overlays")
+            overlay_cols = []
+            if overlays is not None:
+                for col in ("filt", "hband", "lband"):
+                    if col in overlays.columns:
+                        chart_df[col] = overlays[col]
+                        overlay_cols.append(col)
             chart_df["long"] = sel["_state_series"].astype(int)
             chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
 
             # Chart height tracks the grid height so the two panes stay aligned.
             chart_height = max(grid_height - 160, 240)
 
-            price_layer = alt.Chart(chart_df).mark_line(color="#cccccc", strokeWidth=1.2).encode(
-                x=alt.X("time:T", title=None),
-                y=alt.Y("close:Q", title=selected_sym, scale=alt.Scale(zero=False)),
-            )
-            filt_layer = alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=2).encode(
-                x="time:T", y="filt:Q",
-            )
-            hband_layer = alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=1, opacity=0.6).encode(
-                x="time:T", y="hband:Q",
-            )
-            lband_layer = alt.Chart(chart_df).mark_line(color="#ff0a5a", strokeWidth=1, opacity=0.6).encode(
-                x="time:T", y="lband:Q",
-            )
-            long_layer = alt.Chart(chart_df[chart_df["long"] == 1]).mark_point(
+            layers = [
+                alt.Chart(chart_df).mark_line(color="#cccccc", strokeWidth=1.2).encode(
+                    x=alt.X("time:T", title=None),
+                    y=alt.Y("close:Q", title=selected_sym, scale=alt.Scale(zero=False)),
+                )
+            ]
+            if "filt" in overlay_cols:
+                layers.append(alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=2).encode(
+                    x="time:T", y="filt:Q"))
+            if "hband" in overlay_cols:
+                layers.append(alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=1, opacity=0.6).encode(
+                    x="time:T", y="hband:Q"))
+            if "lband" in overlay_cols:
+                layers.append(alt.Chart(chart_df).mark_line(color="#ff0a5a", strokeWidth=1, opacity=0.6).encode(
+                    x="time:T", y="lband:Q"))
+            layers.append(alt.Chart(chart_df[chart_df["long"] == 1]).mark_point(
                 color="#0aff68", filled=True, size=20, opacity=0.5,
-            ).encode(x="time:T", y="close:Q")
+            ).encode(x="time:T", y="close:Q"))
 
-            chart = (price_layer + filt_layer + hband_layer + lband_layer + long_layer).properties(
-                height=chart_height
-            )
+            chart = alt.layer(*layers).properties(height=chart_height)
             st.altair_chart(chart, use_container_width=True)
 
             mc1, mc2, mc3, mc4 = st.columns(4)
@@ -606,16 +657,11 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
 
 st.title("Trend Radar")
 st.caption(
-    "GaussianChannel Strategy v3.1 (Donovan Wall filter + Stoch RSI confluence) "
-    "across crypto / stocks / metals / commodities"
-)
-
-gc_params = GCParams(
-    poles=poles, period=period, multiplier=multiplier,
-    reduced_lag=reduced_lag, fast_response=fast_response,
+    "Per-asset-class trend strategies across crypto / stocks / metals / commodities. "
+    "Each tab picks its own strategy; defaults to GaussianChannel v3.1."
 )
 
 tabs = st.tabs([ac.label for ac in ASSET_CLASSES])
 for tab, ac in zip(tabs, ASSET_CLASSES):
     with tab:
-        render_radar(ac, gc_params)
+        render_radar(ac)

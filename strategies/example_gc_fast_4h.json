@@ -1,0 +1,14 @@
+{
+  "name": "GC v3.1 — Crypto 4h fast",
+  "logic_key": "gaussian_channel_v3_1",
+  "params": {
+    "poles": 4,
+    "period": 144,
+    "multiplier": 1.414,
+    "reduced_lag": false,
+    "fast_response": true,
+    "rsi_length": 14,
+    "stoch_length": 14,
+    "smooth_k": 3
+  }
+}

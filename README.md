@@ -46,15 +46,41 @@ All parameters are exposed in the sidebar so you can match a specific version's 
 
 Binance.com (`api.binance.com`) is blocked in the US/UK. The client transparently falls back to `data-api.binance.vision`, Binance's CDN-fronted public data mirror, which serves the same exchangeInfo and klines endpoints from regions where the main API is restricted.
 
+## Strategies
+
+Each of the four tabs (Crypto / Stocks / Metals / Commodities) picks its own
+strategy from a dropdown. A *strategy* is a named preset: a logic + its parameters.
+
+- **Logic**: the actual Python implementation (currently `gaussian_channel_v3_1`).
+  Adding a new logic = registering a `LogicSpec` in `strategies.py` (e.g. when you
+  port another Pine script). It then appears for all tabs automatically.
+- **Presets**: same logic, different params. Built-ins ship in code; user presets
+  live as JSON in `strategies/*.json`.
+- **Editing params**: open "⚙ Strategy parameters" on any tab. Changes apply live;
+  "Save as preset" writes a new JSON you can then pick from the dropdown.
+- **Uploading**: sidebar → "Upload strategy JSON". Format:
+  `{"name": ..., "logic_key": "gaussian_channel_v3_1", "params": {...}}`.
+  Use the "Download template JSON" button for a starting point.
+- **Assignment persistence**: which strategy each class uses is stored in
+  `strategy_assignments.json`.
+
+**Streamlit Cloud caveat**: uploaded presets and assignment changes live only for
+the session (ephemeral disk). To make them permanent *and* drive the alert cron,
+commit the `strategies/*.json` and `strategy_assignments.json` to the repo.
+
 ## Files
 
-- `app.py` — Streamlit UI
-- `run_alerts.py` — Headless alert engine (no UI; runs from cron / GitHub Actions)
-- `gaussian_channel.py` — N-pole Gaussian filter, True Range, Wilder RSI, Stoch RSI, strategy replay
-- `binance_client.py` — Public REST client (exchangeInfo + klines, with geo-blocked fallback)
-- `alerts.py` — Telegram + state-diff
+- `app.py` — Streamlit UI (4 tabs, per-class strategy dropdowns)
+- `run_alerts.py` — Headless alert engine; each class uses its assigned strategy
+- `strategies.py` — Logic registry, Strategy presets, JSON load/save, assignments
+- `asset_classes.py` — Crypto / Stocks / Metals / Commodities universes + resolvers
+- `sources.py` — Binance / Gate.io / Kraken / Yahoo data sources + multi-source resolver
+- `gaussian_channel.py` — N-pole Gaussian filter, True Range, Wilder RSI, Stoch RSI, replay
+- `alerts.py` — Telegram + per-class state-diff
 - `cache.py` — On-disk OHLC cache with bar-aware freshness
-- `coins.py` — Top-100 universe, exclusion list, Binance symbol candidates
+- `coins.py` — Top-100 crypto universe + exclusion list
+- `strategies/` — user preset JSONs
+- `strategy_assignments.json` — which strategy each asset class uses
 
 ## Tweaking the strategy
 
