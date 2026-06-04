@@ -338,7 +338,9 @@ def build_grid_options(df: pd.DataFrame) -> dict:
     gb.configure_selection(selection_mode="single", use_checkbox=False, suppressRowDeselection=True)
     gb.configure_column("rank", header_name="#", maxWidth=60, type=["numericColumn"])
     gb.configure_column("symbol", header_name="Sym", maxWidth=90, pinned="left")
-    gb.configure_column("name", header_name="Name", minWidth=120)
+    # Name flexes to absorb any leftover width so the table always fills 100%
+    # of the pane — no blank space on the right.
+    gb.configure_column("name", header_name="Name", minWidth=140, flex=1)
     gb.configure_column("exchange_short", header_name="Src", maxWidth=70)
     gb.configure_column("pair", header_name="Pair", maxWidth=120)
     gb.configure_column("exchange", hide=True)
