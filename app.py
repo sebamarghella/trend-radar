@@ -61,6 +61,17 @@ lookback_days = st.sidebar.slider(
     help="Window for trade count / net % / win % in the radar grid.",
 )
 
+st.sidebar.header("Layout")
+table_width_pct = st.sidebar.slider(
+    "Table width", min_value=25, max_value=100, value=50, step=5, format="%d%%",
+    help="Width of the radar table vs the drilldown chart. 100% hides the chart "
+    "and shows the table full-width.",
+)
+grid_height = st.sidebar.slider(
+    "Table height", min_value=300, max_value=1000, value=620, step=20, format="%d px",
+    help="Vertical size of the radar grid.",
+)
+
 st.sidebar.header("Telegram alerts")
 
 
@@ -493,14 +504,22 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
     df_display = df_display.sort_values(sort_col, ascending=ascending, na_position="last").reset_index(drop=True)
     df_display["tv"] = df_display["pair"]
 
-    left, right = st.columns([1, 1], gap="large")
+    # Layout: the sidebar "Table width" slider drives the split. At 100% the
+    # chart is hidden and the table spans the full width.
+    chart_hidden = table_width_pct >= 100
+    if chart_hidden:
+        left = st.container()
+        right = None
+    else:
+        left, right = st.columns([table_width_pct, 100 - table_width_pct], gap="large")
+
     with left:
         st.subheader("Radar")
         st.caption("Click any cell in a row to drill down into that coin's chart.")
         grid_response = AgGrid(
             df_display,
             gridOptions=build_grid_options(df_display),
-            height=620,
+            height=grid_height,
             update_mode=GridUpdateMode.SELECTION_CHANGED,
             allow_unsafe_jscode=True,
             fit_columns_on_grid_load=False,
@@ -508,53 +527,59 @@ def render_radar(ac: AssetClass, gc_params: GCParams) -> None:
             key=f"grid_{key}_{sort_by}",
         )
 
-    selected = grid_response.get("selected_rows")
-    selected_sym: str | None = None
-    if isinstance(selected, pd.DataFrame) and not selected.empty:
-        selected_sym = selected.iloc[0]["symbol"]
-    elif isinstance(selected, list) and selected:
-        selected_sym = selected[0].get("symbol")
-    if not selected_sym:
-        selected_sym = df_display.iloc[0]["symbol"]
+    if not chart_hidden:
+        selected = grid_response.get("selected_rows")
+        selected_sym: str | None = None
+        if isinstance(selected, pd.DataFrame) and not selected.empty:
+            selected_sym = selected.iloc[0]["symbol"]
+        elif isinstance(selected, list) and selected:
+            selected_sym = selected[0].get("symbol")
+        if not selected_sym:
+            selected_sym = df_display.iloc[0]["symbol"]
 
-    sel = next(s for s in signals if s["symbol"] == selected_sym)
+        sel = next(s for s in signals if s["symbol"] == selected_sym)
 
-    with right:
-        st.subheader(f"Drilldown — {selected_sym}")
-        st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
+        with right:
+            st.subheader(f"Drilldown — {selected_sym}")
+            st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
 
-        chart_df = sel["_df"].copy()
-        chart_df["filt"] = sel["_channel"]["filt"]
-        chart_df["hband"] = sel["_channel"]["hband"]
-        chart_df["lband"] = sel["_channel"]["lband"]
-        chart_df["long"] = sel["_state_series"].astype(int)
-        chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
+            chart_df = sel["_df"].copy()
+            chart_df["filt"] = sel["_channel"]["filt"]
+            chart_df["hband"] = sel["_channel"]["hband"]
+            chart_df["lband"] = sel["_channel"]["lband"]
+            chart_df["long"] = sel["_state_series"].astype(int)
+            chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
 
-        price_layer = alt.Chart(chart_df).mark_line(color="#cccccc", strokeWidth=1.2).encode(
-            x=alt.X("time:T", title=None),
-            y=alt.Y("close:Q", title=selected_sym, scale=alt.Scale(zero=False)),
-        )
-        filt_layer = alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=2).encode(
-            x="time:T", y="filt:Q",
-        )
-        hband_layer = alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=1, opacity=0.6).encode(
-            x="time:T", y="hband:Q",
-        )
-        lband_layer = alt.Chart(chart_df).mark_line(color="#ff0a5a", strokeWidth=1, opacity=0.6).encode(
-            x="time:T", y="lband:Q",
-        )
-        long_layer = alt.Chart(chart_df[chart_df["long"] == 1]).mark_point(
-            color="#0aff68", filled=True, size=20, opacity=0.5,
-        ).encode(x="time:T", y="close:Q")
+            # Chart height tracks the grid height so the two panes stay aligned.
+            chart_height = max(grid_height - 160, 240)
 
-        chart = (price_layer + filt_layer + hband_layer + lband_layer + long_layer).properties(height=460)
-        st.altair_chart(chart, use_container_width=True)
+            price_layer = alt.Chart(chart_df).mark_line(color="#cccccc", strokeWidth=1.2).encode(
+                x=alt.X("time:T", title=None),
+                y=alt.Y("close:Q", title=selected_sym, scale=alt.Scale(zero=False)),
+            )
+            filt_layer = alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=2).encode(
+                x="time:T", y="filt:Q",
+            )
+            hband_layer = alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=1, opacity=0.6).encode(
+                x="time:T", y="hband:Q",
+            )
+            lband_layer = alt.Chart(chart_df).mark_line(color="#ff0a5a", strokeWidth=1, opacity=0.6).encode(
+                x="time:T", y="lband:Q",
+            )
+            long_layer = alt.Chart(chart_df[chart_df["long"] == 1]).mark_point(
+                color="#0aff68", filled=True, size=20, opacity=0.5,
+            ).encode(x="time:T", y="close:Q")
 
-        mc1, mc2, mc3, mc4 = st.columns(4)
-        mc1.metric("State", sel["state"])
-        mc2.metric("Bars in state", sel["bars_in_state"])
-        mc3.metric("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—")
-        mc4.metric("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%")
+            chart = (price_layer + filt_layer + hband_layer + lband_layer + long_layer).properties(
+                height=chart_height
+            )
+            st.altair_chart(chart, use_container_width=True)
+
+            mc1, mc2, mc3, mc4 = st.columns(4)
+            mc1.metric("State", sel["state"])
+            mc2.metric("Bars in state", sel["bars_in_state"])
+            mc3.metric("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—")
+            mc4.metric("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%")
 
     if skipped_rows:
         with st.expander(f"Skipped ({len(skipped_rows)})"):
