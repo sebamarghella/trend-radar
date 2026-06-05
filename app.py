@@ -420,9 +420,10 @@ def build_grid_options(df: pd.DataFrame) -> dict:
 # --- Per-tab render ------------------------------------------------------------
 
 
+# First key is the default selection on load.
 SORT_MAP = {
+    "State (long first)": ("state", False),  # LONG before FLAT (desc)
     "Rank": ("rank", True),
-    "State (long first)": ("state", False),
     "Bars in state": ("bars_in_state", False),
     "Stoch K": ("stoch_k", False),
     "Close vs HBand %": ("close_vs_hband_pct", False),
@@ -639,7 +640,14 @@ def render_radar(ac: AssetClass) -> None:
     df = pd.DataFrame(signals)
     df_display = df.drop(columns=["_df", "_overlays", "_state_series"]).copy()
     sort_col, ascending = SORT_MAP[sort_by]
-    df_display = df_display.sort_values(sort_col, ascending=ascending, na_position="last").reset_index(drop=True)
+    # Tie-break by rank so each group (e.g. all LONG rows) reads top-mcap first.
+    if sort_col == "rank":
+        df_display = df_display.sort_values("rank", ascending=True, na_position="last")
+    else:
+        df_display = df_display.sort_values(
+            [sort_col, "rank"], ascending=[ascending, True], na_position="last"
+        )
+    df_display = df_display.reset_index(drop=True)
     df_display["tv"] = df_display["pair"]
 
     # Layout: the sidebar "Table width" slider drives the split. At 100% the
