@@ -35,6 +35,10 @@ st.set_page_config(
 
 # --- Global sidebar (shared across all tabs) -----------------------------------
 
+# Reserve a slot at the top of the sidebar for the alerts feed; we fill it
+# after the tabs render so any flips this rerun show up immediately.
+_alerts_slot = st.sidebar.container()
+
 st.sidebar.header("Strategies")
 st.sidebar.caption(
     "Each tab picks its own strategy. Edit params inline on a tab, or upload a "
@@ -493,8 +497,10 @@ def _render_strategy_editor(
     return Strategy(base.name, logic_key, edited)
 
 
-def render_radar(ac: AssetClass) -> None:
-    """Render the radar UI for one asset class."""
+def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
+    """Render the radar UI for one asset class.
+    If `focus_symbol` is set, the grid pre-selects + scrolls to that row (used
+    when the user clicks an alert in the sidebar)."""
     key = ac.key
     if "bust" not in st.session_state:
         st.session_state.bust = {}
@@ -605,17 +611,20 @@ def render_radar(ac: AssetClass) -> None:
             f"Seeded alert baseline for {len(signals)} {ac.label.lower()} symbols on this timeframe. "
             "Future flips will diff against this."
         )
-    elif flips and alerts_enabled and bot_token and chat_id:
-        sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
-        if sent:
-            st.toast(f"📨 Sent {sent} Telegram alert(s) for {ac.label}", icon="📨")
-        for e in errs:
-            st.warning(f"Alert failed for {e}")
     elif flips:
-        flip_summary = ", ".join(
-            f"{f.symbol} {'↗' if f.direction == 'ENTRY' else '↘'}" for f in flips
-        )
-        st.info(f"State flips detected (alerts disabled): {flip_summary}")
+        # Record every real flip into the history feed (drives the sidebar list).
+        alerts.record_flips(flips, asset_class=key)
+        if alerts_enabled and bot_token and chat_id:
+            sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
+            if sent:
+                st.toast(f"📨 Sent {sent} Telegram alert(s) for {ac.label}", icon="📨")
+            for e in errs:
+                st.warning(f"Alert failed for {e}")
+        else:
+            flip_summary = ", ".join(
+                f"{f.symbol} {'↗' if f.direction == 'ENTRY' else '↘'}" for f in flips
+            )
+            st.info(f"State flips detected (alerts disabled): {flip_summary}")
 
     # Headline strip
     long_count = sum(1 for s in signals if s["state"] == "LONG")
@@ -662,15 +671,33 @@ def render_radar(ac: AssetClass) -> None:
     with left:
         st.subheader("Radar")
         st.caption("Click any cell in a row to drill down into that coin's chart.")
+        grid_opts = build_grid_options(df_display)
+        # If we arrived via an alert deep-link, mark that row as pre-selected so
+        # AgGrid highlights + ensures-it's-visible on first render.
+        if focus_symbol and focus_symbol in set(df_display["symbol"]):
+            for row in grid_opts.get("rowData", []) or []:
+                if row.get("symbol") == focus_symbol:
+                    row["__pre_selected__"] = True
+            grid_opts["onFirstDataRendered"] = JsCode("""
+            function(p) {
+                let node = null;
+                p.api.forEachNode(n => { if (n.data && n.data.__pre_selected__) node = n; });
+                if (node) {
+                    node.setSelected(true);
+                    p.api.ensureNodeVisible(node, 'middle');
+                }
+            }
+            """)
+        # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
         grid_response = AgGrid(
             df_display,
-            gridOptions=build_grid_options(df_display),
+            gridOptions=grid_opts,
             height=grid_height,
             update_mode=GridUpdateMode.SELECTION_CHANGED,
             allow_unsafe_jscode=True,
             fit_columns_on_grid_load=False,
             theme="balham-dark",
-            key=f"grid_{key}_{sort_by}",
+            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
         )
 
     if not chart_hidden:
@@ -680,6 +707,9 @@ def render_radar(ac: AssetClass) -> None:
             selected_sym = selected.iloc[0]["symbol"]
         elif isinstance(selected, list) and selected:
             selected_sym = selected[0].get("symbol")
+        # Alert deep-link takes priority over the default-first fallback.
+        if not selected_sym and focus_symbol and focus_symbol in set(df_display["symbol"]):
+            selected_sym = focus_symbol
         if not selected_sym:
             selected_sym = df_display.iloc[0]["symbol"]
 
@@ -744,7 +774,91 @@ st.caption(
     "Each tab picks its own strategy; defaults to GaussianChannel v3.1."
 )
 
+# Deep-link support: ?tab=stocks&symbol=AAPL pre-opens that tab + focuses that
+# coin in its grid. Sidebar alert items use this to "jump to" the asset.
+_qp = st.query_params
+_jump_class = (_qp.get("tab") or "").strip().lower() if hasattr(_qp, "get") else ""
+_jump_symbol = (_qp.get("symbol") or "").strip().upper() if hasattr(_qp, "get") else ""
+
 tabs = st.tabs([ac.label for ac in ASSET_CLASSES])
 for tab, ac in zip(tabs, ASSET_CLASSES):
     with tab:
-        render_radar(ac)
+        render_radar(ac, focus_symbol=(_jump_symbol if _jump_class == ac.key else None))
+
+# Streamlit can't switch tabs from Python; nudge it via a tiny JS snippet that
+# clicks the matching tab button on page load when ?tab= is present.
+if _jump_class in {ac.key for ac in ASSET_CLASSES}:
+    _label = next(ac.label for ac in ASSET_CLASSES if ac.key == _jump_class)
+    st.markdown(
+        f"""
+        <script>
+        (function() {{
+            const want = {json.dumps(_label)};
+            const tabs = window.parent.document.querySelectorAll('button[role="tab"]');
+            for (const t of tabs) {{
+                if (t.innerText.trim() === want && t.getAttribute('aria-selected') !== 'true') {{
+                    t.click();
+                    break;
+                }}
+            }}
+        }})();
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# --- Sidebar alerts feed (rendered last so this rerun's flips are included) ---
+
+def _fmt_ago(ts_iso: str) -> str:
+    try:
+        from datetime import datetime, timezone
+        ts = datetime.fromisoformat(ts_iso.replace("Z", "+00:00"))
+        delta = datetime.now(timezone.utc) - ts
+        s = int(delta.total_seconds())
+        if s < 60:    return f"{s}s ago"
+        if s < 3600:  return f"{s // 60}m ago"
+        if s < 86400: return f"{s // 3600}h ago"
+        return f"{s // 86400}d ago"
+    except Exception:
+        return ts_iso
+
+
+_class_labels = {ac.key: ac.label for ac in ASSET_CLASSES}
+
+with _alerts_slot:
+    with st.expander("🔔 Alerts", expanded=False):
+        history = alerts.load_history()
+        # Newest first
+        history = sorted(history, key=lambda e: e.get("ts", ""), reverse=True)
+
+        filter_options = ["All", *(ac.label for ac in ASSET_CLASSES)]
+        cf, cc = st.columns([3, 1])
+        chosen_filter = cf.selectbox("Filter", filter_options, key="alerts_filter")
+        if cc.button("🗑", key="alerts_clear", help="Clear all alerts"):
+            alerts.clear_history()
+            st.rerun()
+
+        if chosen_filter != "All":
+            target_key = next(ac.key for ac in ASSET_CLASSES if ac.label == chosen_filter)
+            history = [e for e in history if e.get("asset_class") == target_key]
+
+        if not history:
+            st.caption("No alerts yet. New FLAT ↔ LONG flips appear here.")
+        else:
+            st.caption(f"{len(history)} alert(s) · newest first · click to jump")
+            for i, e in enumerate(history[:80]):  # cap rendered count
+                ac_key = e.get("asset_class", "")
+                ac_label = _class_labels.get(ac_key, ac_key)
+                sym = e.get("symbol", "?")
+                direction = e.get("direction", "")
+                arrow = "🟢" if direction == "ENTRY" else "🔴"
+                verb = "LONG" if direction == "ENTRY" else "EXIT"
+                price = e.get("price")
+                price_str = f" @ {price:.6g}" if isinstance(price, (int, float)) else ""
+                label = f"{arrow} {sym} {verb} · {ac_label} · {_fmt_ago(e.get('ts', ''))}"
+                if st.button(label, key=f"alert_jump_{i}", use_container_width=True,
+                             help=f"Open {sym} in the {ac_label} tab{price_str}"):
+                    st.query_params["tab"] = ac_key
+                    st.query_params["symbol"] = sym
+                    st.rerun()

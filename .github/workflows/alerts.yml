@@ -38,16 +38,16 @@ jobs:
           TR_INTERVAL_MINUTES: '1440'
         run: python run_alerts.py
 
-      - name: Commit updated state
+      - name: Commit updated state & history
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [[ -f .cache/alerts_state.json ]]; then
-            git add .cache/alerts_state.json
-            if ! git diff --staged --quiet; then
-              git commit -m "chore: update alert state [skip ci]"
-              git push
-            else
-              echo "No state changes."
-            fi
+          changed=0
+          [[ -f .cache/alerts_state.json ]]  && git add .cache/alerts_state.json  && changed=1
+          [[ -f .cache/alerts_history.json ]] && git add .cache/alerts_history.json && changed=1
+          if [[ $changed -eq 1 ]] && ! git diff --staged --quiet; then
+            git commit -m "chore: update alert state + history [skip ci]"
+            git push
+          else
+            echo "No state changes."
           fi

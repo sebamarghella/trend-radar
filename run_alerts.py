@@ -123,6 +123,7 @@ def scan_class(
     print(f"  Detected {len(flips)} flip(s):")
     for f in flips:
         print(f"    {f.symbol} {f.direction} @ {f.price:.6g}")
+    alerts.record_flips(flips, asset_class=ac.key)
 
     sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
     print(f"  Sent {sent} alert(s); {len(errs)} error(s)")

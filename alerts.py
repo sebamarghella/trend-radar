@@ -16,9 +16,11 @@ from typing import Iterable
 import requests
 
 STATE_FILE = Path(__file__).parent / ".cache" / "alerts_state.json"
+HISTORY_FILE = Path(__file__).parent / ".cache" / "alerts_history.json"
 STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 TELEGRAM_API = "https://api.telegram.org"
+HISTORY_MAX = 500  # ring-buffer cap so the file doesn't grow unbounded
 
 
 @dataclass
@@ -156,3 +158,52 @@ def fire_alerts(
         else:
             errors.append(f"{flip.symbol}: {err}")
     return sent, errors
+
+
+# --- Flip history (sidebar feed) ----------------------------------------------
+
+
+def load_history() -> list[dict]:
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        data = json.loads(HISTORY_FILE.read_text())
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_history(entries: list[dict]) -> None:
+    try:
+        HISTORY_FILE.write_text(json.dumps(entries[-HISTORY_MAX:], indent=2))
+    except OSError:
+        pass
+
+
+def record_flips(flips: list[Flip], asset_class: str, ts_iso: str | None = None) -> list[dict]:
+    """Append flips to the history log, newest written last. Returns the updated list."""
+    if not flips:
+        return load_history()
+    from datetime import datetime, timezone
+    now = ts_iso or datetime.now(timezone.utc).isoformat(timespec="seconds")
+    history = load_history()
+    for f in flips:
+        history.append({
+            "ts": now,
+            "asset_class": asset_class,
+            "symbol": f.symbol,
+            "pair": f.pair,
+            "direction": f.direction,   # ENTRY / EXIT
+            "price": f.price,
+            "interval_minutes": f.interval_minutes,
+            "exchange": f.exchange,
+        })
+    save_history(history)
+    return history
+
+
+def clear_history() -> None:
+    try:
+        HISTORY_FILE.unlink(missing_ok=True)
+    except OSError:
+        pass
