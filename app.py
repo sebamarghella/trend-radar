@@ -727,7 +727,14 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     if col in overlays.columns:
                         chart_df[col] = overlays[col]
                         overlay_cols.append(col)
-            chart_df["long"] = sel["_state_series"].astype(int)
+            # Transitions in the state series = trade signals.
+            #   0 -> 1 : BUY (entry)
+            #   1 -> 0 : SELL (exit)
+            _state = sel["_state_series"].astype(int)
+            _shift = _state.shift(1).fillna(0).astype(int)
+            chart_df["signal"] = ""
+            chart_df.loc[(_state == 1) & (_shift == 0), "signal"] = "BUY"
+            chart_df.loc[(_state == 0) & (_shift == 1), "signal"] = "SELL"
             chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
 
             # Chart height tracks the grid height so the two panes stay aligned.
@@ -748,9 +755,34 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             if "lband" in overlay_cols:
                 layers.append(alt.Chart(chart_df).mark_line(color="#ff0a5a", strokeWidth=1, opacity=0.6).encode(
                     x="time:T", y="lband:Q"))
-            layers.append(alt.Chart(chart_df[chart_df["long"] == 1]).mark_point(
-                color="#0aff68", filled=True, size=20, opacity=0.5,
-            ).encode(x="time:T", y="close:Q"))
+            buys = chart_df[chart_df["signal"] == "BUY"]
+            sells = chart_df[chart_df["signal"] == "SELL"]
+            if not buys.empty:
+                layers.append(
+                    alt.Chart(buys).mark_point(
+                        shape="triangle-up", color="#0aff68", filled=True,
+                        size=180, stroke="black", strokeWidth=1,
+                    ).encode(
+                        x="time:T", y="close:Q",
+                        tooltip=[
+                            alt.Tooltip("time:T", title="Buy"),
+                            alt.Tooltip("close:Q", title="Price", format=".6g"),
+                        ],
+                    )
+                )
+            if not sells.empty:
+                layers.append(
+                    alt.Chart(sells).mark_point(
+                        shape="triangle-down", color="#ff0a5a", filled=True,
+                        size=180, stroke="black", strokeWidth=1,
+                    ).encode(
+                        x="time:T", y="close:Q",
+                        tooltip=[
+                            alt.Tooltip("time:T", title="Sell"),
+                            alt.Tooltip("close:Q", title="Price", format=".6g"),
+                        ],
+                    )
+                )
 
             chart = alt.layer(*layers).properties(height=chart_height)
             st.altair_chart(chart, use_container_width=True)
