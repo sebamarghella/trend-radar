@@ -1,0 +1,132 @@
+[
+  {
+    "ts": "2026-06-06T04:15:31+00:00",
+    "asset_class": "crypto",
+    "symbol": "ONDO",
+    "pair": "ONDOUSDT",
+    "direction": "EXIT",
+    "price": 0.3223,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-06T04:15:31+00:00",
+    "asset_class": "crypto",
+    "symbol": "WLD",
+    "pair": "WLDUSDT",
+    "direction": "ENTRY",
+    "price": 0.4209,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "TSLA",
+    "pair": "TSLA",
+    "direction": "EXIT",
+    "price": 391.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "AMZN",
+    "pair": "AMZN",
+    "direction": "EXIT",
+    "price": 246.02999877929688,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "MSFT",
+    "pair": "MSFT",
+    "direction": "EXIT",
+    "price": 416.6700134277344,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "AVGO",
+    "pair": "AVGO",
+    "direction": "EXIT",
+    "price": 385.7300109863281,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "JPM",
+    "pair": "JPM",
+    "direction": "ENTRY",
+    "price": 312.3699951171875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "BAC",
+    "pair": "BAC",
+    "direction": "ENTRY",
+    "price": 53.83000183105469,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:33+00:00",
+    "asset_class": "stocks",
+    "symbol": "KO",
+    "pair": "KO",
+    "direction": "ENTRY",
+    "price": 79.4800033569336,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:36+00:00",
+    "asset_class": "metals",
+    "symbol": "LIT",
+    "pair": "LIT",
+    "direction": "EXIT",
+    "price": 78.30000305175781,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:36+00:00",
+    "asset_class": "metals",
+    "symbol": "PICK",
+    "pair": "PICK",
+    "direction": "EXIT",
+    "price": 61.779998779296875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:38+00:00",
+    "asset_class": "commodities",
+    "symbol": "CC=F",
+    "pair": "CC=F",
+    "direction": "EXIT",
+    "price": 3762.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-06T04:15:38+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "EXIT",
+    "price": 94.30000305175781,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  }
+]
