@@ -156,6 +156,137 @@ register(LogicSpec(
 ))
 
 
+# --- Donchian Breakout v1.0 -------------------------------------------------
+
+_DONCHIAN_V10_SCHEMA = [
+    ParamSpec("entry_len", "Entry High Length", "int", 20, 2, 500, 1),
+    ParamSpec("exit_len", "Exit Low Length", "int", 10, 2, 500, 1),
+]
+
+
+def _classify_donchian_bar(
+    close_now: float,
+    close_prev: float,
+    upper: float | None,
+    lower: float | None,
+) -> str:
+    if upper is not None and not pd.isna(upper) and close_now > upper:
+        return "STRONG_UP"
+    if lower is not None and not pd.isna(lower) and close_now < lower:
+        return "STRONG_DOWN"
+    if close_now > close_prev:
+        return "UP"
+    if close_now < close_prev:
+        return "DOWN"
+    return "NEUTRAL"
+
+
+def _run_donchian_v10(df: pd.DataFrame, params: dict) -> StrategyResult:
+    high_band = df["high"].rolling(params["entry_len"], min_periods=params["entry_len"]).max().shift(1)
+    low_band = df["low"].rolling(params["exit_len"], min_periods=params["exit_len"]).min().shift(1)
+    mid_band = (high_band + low_band) / 2.0
+
+    close = df["close"]
+    index = df.index
+    state = pd.Series(0, index=index, name="long", dtype="int8")
+    trades: list[TradeRecord] = []
+    in_pos = False
+    entry_idx: int | None = None
+    entry_price: float | None = None
+    state_start = 0
+
+    for t in range(1, len(df)):
+        upper = high_band.iloc[t]
+        lower = low_band.iloc[t]
+        if pd.isna(upper) or pd.isna(lower):
+            state.iloc[t] = 1 if in_pos else 0
+            continue
+
+        if in_pos:
+            if close.iloc[t] < lower:
+                trades[-1].exit_ts = index[t]
+                trades[-1].exit_price = float(close.iloc[t])
+                in_pos = False
+                entry_idx = None
+                entry_price = None
+                state_start = t
+        else:
+            if close.iloc[t] > upper:
+                in_pos = True
+                entry_idx = t
+                entry_price = float(close.iloc[t])
+                state_start = t
+                trades.append(
+                    TradeRecord(
+                        entry_ts=index[t],
+                        entry_price=entry_price,
+                        exit_ts=None,
+                        exit_price=None,
+                    )
+                )
+
+        state.iloc[t] = 1 if in_pos else 0
+
+    upper_last = high_band.iloc[-1] if len(high_band) else float("nan")
+    lower_last = low_band.iloc[-1] if len(low_band) else float("nan")
+    mid_last = mid_band.iloc[-1] if len(mid_band) else float("nan")
+    close_last = float(close.iloc[-1])
+    close_prev = float(close.iloc[-2]) if len(close) >= 2 else close_last
+    bar_color = _classify_donchian_bar(
+        close_last,
+        close_prev,
+        None if pd.isna(upper_last) else float(upper_last),
+        None if pd.isna(lower_last) else float(lower_last),
+    )
+    upper_prev = high_band.iloc[-2] if len(high_band) >= 2 else float("nan")
+    filter_up = (
+        not pd.isna(upper_last)
+        and not pd.isna(upper_prev)
+        and float(upper_last) > float(upper_prev)
+    )
+    close_vs_hband_pct = (
+        float((close_last - float(upper_last)) / float(upper_last) * 100.0)
+        if not pd.isna(upper_last) and float(upper_last) != 0.0
+        else 0.0
+    )
+
+    snapshot = SignalState(
+        in_position=in_pos,
+        bars_in_state=max(len(df) - 1 - state_start, 0),
+        entry_index=entry_idx,
+        entry_price=entry_price,
+        bar_color=bar_color,
+        filter_up=filter_up,
+        close_vs_hband_pct=close_vs_hband_pct,
+        stoch_k=None,
+        last_close=close_last,
+        last_filter=float(mid_last) if not pd.isna(mid_last) else close_last,
+        last_hband=float(upper_last) if not pd.isna(upper_last) else close_last,
+        last_lband=float(lower_last) if not pd.isna(lower_last) else close_last,
+    )
+    overlays = pd.DataFrame(
+        {
+            "filt": mid_band,
+            "hband": high_band,
+            "lband": low_band,
+        },
+        index=index,
+    )
+    return StrategyResult(snapshot=snapshot, state_series=state, trades=trades, overlays=overlays)
+
+
+register(LogicSpec(
+    key="donchian_breakout_v1_0",
+    label="Donchian Breakout v1.0",
+    description=(
+        "Classic Turtle-style long breakout. Enter on a close above the previous N-bar "
+        "high and exit on a close below the previous M-bar low."
+    ),
+    param_schema=_DONCHIAN_V10_SCHEMA,
+    run=_run_donchian_v10,
+))
+
+
 # --- Built-in presets ----------------------------------------------------------
 
 
@@ -164,10 +295,13 @@ def _builtin_strategies() -> list[Strategy]:
     base = gc.defaults()
     fast = dict(base, fast_response=True)
     slow = dict(base, period=200)
+    donchian = LOGICS["donchian_breakout_v1_0"]
+    donchian_base = donchian.defaults()
     return [
         Strategy("GaussianChannel v3.1 (default)", "gaussian_channel_v3_1", base),
         Strategy("GaussianChannel v3.1 — Fast response", "gaussian_channel_v3_1", fast),
         Strategy("GaussianChannel v3.1 — Slow (period 200)", "gaussian_channel_v3_1", slow),
+        Strategy("Donchian Breakout v1.0 (20/10)", "donchian_breakout_v1_0", donchian_base),
     ]
 
 
