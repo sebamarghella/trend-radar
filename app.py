@@ -767,7 +767,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         st.caption("Click any cell in a row to drill down into that coin's chart.")
         grid_opts = build_grid_options(df_display, PALETTE)
         # If we arrived via an alert deep-link, mark that row as pre-selected so
-        # AgGrid highlights + ensures-it's-visible on first render.
+        # AgGrid highlights + ensures it's visible on first render.
         if focus_symbol and focus_symbol in set(df_display["symbol"]):
             for row in grid_opts.get("rowData", []) or []:
                 if row.get("symbol") == focus_symbol:
@@ -783,16 +783,16 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             }
             """)
         # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
-            grid_response = AgGrid(
-                df_display,
-                gridOptions=grid_opts,
-                height=grid_height,
-                update_mode=GridUpdateMode.SELECTION_CHANGED,
-                allow_unsafe_jscode=True,
-                fit_columns_on_grid_load=True,
-                theme=PALETTE["AGGRID_THEME"],
-                key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
-            )
+        grid_response = AgGrid(
+            df_display,
+            gridOptions=grid_opts,
+            height=grid_height,
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            allow_unsafe_jscode=True,
+            fit_columns_on_grid_load=True,
+            theme=PALETTE["AGGRID_THEME"],
+            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
+        )
 
     if not chart_hidden:
         selected = grid_response.get("selected_rows")
