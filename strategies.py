@@ -251,18 +251,18 @@ def _run_donchian_v10(df: pd.DataFrame, params: dict) -> StrategyResult:
     )
 
     snapshot = SignalState(
-        in_position=in_pos,
-        bars_in_state=max(len(df) - 1 - state_start, 0),
-        entry_index=entry_idx,
-        entry_price=entry_price,
-        bar_color=bar_color,
-        filter_up=filter_up,
-        close_vs_hband_pct=close_vs_hband_pct,
-        stoch_k=None,
-        last_close=close_last,
-        last_filter=float(mid_last) if not pd.isna(mid_last) else close_last,
-        last_hband=float(upper_last) if not pd.isna(upper_last) else close_last,
-        last_lband=float(lower_last) if not pd.isna(lower_last) else close_last,
+        in_pos,
+        max(len(df) - 1 - state_start, 0),
+        entry_idx,
+        entry_price,
+        bar_color,
+        filter_up,
+        close_vs_hband_pct,
+        None,
+        close_last,
+        float(mid_last) if not pd.isna(mid_last) else close_last,
+        float(upper_last) if not pd.isna(upper_last) else close_last,
+        float(lower_last) if not pd.isna(lower_last) else close_last,
     )
     overlays = pd.DataFrame(
         {
