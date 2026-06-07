@@ -58,9 +58,10 @@ st.markdown(f"""
 :root {{
     color-scheme: {PALETTE["MODE"]};
 }}
-html, body, [class*='css'], .stApp {{
-    font-family: {PALETTE["FONT_SANS"]};
-    font-feature-settings: "ss01", "cv11", "tnum";
+/* Page-level color + bg only — NO global font-family override (the previous
+   `[class*='css']` rule cascaded into the AgGrid table and inflated cell
+   width via Inter, truncating columns). */
+.stApp {{
     background-color: {PALETTE["BG_BASE"]} !important;
     color: {PALETTE["FG_PRIMARY"]};
 }}
@@ -68,34 +69,25 @@ section[data-testid='stSidebar'] {{
     background-color: {PALETTE["BG_CARD"]} !important;
     border-right: 1px solid {PALETTE["BORDER"]};
 }}
-/* Numeric cells in the radar grid + metric values use mono with tabular nums */
-.ag-cell[col-id='last_close'],
-.ag-cell[col-id='close_vs_hband_pct'],
-.ag-cell[col-id='net_pct'],
-.ag-cell[col-id='stoch_k'],
-.ag-cell[col-id='trades'],
-.ag-cell[col-id='bars_in_state'],
-.ag-cell[col-id='win_pct'] {{
-    font-family: {PALETTE["FONT_MONO"]};
-    font-variant-numeric: tabular-nums;
+/* Inter for Streamlit's own widgets via the [data-testid] hook — explicitly
+   does NOT touch .ag-root-wrapper. */
+[data-testid='stMarkdownContainer'],
+[data-testid='stHeader'],
+[data-testid='stSidebar'],
+[data-testid='stMetricLabel'],
+[data-testid='stMetricValue'],
+[data-testid='stCaptionContainer'],
+.stTabs, .stButton, .stSelectbox, .stRadio, .stTextInput, .stNumberInput, .stSlider, .stExpander {{
+    font-family: {PALETTE["FONT_SANS"]};
+    font-feature-settings: "tnum";
 }}
 [data-testid='stMetricValue'] {{
     font-family: {PALETTE["FONT_MONO"]};
     font-variant-numeric: tabular-nums;
 }}
-/* Restore the compact AgGrid sizing — balham defaults are 13px font / 28px
-   row. The injected Inter font + mono overrides above had inflated effective
-   sizing; pin them back explicitly. */
-.ag-theme-balham, .ag-theme-balham-dark {{
-    --ag-font-size: 11px;
-    --ag-row-height: 24px;
-    --ag-header-height: 26px;
-    --ag-list-item-height: 22px;
-    --ag-grid-size: 3px;
-    --ag-cell-horizontal-padding: 6px;
-}}
-.ag-theme-balham .ag-cell, .ag-theme-balham-dark .ag-cell {{ line-height: 22px; font-size: 11px; }}
-.ag-theme-balham .ag-header-cell-label, .ag-theme-balham-dark .ag-header-cell-label {{ font-size: 11px; font-weight: 600; }}
+/* AgGrid is explicitly NOT styled by us — let balham/balham-dark drive the
+   table's font, row height, and column sizing. The earlier attempts to pin
+   --ag-font-size lost to higher-specificity host font-family overrides. */
 /* Page heading scale */
 h1, h2, h3, h4, h5, h6 {{ color: {PALETTE["FG_PRIMARY"]}; }}
 h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }}
@@ -194,11 +186,6 @@ lookback_days = st.sidebar.slider(
 )
 
 st.sidebar.header("Layout")
-table_width_pct = st.sidebar.slider(
-    "Table width", min_value=25, max_value=100, value=65, step=5, format="%d%%",
-    help="Width of the radar table vs the drilldown chart. 100% hides the chart "
-    "and shows the table full-width.",
-)
 grid_height = st.sidebar.slider(
     "Table height", min_value=300, max_value=1000, value=620, step=20, format="%d px",
     help="Vertical size of the radar grid.",
@@ -753,48 +740,38 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     df_display = df_display.reset_index(drop=True)
     df_display["tv"] = df_display["pair"]
 
-    # Layout: the sidebar "Table width" slider drives the split. At 100% the
-    # chart is hidden and the table spans the full width.
-    chart_hidden = table_width_pct >= 100
-    if chart_hidden:
-        left = st.container()
-        right = None
-    else:
-        left, right = st.columns([table_width_pct, 100 - table_width_pct], gap="large")
-
-    with left:
-        st.subheader("Radar")
-        st.caption("Click any cell in a row to drill down into that coin's chart.")
-        grid_opts = build_grid_options(df_display, PALETTE)
-        # If we arrived via an alert deep-link, mark that row as pre-selected so
-        # AgGrid highlights + ensures it's visible on first render.
-        if focus_symbol and focus_symbol in set(df_display["symbol"]):
-            for row in grid_opts.get("rowData", []) or []:
-                if row.get("symbol") == focus_symbol:
-                    row["__pre_selected__"] = True
-            grid_opts["onFirstDataRendered"] = JsCode("""
-            function(p) {
-                let node = null;
-                p.api.forEachNode(n => { if (n.data && n.data.__pre_selected__) node = n; });
-                if (node) {
-                    node.setSelected(true);
-                    p.api.ensureNodeVisible(node, 'middle');
-                }
+    st.subheader("Radar")
+    st.caption("Click any cell in a row to drill down into that coin's chart.")
+    grid_opts = build_grid_options(df_display, PALETTE)
+    # If we arrived via an alert deep-link, mark that row as pre-selected so
+    # AgGrid highlights + ensures it's visible on first render.
+    if focus_symbol and focus_symbol in set(df_display["symbol"]):
+        for row in grid_opts.get("rowData", []) or []:
+            if row.get("symbol") == focus_symbol:
+                row["__pre_selected__"] = True
+        grid_opts["onFirstDataRendered"] = JsCode("""
+        function(p) {
+            let node = null;
+            p.api.forEachNode(n => { if (n.data && n.data.__pre_selected__) node = n; });
+            if (node) {
+                node.setSelected(true);
+                p.api.ensureNodeVisible(node, 'middle');
             }
-            """)
-        # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
-        grid_response = AgGrid(
-            df_display,
-            gridOptions=grid_opts,
-            height=grid_height,
-            update_mode=GridUpdateMode.SELECTION_CHANGED,
-            allow_unsafe_jscode=True,
-            fit_columns_on_grid_load=True,
-            theme=PALETTE["AGGRID_THEME"],
-            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
-        )
+        }
+        """)
+    # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
+    grid_response = AgGrid(
+        df_display,
+        gridOptions=grid_opts,
+        height=grid_height,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        allow_unsafe_jscode=True,
+        fit_columns_on_grid_load=True,
+        theme=PALETTE["AGGRID_THEME"],
+        key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
+    )
 
-    if not chart_hidden:
+    if True:
         selected = grid_response.get("selected_rows")
         selected_sym: str | None = None
         if isinstance(selected, pd.DataFrame) and not selected.empty:
@@ -809,7 +786,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
-        with right:
+        with st.container():
             st.subheader(f"Drilldown — {selected_sym}")
             st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
 
