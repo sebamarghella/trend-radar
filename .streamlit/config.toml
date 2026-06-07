@@ -1,0 +1,16 @@
+# Streamlit global theme. Values mirror trend_radar/theme.py (UI Pro Max
+# financial-dashboard palette). Streamlit auto-loads this on app start.
+
+[theme]
+base = "dark"
+primaryColor = "#22C55E"            # buttons, sliders, active tab underline
+backgroundColor = "#020617"
+secondaryBackgroundColor = "#0E1223" # sidebar, expanders, cards
+textColor = "#F8FAFC"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false

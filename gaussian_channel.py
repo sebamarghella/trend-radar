@@ -255,15 +255,8 @@ def compute_stats(
 
 
 # Pine bar colors, mapped to semantic labels.
-BAR_COLORS = {
-    "STRONG_UP": "#0aff1b",    # close rising AND close >= hband
-    "UP": "#0aff68",            # close rising AND close > filt AND close < hband
-    "WEAK_UP": "#00752d",       # close non-rising AND close > filt
-    "WEAK_DOWN": "#990032",     # close non-falling AND close < filt
-    "DOWN": "#ff0a5a",          # close falling AND close < filt AND close > lband
-    "STRONG_DOWN": "#ff0a11",   # close falling AND close <= lband
-    "NEUTRAL": "#cccccc",
-}
+# Re-exported from theme.py so the palette is editable in one place.
+from theme import BAR_COLORS  # noqa: E402, F401
 
 
 def classify_bar(src_now: float, src_prev: float, filt: float, hband: float, lband: float) -> str:

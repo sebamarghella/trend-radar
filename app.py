@@ -20,6 +20,7 @@ import json
 import alerts
 import cache as ohlc_cache
 import strategies as strat_registry
+import theme as T
 from asset_classes import ASSET_CLASSES, AssetClass
 from gaussian_channel import BAR_COLORS, compute_stats
 from sources import Resolver, SourceError
@@ -31,6 +32,60 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Custom CSS (UI Pro Max guidance applied to Streamlit's constrained widget set):
+#   - Inter for UI text + JetBrains Mono for numbers (consistent type scale)
+#   - Tabular numerals so price/percent columns align vertically
+#   - Tighter sidebar typography, dim captions
+#   - Subtle section dividers using BORDER token
+#   - Active tab gets a 2px accent underline (anti-pattern avoided: no glowing)
+st.markdown(f"""
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>
+<style>
+html, body, [class*='css'] {{
+    font-family: {T.FONT_FAMILY_SANS};
+    font-feature-settings: "ss01", "cv11", "tnum";
+}}
+/* Numeric cells in the radar grid + metric values use mono with tabular nums */
+.ag-cell[col-id='last_close'],
+.ag-cell[col-id='close_vs_hband_pct'],
+.ag-cell[col-id='net_pct'],
+.ag-cell[col-id='stoch_k'],
+.ag-cell[col-id='trades'],
+.ag-cell[col-id='bars_in_state'],
+.ag-cell[col-id='win_pct'],
+[data-testid='stMetricValue'] {{
+    font-family: {T.FONT_FAMILY_MONO};
+    font-variant-numeric: tabular-nums;
+}}
+/* Page heading scale */
+h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }}
+h2 {{ font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }}
+h3 {{ font-size: 16px; font-weight: 600; }}
+[data-testid='stCaptionContainer'] {{ color: {T.FG_MUTED}; font-size: 13px; }}
+/* Tab bar — accent underline, no excessive padding */
+.stTabs [data-baseweb='tab-list'] {{
+    border-bottom: 1px solid {T.BORDER};
+    gap: 4px;
+}}
+.stTabs [data-baseweb='tab'] {{
+    padding: 8px 14px;
+    color: {T.FG_MUTED};
+}}
+.stTabs [aria-selected='true'] {{
+    color: {T.FG_PRIMARY};
+    border-bottom: 2px solid {T.ACCENT};
+}}
+/* Sidebar polish */
+section[data-testid='stSidebar'] h2 {{ font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: {T.FG_MUTED}; margin-top: 12px; }}
+section[data-testid='stSidebar'] [data-testid='stCaptionContainer'] {{ font-size: 12px; }}
+/* Metric cards a touch denser */
+[data-testid='stMetric'] {{ padding: 6px 0; }}
+[data-testid='stMetricLabel'] {{ color: {T.FG_MUTED}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }}
+</style>
+""", unsafe_allow_html=True)
 
 
 # --- Global sidebar (shared across all tabs) -----------------------------------
@@ -304,35 +359,36 @@ def _fmt_hm(td: pd.Timedelta) -> str:
 # --- AgGrid styling (shared across all tabs) -----------------------------------
 
 
-_CELLSTYLE_STATE = JsCode("""
-function(p) {
-    if (p.value === 'LONG') {
-        return { backgroundColor: '#0aff68', color: 'black', fontWeight: 700 };
-    }
-    return { backgroundColor: '#2b2b2b', color: '#aaaaaa' };
-}
+_CELLSTYLE_STATE = JsCode(f"""
+function(p) {{
+    if (p.value === 'LONG') {{
+        return {{ backgroundColor: '{T.STATE_LONG_BG}', color: '{T.STATE_LONG_FG}', fontWeight: 700 }};
+    }}
+    return {{ backgroundColor: '{T.STATE_FLAT_BG}', color: '{T.STATE_FLAT_FG}' }};
+}}
 """)
 
 _BAR_COLORS_JSON = ",".join(f"'{k}':'{v}'" for k, v in BAR_COLORS.items())
 _CELLSTYLE_BAR = JsCode(f"""
 function(p) {{
     const colors = {{{_BAR_COLORS_JSON}}};
-    return {{ backgroundColor: colors[p.value] || '#cccccc', color: 'black', fontWeight: 600 }};
+    const fg = ['STRONG_UP','UP','WEAK_DOWN','DOWN','STRONG_DOWN'].includes(p.value) ? 'white' : '{T.FG_PRIMARY}';
+    return {{ backgroundColor: colors[p.value] || '{T.BAR_COLORS["NEUTRAL"]}', color: fg, fontWeight: 600 }};
 }}
 """)
 
-_CELLSTYLE_FILTER = JsCode("""
-function(p) {
-    if (p.value === true) return { color: '#0aff68', fontWeight: 600 };
-    return { color: '#ff0a5a', fontWeight: 600 };
-}
+_CELLSTYLE_FILTER = JsCode(f"""
+function(p) {{
+    if (p.value === true) return {{ color: '{T.ACCENT}', fontWeight: 600 }};
+    return {{ color: '{T.DESTRUCTIVE}', fontWeight: 600 }};
+}}
 """)
 
-_CELLSTYLE_PCT = JsCode("""
-function(p) {
-    if (p.value == null) return {};
-    return p.value > 0 ? { color: '#00752d' } : { color: '#ff0a5a' };
-}
+_CELLSTYLE_PCT = JsCode(f"""
+function(p) {{
+    if (p.value == null) return {{}};
+    return p.value > 0 ? {{ color: '{T.ACCENT}' }} : {{ color: '{T.DESTRUCTIVE}' }};
+}}
 """)
 
 _FMT_PCT = JsCode("function(p) { return p.value != null ? (p.value >= 0 ? '+' : '') + p.value.toFixed(2) + '%' : ''; }")
@@ -347,7 +403,7 @@ _TV_VALUE_FMT = JsCode("function(p) { return p.value ? 'TV ↗' : ''; }")
 
 _TV_CELL_STYLE = {
     "cursor": "pointer",
-    "color": "#00752d",
+    "color": T.ACCENT,
     "fontWeight": "600",
     "textAlign": "center",
 }
@@ -740,51 +796,81 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             # Chart height tracks the grid height so the two panes stay aligned.
             chart_height = max(grid_height - 160, 240)
 
+            # Chart guidance from UUPM charts.csv:
+            #   - line + hover + zoom (Interactive Level for "Trend Over Time")
+            #   - bullish #26A69A / bearish #EF5350 (Stock/Trading OHLC palette)
+            #   - differentiate series by line style, not only color
+            #   - axis grid muted, no zero-anchored Y (use scale.zero=False)
+            x_axis = alt.Axis(grid=False, labelColor=T.FG_MUTED, tickColor=T.BORDER,
+                              domainColor=T.BORDER, title=None)
+            y_axis = alt.Axis(grid=True, gridColor=T.BORDER, gridOpacity=0.3,
+                              labelColor=T.FG_MUTED, tickColor=T.BORDER,
+                              domainColor=T.BORDER, title=None)
+            base = alt.Chart(chart_df).encode(x=alt.X("time:T", axis=x_axis))
+
             layers = [
-                alt.Chart(chart_df).mark_line(color="#cccccc", strokeWidth=1.2).encode(
-                    x=alt.X("time:T", title=None),
-                    y=alt.Y("close:Q", title=selected_sym, scale=alt.Scale(zero=False)),
+                base.mark_line(color=T.NEUTRAL_LINE, strokeWidth=1.4).encode(
+                    y=alt.Y("close:Q", axis=y_axis, scale=alt.Scale(zero=False)),
                 )
             ]
             if "filt" in overlay_cols:
-                layers.append(alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=2).encode(
-                    x="time:T", y="filt:Q"))
+                layers.append(base.mark_line(color=T.BULLISH, strokeWidth=2).encode(y="filt:Q"))
             if "hband" in overlay_cols:
-                layers.append(alt.Chart(chart_df).mark_line(color="#0aff68", strokeWidth=1, opacity=0.6).encode(
-                    x="time:T", y="hband:Q"))
+                # Dashed = "channel boundary, not the trend itself" (series style cue).
+                layers.append(base.mark_line(
+                    color=T.BULLISH, strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
+                ).encode(y="hband:Q"))
             if "lband" in overlay_cols:
-                layers.append(alt.Chart(chart_df).mark_line(color="#ff0a5a", strokeWidth=1, opacity=0.6).encode(
-                    x="time:T", y="lband:Q"))
+                layers.append(base.mark_line(
+                    color=T.BEARISH, strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
+                ).encode(y="lband:Q"))
+
             buys = chart_df[chart_df["signal"] == "BUY"]
             sells = chart_df[chart_df["signal"] == "SELL"]
             if not buys.empty:
                 layers.append(
                     alt.Chart(buys).mark_point(
-                        shape="triangle-up", color="#0aff68", filled=True,
-                        size=180, stroke="black", strokeWidth=1,
+                        shape="triangle-up", color=T.BULLISH, filled=True,
+                        size=180, stroke=T.BG_BASE, strokeWidth=1.5,
                     ).encode(
-                        x="time:T", y="close:Q",
-                        tooltip=[
-                            alt.Tooltip("time:T", title="Buy"),
-                            alt.Tooltip("close:Q", title="Price", format=".6g"),
-                        ],
+                        x=alt.X("time:T", axis=x_axis), y="close:Q",
+                        tooltip=[alt.Tooltip("time:T", title="Buy"),
+                                 alt.Tooltip("close:Q", title="Price", format=".6g")],
                     )
                 )
             if not sells.empty:
                 layers.append(
                     alt.Chart(sells).mark_point(
-                        shape="triangle-down", color="#ff0a5a", filled=True,
-                        size=180, stroke="black", strokeWidth=1,
+                        shape="triangle-down", color=T.BEARISH, filled=True,
+                        size=180, stroke=T.BG_BASE, strokeWidth=1.5,
                     ).encode(
-                        x="time:T", y="close:Q",
-                        tooltip=[
-                            alt.Tooltip("time:T", title="Sell"),
-                            alt.Tooltip("close:Q", title="Price", format=".6g"),
-                        ],
+                        x=alt.X("time:T", axis=x_axis), y="close:Q",
+                        tooltip=[alt.Tooltip("time:T", title="Sell"),
+                                 alt.Tooltip("close:Q", title="Price", format=".6g")],
                     )
                 )
 
-            chart = alt.layer(*layers).properties(height=chart_height)
+            # Nearest-point hover (vertical rule + multi-series tooltip).
+            hover = alt.selection_point(
+                fields=["time"], nearest=True, on="pointerover", empty=False, clear="pointerout",
+            )
+            tooltip_fields = [alt.Tooltip("time:T", title="Time"),
+                              alt.Tooltip("close:Q", title="Close", format=".6g")]
+            if "filt" in overlay_cols:
+                tooltip_fields.append(alt.Tooltip("filt:Q", title="Filter", format=".6g"))
+            if "hband" in overlay_cols:
+                tooltip_fields.append(alt.Tooltip("hband:Q", title="HBand", format=".6g"))
+            layers.append(
+                base.mark_rule(color=T.FG_MUTED, opacity=0.0).encode(
+                    opacity=alt.condition(hover, alt.value(0.5), alt.value(0.0)),
+                    tooltip=tooltip_fields,
+                ).add_params(hover)
+            )
+
+            chart = alt.layer(*layers).properties(
+                height=chart_height,
+                background=T.BG_CARD,
+            ).configure_view(stroke=None).interactive(bind_y=False)
             st.altair_chart(chart, use_container_width=True)
 
             mc1, mc2, mc3, mc4 = st.columns(4)
