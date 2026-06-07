@@ -128,5 +128,25 @@
     "price": 94.30000305175781,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-07T04:51:16+00:00",
+    "asset_class": "crypto",
+    "symbol": "CC",
+    "pair": "CC_USDT",
+    "direction": "ENTRY",
+    "price": 0.1662,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-07T04:51:20+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "ENTRY",
+    "price": 98.80000305175781,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
