@@ -1,12 +1,11 @@
-# Streamlit global theme. Values mirror trend_radar/theme.py (UI Pro Max
-# financial-dashboard palette). Streamlit auto-loads this on app start.
+# Streamlit boot theme. Default is "light" to match the in-app theme toggle's
+# default; if the user flips to Dark, app.py's CSS injection repaints the whole
+# surface (Streamlit can't swap base at runtime). Setting base correctly avoids
+# the brief flash of the opposite theme on first paint.
 
 [theme]
-base = "dark"
+base = "light"
 primaryColor = "#22C55E"            # buttons, sliders, active tab underline
-backgroundColor = "#020617"
-secondaryBackgroundColor = "#0E1223" # sidebar, expanders, cards
-textColor = "#F8FAFC"
 font = "sans serif"
 
 [client]

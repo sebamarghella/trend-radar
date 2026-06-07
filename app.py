@@ -33,20 +33,40 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS (UI Pro Max guidance applied to Streamlit's constrained widget set):
-#   - Inter for UI text + JetBrains Mono for numbers (consistent type scale)
-#   - Tabular numerals so price/percent columns align vertically
-#   - Tighter sidebar typography, dim captions
-#   - Subtle section dividers using BORDER token
-#   - Active tab gets a 2px accent underline (anti-pattern avoided: no glowing)
+# --- Theme toggle (must run before any other UI so the palette propagates) ---
+
+if "ui_mode" not in st.session_state:
+    st.session_state.ui_mode = "Light"  # default per request
+
+# Compact segmented radio at the very top of the sidebar.
+_ui_mode = st.sidebar.radio(
+    "Theme", ["Light", "Dark"],
+    index=0 if st.session_state.ui_mode == "Light" else 1,
+    horizontal=True, key="ui_mode_radio",
+)
+st.session_state.ui_mode = _ui_mode
+PALETTE = T.get_palette(_ui_mode)
+
+# Custom CSS — UI Pro Max guidance applied with the active palette. Streamlit's
+# .streamlit/config.toml only sets the BOOT theme (base="light"); these rules
+# repaint the entire app to match the toggle on every rerun.
 st.markdown(f"""
 <link rel='preconnect' href='https://fonts.googleapis.com'>
 <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
 <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>
 <style>
-html, body, [class*='css'] {{
-    font-family: {T.FONT_FAMILY_SANS};
+:root {{
+    color-scheme: {PALETTE["MODE"]};
+}}
+html, body, [class*='css'], .stApp {{
+    font-family: {PALETTE["FONT_SANS"]};
     font-feature-settings: "ss01", "cv11", "tnum";
+    background-color: {PALETTE["BG_BASE"]} !important;
+    color: {PALETTE["FG_PRIMARY"]};
+}}
+section[data-testid='stSidebar'] {{
+    background-color: {PALETTE["BG_CARD"]} !important;
+    border-right: 1px solid {PALETTE["BORDER"]};
 }}
 /* Numeric cells in the radar grid + metric values use mono with tabular nums */
 .ag-cell[col-id='last_close'],
@@ -57,33 +77,26 @@ html, body, [class*='css'] {{
 .ag-cell[col-id='bars_in_state'],
 .ag-cell[col-id='win_pct'],
 [data-testid='stMetricValue'] {{
-    font-family: {T.FONT_FAMILY_MONO};
+    font-family: {PALETTE["FONT_MONO"]};
     font-variant-numeric: tabular-nums;
 }}
 /* Page heading scale */
+h1, h2, h3, h4, h5, h6 {{ color: {PALETTE["FG_PRIMARY"]}; }}
 h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }}
 h2 {{ font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }}
 h3 {{ font-size: 16px; font-weight: 600; }}
-[data-testid='stCaptionContainer'] {{ color: {T.FG_MUTED}; font-size: 13px; }}
+[data-testid='stCaptionContainer'] {{ color: {PALETTE["FG_MUTED"]}; font-size: 13px; }}
 /* Tab bar — accent underline, no excessive padding */
-.stTabs [data-baseweb='tab-list'] {{
-    border-bottom: 1px solid {T.BORDER};
-    gap: 4px;
-}}
-.stTabs [data-baseweb='tab'] {{
-    padding: 8px 14px;
-    color: {T.FG_MUTED};
-}}
-.stTabs [aria-selected='true'] {{
-    color: {T.FG_PRIMARY};
-    border-bottom: 2px solid {T.ACCENT};
-}}
+.stTabs [data-baseweb='tab-list'] {{ border-bottom: 1px solid {PALETTE["BORDER"]}; gap: 4px; }}
+.stTabs [data-baseweb='tab'] {{ padding: 8px 14px; color: {PALETTE["FG_MUTED"]}; }}
+.stTabs [aria-selected='true'] {{ color: {PALETTE["FG_PRIMARY"]}; border-bottom: 2px solid {PALETTE["ACCENT"]}; }}
 /* Sidebar polish */
-section[data-testid='stSidebar'] h2 {{ font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: {T.FG_MUTED}; margin-top: 12px; }}
+section[data-testid='stSidebar'] h2 {{ font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: {PALETTE["FG_MUTED"]}; margin-top: 12px; }}
 section[data-testid='stSidebar'] [data-testid='stCaptionContainer'] {{ font-size: 12px; }}
 /* Metric cards a touch denser */
 [data-testid='stMetric'] {{ padding: 6px 0; }}
-[data-testid='stMetricLabel'] {{ color: {T.FG_MUTED}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }}
+[data-testid='stMetricLabel'] {{ color: {PALETTE["FG_MUTED"]}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }}
+[data-testid='stMetricValue'] {{ color: {PALETTE["FG_PRIMARY"]}; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -359,37 +372,43 @@ def _fmt_hm(td: pd.Timedelta) -> str:
 # --- AgGrid styling (shared across all tabs) -----------------------------------
 
 
-_CELLSTYLE_STATE = JsCode(f"""
+_BAR_COLORS_JSON = ",".join(f"'{k}':'{v}'" for k, v in BAR_COLORS.items())
+
+
+def _cellstyles(palette: dict) -> dict:
+    """Build the per-mode AgGrid cellStyle / valueFormatter JsCode objects.
+    Called on every render with the live palette so light/dark switch cleanly."""
+    bar_fg_white = ",".join(f"'{k}'" for k in palette["BAR_FG_WHITE"])
+    return {
+        "STATE": JsCode(f"""
 function(p) {{
     if (p.value === 'LONG') {{
-        return {{ backgroundColor: '{T.STATE_LONG_BG}', color: '{T.STATE_LONG_FG}', fontWeight: 700 }};
+        return {{ backgroundColor: '{palette["STATE_LONG_BG"]}', color: '{palette["STATE_LONG_FG"]}', fontWeight: 700 }};
     }}
-    return {{ backgroundColor: '{T.STATE_FLAT_BG}', color: '{T.STATE_FLAT_FG}' }};
+    return {{ backgroundColor: '{palette["STATE_FLAT_BG"]}', color: '{palette["STATE_FLAT_FG"]}' }};
 }}
-""")
-
-_BAR_COLORS_JSON = ",".join(f"'{k}':'{v}'" for k, v in BAR_COLORS.items())
-_CELLSTYLE_BAR = JsCode(f"""
+"""),
+        "BAR": JsCode(f"""
 function(p) {{
     const colors = {{{_BAR_COLORS_JSON}}};
-    const fg = ['STRONG_UP','UP','WEAK_DOWN','DOWN','STRONG_DOWN'].includes(p.value) ? 'white' : '{T.FG_PRIMARY}';
-    return {{ backgroundColor: colors[p.value] || '{T.BAR_COLORS["NEUTRAL"]}', color: fg, fontWeight: 600 }};
+    const whitelist = [{bar_fg_white}];
+    const fg = whitelist.includes(p.value) ? 'white' : '{palette["FG_PRIMARY"]}';
+    return {{ backgroundColor: colors[p.value] || '{palette["BAR_COLORS"]["NEUTRAL"]}', color: fg, fontWeight: 600 }};
 }}
-""")
-
-_CELLSTYLE_FILTER = JsCode(f"""
+"""),
+        "FILTER": JsCode(f"""
 function(p) {{
-    if (p.value === true) return {{ color: '{T.ACCENT}', fontWeight: 600 }};
-    return {{ color: '{T.DESTRUCTIVE}', fontWeight: 600 }};
+    if (p.value === true) return {{ color: '{palette["ACCENT"]}', fontWeight: 600 }};
+    return {{ color: '{palette["DESTRUCTIVE"]}', fontWeight: 600 }};
 }}
-""")
-
-_CELLSTYLE_PCT = JsCode(f"""
+"""),
+        "PCT": JsCode(f"""
 function(p) {{
     if (p.value == null) return {{}};
-    return p.value > 0 ? {{ color: '{T.ACCENT}' }} : {{ color: '{T.DESTRUCTIVE}' }};
+    return p.value > 0 ? {{ color: '{palette["ACCENT"]}' }} : {{ color: '{palette["DESTRUCTIVE"]}' }};
 }}
-""")
+"""),
+    }
 
 _FMT_PCT = JsCode("function(p) { return p.value != null ? (p.value >= 0 ? '+' : '') + p.value.toFixed(2) + '%' : ''; }")
 _FMT_K = JsCode("function(p) { return p.value != null ? p.value.toFixed(1) : ''; }")
@@ -401,12 +420,13 @@ TV_CHART_ID = "6O2rb5Ql"
 
 _TV_VALUE_FMT = JsCode("function(p) { return p.value ? 'TV ↗' : ''; }")
 
-_TV_CELL_STYLE = {
-    "cursor": "pointer",
-    "color": T.ACCENT,
-    "fontWeight": "600",
-    "textAlign": "center",
-}
+def _tv_cell_style(palette: dict) -> dict:
+    return {
+        "cursor": "pointer",
+        "color": palette["ACCENT"],
+        "fontWeight": "600",
+        "textAlign": "center",
+    }
 
 # Open the user's saved TV chart for the clicked coin. For crypto, the exchange
 # prefix (BINANCE/GATEIO/KRAKEN) comes from the row. For non-crypto, the
@@ -440,7 +460,9 @@ COLUMN_FLEX = {
 assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
 
 
-def build_grid_options(df: pd.DataFrame) -> dict:
+def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
+    cs = _cellstyles(palette)
+    tv_style = _tv_cell_style(palette)
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(resizable=True, sortable=True, filterable=False)
     gb.configure_selection(selection_mode="single", use_checkbox=False, suppressRowDeselection=True)
@@ -452,26 +474,26 @@ def build_grid_options(df: pd.DataFrame) -> dict:
     gb.configure_column("pair", header_name="Pair", flex=F["pair"], minWidth=65)
     gb.configure_column("exchange", hide=True)
     gb.configure_column("tv_prefix", hide=True)
-    gb.configure_column("state", header_name="Pos", flex=F["state"], minWidth=55, cellStyle=_CELLSTYLE_STATE)
-    gb.configure_column("bar_color", header_name="Bar", flex=F["bar_color"], minWidth=80, cellStyle=_CELLSTYLE_BAR)
-    gb.configure_column("filter_up", header_name="F↑", flex=F["filter_up"], minWidth=40, cellStyle=_CELLSTYLE_FILTER)
+    gb.configure_column("state", header_name="Pos", flex=F["state"], minWidth=55, cellStyle=cs["STATE"])
+    gb.configure_column("bar_color", header_name="Bar", flex=F["bar_color"], minWidth=80, cellStyle=cs["BAR"])
+    gb.configure_column("filter_up", header_name="F↑", flex=F["filter_up"], minWidth=40, cellStyle=cs["FILTER"])
     gb.configure_column("bars_in_state", header_name="Bars", flex=F["bars_in_state"], minWidth=45, type=["numericColumn"])
     gb.configure_column(
         "close_vs_hband_pct", header_name="vs HB", flex=F["close_vs_hband_pct"], minWidth=60,
-        type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=_CELLSTYLE_PCT,
+        type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
     )
     gb.configure_column("stoch_k", header_name="StK", flex=F["stoch_k"], minWidth=45, type=["numericColumn"], valueFormatter=_FMT_K)
     gb.configure_column("last_close", header_name="Close", flex=F["last_close"], minWidth=60, type=["numericColumn"], valueFormatter=_FMT_PRICE)
     gb.configure_column("trades", header_name="Trades", flex=F["trades"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_INT)
     gb.configure_column(
         "net_pct", header_name="Net %", flex=F["net_pct"], minWidth=60,
-        type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=_CELLSTYLE_PCT,
+        type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
     )
     gb.configure_column("win_pct", header_name="Win %", flex=F["win_pct"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_WIN)
     gb.configure_column(
         "tv", header_name="TV", flex=F["tv"], minWidth=45,
         sortable=False, filter=False,
-        valueFormatter=_TV_VALUE_FMT, cellStyle=_TV_CELL_STYLE,
+        valueFormatter=_TV_VALUE_FMT, cellStyle=tv_style,
     )
     gb.configure_grid_options(onCellClicked=_TV_CLICK_HANDLER)
     return gb.build()
@@ -727,7 +749,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     with left:
         st.subheader("Radar")
         st.caption("Click any cell in a row to drill down into that coin's chart.")
-        grid_opts = build_grid_options(df_display)
+        grid_opts = build_grid_options(df_display, PALETTE)
         # If we arrived via an alert deep-link, mark that row as pre-selected so
         # AgGrid highlights + ensures-it's-visible on first render.
         if focus_symbol and focus_symbol in set(df_display["symbol"]):
@@ -752,7 +774,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             update_mode=GridUpdateMode.SELECTION_CHANGED,
             allow_unsafe_jscode=True,
             fit_columns_on_grid_load=False,
-            theme="balham-dark",
+            theme=PALETTE["AGGRID_THEME"],
             key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
         )
 
@@ -801,28 +823,28 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             #   - bullish #26A69A / bearish #EF5350 (Stock/Trading OHLC palette)
             #   - differentiate series by line style, not only color
             #   - axis grid muted, no zero-anchored Y (use scale.zero=False)
-            x_axis = alt.Axis(grid=False, labelColor=T.FG_MUTED, tickColor=T.BORDER,
-                              domainColor=T.BORDER, title=None)
-            y_axis = alt.Axis(grid=True, gridColor=T.BORDER, gridOpacity=0.3,
-                              labelColor=T.FG_MUTED, tickColor=T.BORDER,
-                              domainColor=T.BORDER, title=None)
+            x_axis = alt.Axis(grid=False, labelColor=PALETTE["FG_MUTED"], tickColor=PALETTE["BORDER"],
+                              domainColor=PALETTE["BORDER"], title=None)
+            y_axis = alt.Axis(grid=True, gridColor=PALETTE["BORDER"], gridOpacity=PALETTE["GRID_OPACITY"],
+                              labelColor=PALETTE["FG_MUTED"], tickColor=PALETTE["BORDER"],
+                              domainColor=PALETTE["BORDER"], title=None)
             base = alt.Chart(chart_df).encode(x=alt.X("time:T", axis=x_axis))
 
             layers = [
-                base.mark_line(color=T.NEUTRAL_LINE, strokeWidth=1.4).encode(
+                base.mark_line(color=PALETTE["NEUTRAL_LINE"], strokeWidth=1.4).encode(
                     y=alt.Y("close:Q", axis=y_axis, scale=alt.Scale(zero=False)),
                 )
             ]
             if "filt" in overlay_cols:
-                layers.append(base.mark_line(color=T.BULLISH, strokeWidth=2).encode(y="filt:Q"))
+                layers.append(base.mark_line(color=PALETTE["BULLISH"], strokeWidth=2).encode(y="filt:Q"))
             if "hband" in overlay_cols:
                 # Dashed = "channel boundary, not the trend itself" (series style cue).
                 layers.append(base.mark_line(
-                    color=T.BULLISH, strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
+                    color=PALETTE["BULLISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
                 ).encode(y="hband:Q"))
             if "lband" in overlay_cols:
                 layers.append(base.mark_line(
-                    color=T.BEARISH, strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
+                    color=PALETTE["BEARISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
                 ).encode(y="lband:Q"))
 
             buys = chart_df[chart_df["signal"] == "BUY"]
@@ -830,8 +852,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             if not buys.empty:
                 layers.append(
                     alt.Chart(buys).mark_point(
-                        shape="triangle-up", color=T.BULLISH, filled=True,
-                        size=180, stroke=T.BG_BASE, strokeWidth=1.5,
+                        shape="triangle-up", color=PALETTE["BULLISH"], filled=True,
+                        size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
                     ).encode(
                         x=alt.X("time:T", axis=x_axis), y="close:Q",
                         tooltip=[alt.Tooltip("time:T", title="Buy"),
@@ -841,8 +863,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             if not sells.empty:
                 layers.append(
                     alt.Chart(sells).mark_point(
-                        shape="triangle-down", color=T.BEARISH, filled=True,
-                        size=180, stroke=T.BG_BASE, strokeWidth=1.5,
+                        shape="triangle-down", color=PALETTE["BEARISH"], filled=True,
+                        size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
                     ).encode(
                         x=alt.X("time:T", axis=x_axis), y="close:Q",
                         tooltip=[alt.Tooltip("time:T", title="Sell"),
@@ -861,7 +883,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             if "hband" in overlay_cols:
                 tooltip_fields.append(alt.Tooltip("hband:Q", title="HBand", format=".6g"))
             layers.append(
-                base.mark_rule(color=T.FG_MUTED, opacity=0.0).encode(
+                base.mark_rule(color=PALETTE["FG_MUTED"], opacity=0.0).encode(
                     opacity=alt.condition(hover, alt.value(0.5), alt.value(0.0)),
                     tooltip=tooltip_fields,
                 ).add_params(hover)
@@ -869,7 +891,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
             chart = alt.layer(*layers).properties(
                 height=chart_height,
-                background=T.BG_CARD,
+                background=PALETTE["BG_CARD"],
             ).configure_view(stroke=None).interactive(bind_y=False)
             st.altair_chart(chart, use_container_width=True)
 
