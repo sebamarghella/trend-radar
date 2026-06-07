@@ -75,11 +75,27 @@ section[data-testid='stSidebar'] {{
 .ag-cell[col-id='stoch_k'],
 .ag-cell[col-id='trades'],
 .ag-cell[col-id='bars_in_state'],
-.ag-cell[col-id='win_pct'],
+.ag-cell[col-id='win_pct'] {{
+    font-family: {PALETTE["FONT_MONO"]};
+    font-variant-numeric: tabular-nums;
+}}
 [data-testid='stMetricValue'] {{
     font-family: {PALETTE["FONT_MONO"]};
     font-variant-numeric: tabular-nums;
 }}
+/* Restore the compact AgGrid sizing — balham defaults are 13px font / 28px
+   row. The injected Inter font + mono overrides above had inflated effective
+   sizing; pin them back explicitly. */
+.ag-theme-balham, .ag-theme-balham-dark {{
+    --ag-font-size: 12px;
+    --ag-row-height: 28px;
+    --ag-header-height: 30px;
+    --ag-list-item-height: 24px;
+    --ag-grid-size: 4px;
+    --ag-cell-horizontal-padding: 8px;
+}}
+.ag-theme-balham .ag-cell, .ag-theme-balham-dark .ag-cell {{ line-height: 26px; }}
+.ag-theme-balham .ag-header-cell-label, .ag-theme-balham-dark .ag-header-cell-label {{ font-size: 12px; font-weight: 600; }}
 /* Page heading scale */
 h1, h2, h3, h4, h5, h6 {{ color: {PALETTE["FG_PRIMARY"]}; }}
 h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }}
