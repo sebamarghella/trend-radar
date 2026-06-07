@@ -20,6 +20,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable
 
 import pandas as pd
@@ -266,7 +267,7 @@ def _run_donchian_v10(df: pd.DataFrame, params: dict) -> StrategyResult:
     last_hband = _safe_float(upper_last, close_last)
     last_lband = _safe_float(lower_last, close_last)
 
-    snapshot = SignalState(
+    snapshot = SimpleNamespace(
         in_position=bool(in_pos),
         bars_in_state=max(len(df) - 1 - state_start, 0),
         entry_index=entry_idx,
