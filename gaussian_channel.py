@@ -213,10 +213,12 @@ class TradeRecord:
 class BacktestStats:
     trades: int
     closed_trades: int
-    net_pct: float  # compounded total return after commissions
-    win_pct: float | None  # win rate over closed trades
+    net_pct: float                  # compounded total return after commissions
+    win_pct: float | None           # win rate over closed trades
     avg_trade_pct: float | None
     period_days: int
+    sharpe: float | None = None     # annualized per-trade Sharpe ratio
+    max_drawdown_pct: float | None = None  # min equity drawdown (negative %)
 
 
 def compute_stats(
@@ -239,18 +241,45 @@ def compute_stats(
             win_pct=None,
             avg_trade_pct=None,
             period_days=lookback_days,
+            sharpe=None,
+            max_drawdown_pct=None,
         )
-    cum = 1.0
+    # Equity curve from compounded per-trade returns (entry-ordered).
+    equity: list[float] = [1.0]
     for r in rets:
-        cum *= (1 + r)
+        equity.append(equity[-1] * (1 + r))
+    cum = equity[-1]
+
+    # Max drawdown: peak-to-trough min of the running drawdown series.
+    eq_arr = np.asarray(equity, dtype=np.float64)
+    peaks = np.maximum.accumulate(eq_arr)
+    dd_series = (eq_arr - peaks) / peaks
+    max_dd_pct = float(dd_series.min()) * 100.0  # negative number
+
+    # Per-trade Sharpe, annualized by expected trades-per-year for this
+    # lookback window. Conservative: subtracts no risk-free rate (we're
+    # comparing strategies, not vs Treasuries).
+    mean_r = sum(rets) / len(rets)
+    n = len(rets)
+    var = sum((r - mean_r) ** 2 for r in rets) / max(n - 1, 1) if n > 1 else 0.0
+    std_r = var ** 0.5
+    sharpe: float | None
+    if std_r > 0 and lookback_days > 0:
+        trades_per_year = n * 365.0 / lookback_days
+        sharpe = (mean_r / std_r) * (trades_per_year ** 0.5)
+    else:
+        sharpe = None
+
     wins = sum(1 for r in rets if r > 0)
     return BacktestStats(
         trades=len(recent),
-        closed_trades=len(rets),
+        closed_trades=n,
         net_pct=(cum - 1.0) * 100.0,
-        win_pct=wins / len(rets) * 100.0,
-        avg_trade_pct=sum(rets) / len(rets) * 100.0,
+        win_pct=wins / n * 100.0,
+        avg_trade_pct=mean_r * 100.0,
         period_days=lookback_days,
+        sharpe=sharpe,
+        max_drawdown_pct=max_dd_pct,
     )
 
 

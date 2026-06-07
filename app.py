@@ -115,6 +115,55 @@ section[data-testid='stSidebar'] [data-testid='stCaptionContainer'] {{ font-size
 # after the tabs render so any flips this rerun show up immediately.
 _alerts_slot = st.sidebar.container()
 
+
+# --- Fear & Greed Index (crypto macro regime) --------------------------------
+
+@st.cache_data(ttl=60 * 60, show_spinner=False)
+def _fetch_fear_greed() -> tuple[int | None, str | None]:
+    """alternative.me Fear & Greed Index. Cached 1h; the source updates daily."""
+    import requests
+    try:
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=8)
+        payload = r.json()
+        d = payload["data"][0]
+        return int(d["value"]), d.get("value_classification") or "—"
+    except Exception:  # noqa: BLE001
+        return None, None
+
+
+def _fg_color(v: int | None) -> str:
+    if v is None: return PALETTE["FG_MUTED"]
+    if v <= 25:   return PALETTE["DESTRUCTIVE"]   # extreme fear
+    if v <= 45:   return "#F59E0B"                # fear (amber)
+    if v <= 55:   return PALETTE["FG_MUTED"]      # neutral
+    if v <= 75:   return PALETTE["ACCENT"]        # greed
+    return "#16A34A"                              # extreme greed
+
+
+_fg_val, _fg_class = _fetch_fear_greed()
+if _fg_val is not None:
+    _fg_chip_color = _fg_color(_fg_val)
+    st.sidebar.markdown(
+        f"""
+        <div style="padding:8px 12px;border:1px solid {PALETTE["BORDER"]};
+                    border-radius:8px;margin:0 0 12px 0;background:{PALETTE["BG_CARD"]};">
+          <div style="font-size:11px;color:{PALETTE["FG_MUTED"]};
+                      text-transform:uppercase;letter-spacing:0.05em;
+                      display:flex;align-items:center;justify-content:space-between;">
+            <span>Fear &amp; Greed</span>
+            <span style="font-size:10px;color:{PALETTE["FG_MUTED"]};">crypto · 24h</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px;">
+            <div style="font-size:26px;font-weight:700;color:{_fg_chip_color};
+                        font-family:{PALETTE["FONT_MONO"]};line-height:1;">{_fg_val}</div>
+            <div style="font-size:12px;color:{_fg_chip_color};font-weight:600;">{_fg_class}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 st.sidebar.header("Strategies")
 st.sidebar.caption(
     "Each tab picks its own strategy. Edit params inline on a tab, or upload a "
@@ -347,6 +396,8 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "trades": stats.trades,
         "net_pct": stats.net_pct,
         "win_pct": stats.win_pct,
+        "sharpe": stats.sharpe,
+        "max_dd_pct": stats.max_drawdown_pct,
         "_df": df,
         "_overlays": result.overlays,
         "_state_series": result.state_series,
@@ -411,6 +462,24 @@ function(p) {{
     return p.value > 0 ? {{ color: '{palette["ACCENT"]}' }} : {{ color: '{palette["DESTRUCTIVE"]}' }};
 }}
 """),
+        # Sharpe: red <0, muted 0-1 (no risk-adjusted edge), green >1, deeper green >2.
+        "SHARPE": JsCode(f"""
+function(p) {{
+    if (p.value == null) return {{}};
+    if (p.value < 0) return {{ color: '{palette["DESTRUCTIVE"]}', fontWeight: 600 }};
+    if (p.value < 1) return {{ color: '{palette["FG_MUTED"]}' }};
+    if (p.value < 2) return {{ color: '{palette["ACCENT"]}', fontWeight: 600 }};
+    return {{ color: '{palette["ACCENT"]}', fontWeight: 700 }};
+}}
+"""),
+        # Max DD: always red — there are no "good" drawdowns. Bolder for worse.
+        "MDD": JsCode(f"""
+function(p) {{
+    if (p.value == null) return {{}};
+    if (p.value < -25) return {{ color: '{palette["DESTRUCTIVE"]}', fontWeight: 700 }};
+    return {{ color: '{palette["DESTRUCTIVE"]}' }};
+}}
+"""),
     }
 
 _FMT_PCT = JsCode("function(p) { return p.value != null ? (p.value >= 0 ? '+' : '') + p.value.toFixed(2) + '%' : ''; }")
@@ -418,6 +487,10 @@ _FMT_K = JsCode("function(p) { return p.value != null ? p.value.toFixed(1) : '';
 _FMT_PRICE = JsCode("function(p) { return p.value != null ? p.value.toPrecision(6) : ''; }")
 _FMT_INT = JsCode("function(p) { return p.value != null ? p.value.toFixed(0) : ''; }")
 _FMT_WIN = JsCode("function(p) { return p.value != null ? p.value.toFixed(0) + '%' : '—'; }")
+_FMT_SHARPE = JsCode("function(p) { return p.value != null ? p.value.toFixed(2) : '—'; }")
+# Max DD is always negative (or zero on flawless run). Format as percentage
+# WITHOUT a leading '+' sign — there's never a positive DD.
+_FMT_MDD = JsCode("function(p) { return p.value != null ? p.value.toFixed(1) + '%' : '—'; }")
 
 TV_CHART_ID = "6O2rb5Ql"
 
@@ -454,10 +527,10 @@ function(event) {{
 # the grid always fills 100% width; minWidth is just a readability floor that
 # triggers horizontal scroll only when the pane gets very narrow.
 COLUMN_FLEX = {
-    "rank": 3, "symbol": 6, "name": 12, "exchange_short": 5, "pair": 8,
-    "state": 6, "bar_color": 9, "filter_up": 4, "bars_in_state": 5,
-    "close_vs_hband_pct": 7, "stoch_k": 5, "last_close": 7, "trades": 6,
-    "net_pct": 7, "win_pct": 6, "tv": 4,
+    "rank": 4, "symbol": 6, "name": 10, "exchange_short": 5, "pair": 8,
+    "state": 6, "bar_color": 7, "filter_up": 4, "bars_in_state": 4,
+    "close_vs_hband_pct": 6, "stoch_k": 4, "last_close": 6, "trades": 5,
+    "net_pct": 6, "win_pct": 5, "sharpe": 5, "max_dd_pct": 5, "tv": 4,
 }  # sums to 100
 
 assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
@@ -494,6 +567,16 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
     )
     gb.configure_column("win_pct", header_name="Win %", flex=F["win_pct"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_WIN)
     gb.configure_column(
+        "sharpe", header_name="Sharpe", flex=F["sharpe"], minWidth=55,
+        type=["numericColumn"], valueFormatter=_FMT_SHARPE, cellStyle=cs["SHARPE"],
+        headerTooltip="Annualized per-trade Sharpe ratio. >1 ≈ decent, >2 ≈ strong, <0 ≈ losing edge.",
+    )
+    gb.configure_column(
+        "max_dd_pct", header_name="MaxDD", flex=F["max_dd_pct"], minWidth=60,
+        type=["numericColumn"], valueFormatter=_FMT_MDD, cellStyle=cs["MDD"],
+        headerTooltip="Max drawdown on the strategy's equity curve over the lookback window. The deeper the worse.",
+    )
+    gb.configure_column(
         "tv", header_name="TV", flex=F["tv"], minWidth=45,
         sortable=False, filter=False,
         valueFormatter=_TV_VALUE_FMT, cellStyle=tv_style,
@@ -515,6 +598,8 @@ SORT_MAP = {
     "Net %": ("net_pct", False),
     "Win %": ("win_pct", False),
     "Trades": ("trades", False),
+    "Sharpe": ("sharpe", False),
+    "MaxDD (shallowest first)": ("max_dd_pct", False),  # closer to 0 = better
 }
 
 
