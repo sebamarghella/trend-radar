@@ -181,6 +181,18 @@ def _classify_donchian_bar(
     return "NEUTRAL"
 
 
+def _safe_float(value: Any, fallback: float) -> float:
+    try:
+        if pd.isna(value):
+            return fallback
+    except TypeError:
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
 def _run_donchian_v10(df: pd.DataFrame, params: dict) -> StrategyResult:
     high_band = df["high"].rolling(params["entry_len"], min_periods=params["entry_len"]).max().shift(1)
     low_band = df["low"].rolling(params["exit_len"], min_periods=params["exit_len"]).min().shift(1)
@@ -250,19 +262,23 @@ def _run_donchian_v10(df: pd.DataFrame, params: dict) -> StrategyResult:
         else 0.0
     )
 
+    last_filter = _safe_float(mid_last, close_last)
+    last_hband = _safe_float(upper_last, close_last)
+    last_lband = _safe_float(lower_last, close_last)
+
     snapshot = SignalState(
-        in_pos,
-        max(len(df) - 1 - state_start, 0),
-        entry_idx,
-        entry_price,
-        bar_color,
-        filter_up,
-        close_vs_hband_pct,
-        None,
-        close_last,
-        float(mid_last) if not pd.isna(mid_last) else close_last,
-        float(upper_last) if not pd.isna(upper_last) else close_last,
-        float(lower_last) if not pd.isna(lower_last) else close_last,
+        in_position=bool(in_pos),
+        bars_in_state=max(len(df) - 1 - state_start, 0),
+        entry_index=entry_idx,
+        entry_price=entry_price,
+        bar_color=bar_color,
+        filter_up=bool(filter_up),
+        close_vs_hband_pct=float(close_vs_hband_pct),
+        stoch_k=None,
+        last_close=close_last,
+        last_filter=last_filter,
+        last_hband=last_hband,
+        last_lband=last_lband,
     )
     overlays = pd.DataFrame(
         {
