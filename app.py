@@ -87,15 +87,15 @@ section[data-testid='stSidebar'] {{
    row. The injected Inter font + mono overrides above had inflated effective
    sizing; pin them back explicitly. */
 .ag-theme-balham, .ag-theme-balham-dark {{
-    --ag-font-size: 12px;
-    --ag-row-height: 28px;
-    --ag-header-height: 30px;
-    --ag-list-item-height: 24px;
-    --ag-grid-size: 4px;
-    --ag-cell-horizontal-padding: 8px;
+    --ag-font-size: 11px;
+    --ag-row-height: 24px;
+    --ag-header-height: 26px;
+    --ag-list-item-height: 22px;
+    --ag-grid-size: 3px;
+    --ag-cell-horizontal-padding: 6px;
 }}
-.ag-theme-balham .ag-cell, .ag-theme-balham-dark .ag-cell {{ line-height: 26px; }}
-.ag-theme-balham .ag-header-cell-label, .ag-theme-balham-dark .ag-header-cell-label {{ font-size: 12px; font-weight: 600; }}
+.ag-theme-balham .ag-cell, .ag-theme-balham-dark .ag-cell {{ line-height: 22px; font-size: 11px; }}
+.ag-theme-balham .ag-header-cell-label, .ag-theme-balham-dark .ag-header-cell-label {{ font-size: 11px; font-weight: 600; }}
 /* Page heading scale */
 h1, h2, h3, h4, h5, h6 {{ color: {PALETTE["FG_PRIMARY"]}; }}
 h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }}
@@ -195,7 +195,7 @@ lookback_days = st.sidebar.slider(
 
 st.sidebar.header("Layout")
 table_width_pct = st.sidebar.slider(
-    "Table width", min_value=25, max_value=100, value=50, step=5, format="%d%%",
+    "Table width", min_value=25, max_value=100, value=65, step=5, format="%d%%",
     help="Width of the radar table vs the drilldown chart. 100% hides the chart "
     "and shows the table full-width.",
 )
@@ -783,16 +783,16 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             }
             """)
         # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
-        grid_response = AgGrid(
-            df_display,
-            gridOptions=grid_opts,
-            height=grid_height,
-            update_mode=GridUpdateMode.SELECTION_CHANGED,
-            allow_unsafe_jscode=True,
-            fit_columns_on_grid_load=False,
-            theme=PALETTE["AGGRID_THEME"],
-            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
-        )
+            grid_response = AgGrid(
+                df_display,
+                gridOptions=grid_opts,
+                height=grid_height,
+                update_mode=GridUpdateMode.SELECTION_CHANGED,
+                allow_unsafe_jscode=True,
+                fit_columns_on_grid_load=True,
+                theme=PALETTE["AGGRID_THEME"],
+                key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
+            )
 
     if not chart_hidden:
         selected = grid_response.get("selected_rows")
