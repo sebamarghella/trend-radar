@@ -158,5 +158,55 @@
     "price": 94.30000305175781,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-09T04:19:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "CC",
+    "pair": "CC_USDT",
+    "direction": "EXIT",
+    "price": 0.16357,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-09T04:19:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "XLM",
+    "pair": "XLMUSDT",
+    "direction": "ENTRY",
+    "price": 0.1989,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-09T04:19:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "H",
+    "pair": "H_USDT",
+    "direction": "EXIT",
+    "price": 0.13899,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-09T04:19:27+00:00",
+    "asset_class": "stocks",
+    "symbol": "JPM",
+    "pair": "JPM",
+    "direction": "EXIT",
+    "price": 311.1099853515625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-09T04:19:28+00:00",
+    "asset_class": "commodities",
+    "symbol": "CC=F",
+    "pair": "CC=F",
+    "direction": "ENTRY",
+    "price": 3831.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
