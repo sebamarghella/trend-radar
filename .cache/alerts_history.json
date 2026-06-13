@@ -328,5 +328,55 @@
     "price": 63.779998779296875,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-13T04:43:40+00:00",
+    "asset_class": "crypto",
+    "symbol": "CC",
+    "pair": "CC_USDT",
+    "direction": "EXIT",
+    "price": 0.1638,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-13T04:43:40+00:00",
+    "asset_class": "crypto",
+    "symbol": "VVV",
+    "pair": "VVV_USDT",
+    "direction": "EXIT",
+    "price": 16.3922,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-13T04:43:40+00:00",
+    "asset_class": "crypto",
+    "symbol": "BDX",
+    "pair": "BDX_USDT",
+    "direction": "EXIT",
+    "price": 0.30462,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-13T04:43:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "ORCL",
+    "pair": "ORCL",
+    "direction": "EXIT",
+    "price": 184.1300048828125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-13T04:43:46+00:00",
+    "asset_class": "commodities",
+    "symbol": "NG=F",
+    "pair": "NG=F",
+    "direction": "ENTRY",
+    "price": 3.119999885559082,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
