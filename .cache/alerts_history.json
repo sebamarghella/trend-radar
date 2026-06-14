@@ -378,5 +378,25 @@
     "price": 3.119999885559082,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-14T05:01:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "H",
+    "pair": "H_USDT",
+    "direction": "ENTRY",
+    "price": 0.46001,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-14T05:01:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "BDX",
+    "pair": "BDX_USDT",
+    "direction": "ENTRY",
+    "price": 0.41101,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
   }
 ]
