@@ -398,5 +398,15 @@
     "price": 0.41101,
     "interval_minutes": 1440,
     "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-15T05:21:53+00:00",
+    "asset_class": "commodities",
+    "symbol": "NG=F",
+    "pair": "NG=F",
+    "direction": "EXIT",
+    "price": 3.058000087738037,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
