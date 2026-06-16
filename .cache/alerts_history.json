@@ -408,5 +408,35 @@
     "price": 3.058000087738037,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-16T05:25:19+00:00",
+    "asset_class": "crypto",
+    "symbol": "CC",
+    "pair": "CC_USDT",
+    "direction": "ENTRY",
+    "price": 0.16511,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-16T05:25:19+00:00",
+    "asset_class": "crypto",
+    "symbol": "H",
+    "pair": "H_USDT",
+    "direction": "EXIT",
+    "price": 0.25109,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-16T05:25:23+00:00",
+    "asset_class": "commodities",
+    "symbol": "NG=F",
+    "pair": "NG=F",
+    "direction": "ENTRY",
+    "price": 3.13700008392334,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
