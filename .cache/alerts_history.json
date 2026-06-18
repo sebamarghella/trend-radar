@@ -488,5 +488,55 @@
     "price": 72.5,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-18T04:54:48+00:00",
+    "asset_class": "crypto",
+    "symbol": "INJ",
+    "pair": "INJUSDT",
+    "direction": "EXIT",
+    "price": 5.256,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-18T04:54:48+00:00",
+    "asset_class": "crypto",
+    "symbol": "DEXE",
+    "pair": "DEXEUSDT",
+    "direction": "EXIT",
+    "price": 13.594,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-18T04:54:51+00:00",
+    "asset_class": "stocks",
+    "symbol": "ORCL",
+    "pair": "ORCL",
+    "direction": "EXIT",
+    "price": 183.52999877929688,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-18T04:54:51+00:00",
+    "asset_class": "stocks",
+    "symbol": "ABBV",
+    "pair": "ABBV",
+    "direction": "ENTRY",
+    "price": 221.22999572753906,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-18T04:54:54+00:00",
+    "asset_class": "commodities",
+    "symbol": "CC=F",
+    "pair": "CC=F",
+    "direction": "ENTRY",
+    "price": 4144.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
