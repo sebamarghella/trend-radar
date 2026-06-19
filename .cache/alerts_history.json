@@ -538,5 +538,45 @@
     "price": 4144.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-19T05:18:25+00:00",
+    "asset_class": "crypto",
+    "symbol": "DEXE",
+    "pair": "DEXEUSDT",
+    "direction": "ENTRY",
+    "price": 16.525,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-19T05:18:27+00:00",
+    "asset_class": "stocks",
+    "symbol": "ABBV",
+    "pair": "ABBV",
+    "direction": "EXIT",
+    "price": 216.49000549316406,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-19T05:18:27+00:00",
+    "asset_class": "stocks",
+    "symbol": "KO",
+    "pair": "KO",
+    "direction": "EXIT",
+    "price": 79.38999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-19T05:18:29+00:00",
+    "asset_class": "metals",
+    "symbol": "PICK",
+    "pair": "PICK",
+    "direction": "EXIT",
+    "price": 62.90999984741211,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
