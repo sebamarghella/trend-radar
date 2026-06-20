@@ -578,5 +578,25 @@
     "price": 62.90999984741211,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-20T04:26:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "DEXE",
+    "pair": "DEXEUSDT",
+    "direction": "EXIT",
+    "price": 16.39,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-20T04:26:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "BDX",
+    "pair": "BDX_USDT",
+    "direction": "EXIT",
+    "price": 0.36945,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
   }
 ]
