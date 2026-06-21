@@ -598,5 +598,35 @@
     "price": 0.36945,
     "interval_minutes": 1440,
     "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-21T05:10:31+00:00",
+    "asset_class": "crypto",
+    "symbol": "BDX",
+    "pair": "BDX_USDT",
+    "direction": "ENTRY",
+    "price": 0.3854,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-21T05:10:35+00:00",
+    "asset_class": "commodities",
+    "symbol": "CT=F",
+    "pair": "CT=F",
+    "direction": "ENTRY",
+    "price": 79.33000183105469,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-21T05:10:35+00:00",
+    "asset_class": "commodities",
+    "symbol": "LE=F",
+    "pair": "LE=F",
+    "direction": "EXIT",
+    "price": 246.75,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
