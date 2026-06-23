@@ -658,5 +658,45 @@
     "price": 76.05000305175781,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-23T04:15:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "XLM",
+    "pair": "XLMUSDT",
+    "direction": "EXIT",
+    "price": 0.198,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-23T04:15:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "NEAR",
+    "pair": "NEARUSDT",
+    "direction": "EXIT",
+    "price": 2.056,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-23T04:15:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "V",
+    "pair": "V",
+    "direction": "EXIT",
+    "price": 326.6000061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-23T04:15:45+00:00",
+    "asset_class": "metals",
+    "symbol": "SLX",
+    "pair": "SLX",
+    "direction": "EXIT",
+    "price": 104.77999877929688,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
