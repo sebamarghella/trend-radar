@@ -698,5 +698,35 @@
     "price": 104.77999877929688,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-24T04:19:14+00:00",
+    "asset_class": "crypto",
+    "symbol": "DEXE",
+    "pair": "DEXEUSDT",
+    "direction": "ENTRY",
+    "price": 22.615,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-24T04:19:17+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "EXIT",
+    "price": 37.31999969482422,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-24T04:19:17+00:00",
+    "asset_class": "metals",
+    "symbol": "HG=F",
+    "pair": "HG=F",
+    "direction": "EXIT",
+    "price": 6.103000164031982,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
