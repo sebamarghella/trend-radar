@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-26T20:43:37Z",
+  "generated_at": "2026-06-26T20:50:06Z",
   "bar_close_utc": "2026-06-26T00:00:00Z",
   "timeframe": "1d",
   "strategy": "GaussianChannel v3.1",
@@ -148,6 +148,18 @@
       "gc_lower": 0.15595359551151403
     },
     {
+      "symbol": "XMR",
+      "rank": 18,
+      "state": "short",
+      "hl_symbol": "XMR",
+      "tradable_on_hl": true,
+      "close": 306.87,
+      "gc_filter": 370.21874070343995,
+      "gc_upper": 406.755403901132,
+      "gc_lower": 333.6820775057479,
+      "breakout_date": "2026-06-23"
+    },
+    {
       "symbol": "LINK",
       "rank": 19,
       "state": "short",
@@ -170,6 +182,18 @@
       "gc_upper": 9.584521809041915,
       "gc_lower": 2.6415773241196097,
       "breakout_date": "2026-03-17"
+    },
+    {
+      "symbol": "WBT",
+      "rank": 21,
+      "state": "short",
+      "hl_symbol": null,
+      "tradable_on_hl": false,
+      "close": 48.45,
+      "gc_filter": 54.26065040537669,
+      "gc_upper": 56.445707996611745,
+      "gc_lower": 52.07559281414163,
+      "breakout_date": "2026-06-24"
     },
     {
       "symbol": "CC",
@@ -466,6 +490,18 @@
       "breakout_date": "2026-05-16"
     },
     {
+      "symbol": "BGB",
+      "rank": 58,
+      "state": "short",
+      "hl_symbol": null,
+      "tradable_on_hl": false,
+      "close": 1.641,
+      "gc_filter": 1.974006969385873,
+      "gc_upper": 2.0509128526020293,
+      "gc_lower": 1.897101086169717,
+      "breakout_date": "2026-06-11"
+    },
+    {
       "symbol": "WLD",
       "rank": 59,
       "state": "long",
@@ -569,6 +605,18 @@
       "gc_upper": 0.12081503065493104,
       "gc_lower": 0.09945204688494519,
       "breakout_date": "2026-06-13"
+    },
+    {
+      "symbol": "KCS",
+      "rank": 70,
+      "state": "short",
+      "hl_symbol": null,
+      "tradable_on_hl": false,
+      "close": 6.766,
+      "gc_filter": 7.836825517914613,
+      "gc_upper": 8.26898765371779,
+      "gc_lower": 7.404663382111434,
+      "breakout_date": "2026-06-03"
     },
     {
       "symbol": "POL",
