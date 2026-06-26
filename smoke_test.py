@@ -182,6 +182,61 @@ def test_alerts_flip_detection():
     print(f"alerts: ok, sample message:\n  {preview.replace(chr(10), chr(10)+'  ')}")
 
 
+def test_gc_short_state():
+    """The SHORT mirror engages on a steep crash and stays flat on a flat tape."""
+    import export_crypto_signals as exporter
+    from strategies import LOGICS
+
+    params = LOGICS["gaussian_channel_v3_1"].coerce({})
+    gc = GCParams(
+        poles=params["poles"],
+        period=params["period"],
+        multiplier=params["multiplier"],
+        reduced_lag=params["reduced_lag"],
+        fast_response=params["fast_response"],
+    )
+    n = 1000
+    idx = pd.date_range("2020-01-01", periods=n, freq="4h", tz="UTC")
+
+    # 600 flat bars then a steep, sustained crash -> filter falls, close breaks
+    # below the lower band, stoch pins to extremes: the short should engage.
+    crash = np.concatenate([np.full(600, 100.0), np.linspace(100.0, 40.0, n - 600)])
+    cdf = pd.DataFrame(
+        {"open": crash, "high": crash * 1.001, "low": crash * 0.999, "close": crash},
+        index=idx,
+    )
+    cch = gaussian_channel(cdf, gc)
+    s = exporter._gc_short_state(cdf, cch, params)
+    assert len(s) == n
+    assert set(np.unique(s.to_numpy())).issubset({0, 1})
+    assert int(s.to_numpy().sum()) > 0, "steep crash should trigger the short"
+
+    # A perfectly flat tape can never satisfy filter-falling + close<lband.
+    flat = np.full(n, 100.0)
+    fdf = pd.DataFrame({"open": flat, "high": flat, "low": flat, "close": flat}, index=idx)
+    fch = gaussian_channel(fdf, gc)
+    sf = exporter._gc_short_state(fdf, fch, params)
+    assert int(sf.to_numpy().sum()) == 0, "flat tape must produce no shorts"
+    print(f"gc_short_state: ok, short bars on crash={int(s.to_numpy().sum())}, flat=0")
+
+
+def test_crypto_signal_export_helpers():
+    import export_crypto_signals as exporter
+
+    idx = pd.date_range("2026-06-24", periods=3, freq="1D", tz="UTC")
+    df = pd.DataFrame(
+        {"open": [1, 2, 3], "high": [1, 2, 3], "low": [1, 2, 3], "close": [1, 2, 3]},
+        index=idx,
+    )
+    completed = exporter._completed_ohlc(df, 1440, now=pd.Timestamp("2026-06-26T00:30:00Z"))
+    assert list(completed.index) == list(idx[:2])
+    assert exporter._bar_close_utc(completed, 1440) == pd.Timestamp("2026-06-26T00:00:00Z")
+    assert exporter._hl_symbol("BTC", {"BTC", "kPEPE"}) == "BTC"
+    assert exporter._hl_symbol("PEPE", {"BTC", "kPEPE"}) == "kPEPE"
+    assert exporter._hl_symbol("NOTLISTED", {"BTC", "kPEPE"}) is None
+    print("crypto signals export helpers: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -192,4 +247,6 @@ if __name__ == "__main__":
     test_replay()
     test_backtest_stats()
     test_alerts_flip_detection()
+    test_gc_short_state()
+    test_crypto_signal_export_helpers()
     print("\nAll smoke tests passed.")
