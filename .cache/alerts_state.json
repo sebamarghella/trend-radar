@@ -134,7 +134,7 @@
   "stocks|COST|1440": "FLAT",
   "stocks|AVGO|1440": "FLAT",
   "stocks|JPM|1440": "LONG",
-  "stocks|V|1440": "FLAT",
+  "stocks|V|1440": "LONG",
   "stocks|LLY|1440": "LONG",
   "stocks|XOM|1440": "FLAT",
   "stocks|WMT|1440": "FLAT",

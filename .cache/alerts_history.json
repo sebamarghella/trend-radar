@@ -758,5 +758,15 @@
     "price": 125.44999694824219,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-27T04:11:40+00:00",
+    "asset_class": "stocks",
+    "symbol": "V",
+    "pair": "V",
+    "direction": "ENTRY",
+    "price": 336.2300109863281,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
