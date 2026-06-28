@@ -174,7 +174,7 @@
   "commodities|CL=F|1440": "FLAT",
   "commodities|ZC=F|1440": "FLAT",
   "commodities|CC=F|1440": "LONG",
-  "commodities|LE=F|1440": "LONG",
+  "commodities|LE=F|1440": "FLAT",
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "FLAT",
   "commodities|CT=F|1440": "FLAT",

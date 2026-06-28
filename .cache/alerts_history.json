@@ -768,5 +768,15 @@
     "price": 336.2300109863281,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-28T04:45:36+00:00",
+    "asset_class": "commodities",
+    "symbol": "LE=F",
+    "pair": "LE=F",
+    "direction": "EXIT",
+    "price": 245.8249969482422,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
