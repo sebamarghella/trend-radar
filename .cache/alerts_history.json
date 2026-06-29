@@ -778,5 +778,35 @@
     "price": 245.8249969482422,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-06-29T04:54:29+00:00",
+    "asset_class": "crypto",
+    "symbol": "HYPE",
+    "pair": "HYPE_USDT",
+    "direction": "EXIT",
+    "price": 62.25,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-06-29T04:54:29+00:00",
+    "asset_class": "crypto",
+    "symbol": "WLD",
+    "pair": "WLDUSDT",
+    "direction": "EXIT",
+    "price": 0.4298,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-06-29T04:54:34+00:00",
+    "asset_class": "commodities",
+    "symbol": "LE=F",
+    "pair": "LE=F",
+    "direction": "ENTRY",
+    "price": 257.45001220703125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
