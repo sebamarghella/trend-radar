@@ -54,7 +54,7 @@
   "crypto|LAB|1440": "LONG",
   "crypto|CC|1440": "FLAT",
   "crypto|M|1440": "FLAT",
-  "crypto|HYPE|1440": "FLAT",
+  "crypto|HYPE|1440": "LONG",
   "crypto|LEO|1440": "FLAT",
   "crypto|TON|1440": "FLAT",
   "crypto|BCH|1440": "FLAT",
