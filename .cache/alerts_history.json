@@ -828,5 +828,35 @@
     "price": 253.97000122070312,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-02T04:15:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "LAB",
+    "pair": "LAB_USDT",
+    "direction": "EXIT",
+    "price": 10.147,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-07-02T04:15:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "HYPE",
+    "pair": "HYPE_USDT",
+    "direction": "EXIT",
+    "price": 63.462,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-07-02T04:15:32+00:00",
+    "asset_class": "commodities",
+    "symbol": "LE=F",
+    "pair": "LE=F",
+    "direction": "EXIT",
+    "price": 241.8249969482422,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
