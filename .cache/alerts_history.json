@@ -858,5 +858,25 @@
     "price": 241.8249969482422,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-03T04:02:08+00:00",
+    "asset_class": "stocks",
+    "symbol": "BRK-B",
+    "pair": "BRK-B",
+    "direction": "ENTRY",
+    "price": 507.7799987792969,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-03T04:02:08+00:00",
+    "asset_class": "stocks",
+    "symbol": "AAPL",
+    "pair": "AAPL",
+    "direction": "ENTRY",
+    "price": 308.6300048828125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
