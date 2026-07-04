@@ -878,5 +878,15 @@
     "price": 308.6300048828125,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-04T03:55:49+00:00",
+    "asset_class": "crypto",
+    "symbol": "HYPE",
+    "pair": "HYPE_USDT",
+    "direction": "ENTRY",
+    "price": 71.38,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
   }
 ]
