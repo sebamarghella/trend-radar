@@ -888,5 +888,15 @@
     "price": 71.38,
     "interval_minutes": 1440,
     "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-07-08T03:36:28+00:00",
+    "asset_class": "stocks",
+    "symbol": "KO",
+    "pair": "KO",
+    "direction": "ENTRY",
+    "price": 84.05000305175781,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

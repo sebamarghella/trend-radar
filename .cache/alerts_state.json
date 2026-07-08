@@ -146,7 +146,7 @@
   "stocks|PG|1440": "FLAT",
   "stocks|HD|1440": "FLAT",
   "stocks|AMD|1440": "LONG",
-  "stocks|KO|1440": "FLAT",
+  "stocks|KO|1440": "LONG",
   "stocks|ADBE|1440": "FLAT",
   "stocks|CVX|1440": "FLAT",
   "stocks|PEP|1440": "FLAT",
