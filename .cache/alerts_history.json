@@ -898,5 +898,35 @@
     "price": 84.05000305175781,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-10T04:06:19+00:00",
+    "asset_class": "crypto",
+    "symbol": "JST",
+    "pair": "JSTUSDT",
+    "direction": "ENTRY",
+    "price": 0.0997,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-07-10T04:06:23+00:00",
+    "asset_class": "stocks",
+    "symbol": "HD",
+    "pair": "HD",
+    "direction": "ENTRY",
+    "price": 338.7300109863281,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-10T04:06:25+00:00",
+    "asset_class": "commodities",
+    "symbol": "NG=F",
+    "pair": "NG=F",
+    "direction": "EXIT",
+    "price": 3.01200008392334,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
