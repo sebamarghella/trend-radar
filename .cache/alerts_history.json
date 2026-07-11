@@ -928,5 +928,25 @@
     "price": 3.01200008392334,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-11T03:33:16+00:00",
+    "asset_class": "crypto",
+    "symbol": "HYPE",
+    "pair": "HYPE_USDT",
+    "direction": "EXIT",
+    "price": 67.115,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-07-11T03:33:20+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "ENTRY",
+    "price": 98.9000015258789,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
