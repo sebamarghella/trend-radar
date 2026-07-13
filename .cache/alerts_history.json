@@ -958,5 +958,15 @@
     "price": 94.7750015258789,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-13T03:48:54+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "ENTRY",
+    "price": 99.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
