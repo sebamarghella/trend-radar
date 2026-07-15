@@ -968,5 +968,25 @@
     "price": 99.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-15T03:22:12+00:00",
+    "asset_class": "stocks",
+    "symbol": "BRK-B",
+    "pair": "BRK-B",
+    "direction": "EXIT",
+    "price": 491.0899963378906,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-15T03:22:13+00:00",
+    "asset_class": "metals",
+    "symbol": "HG=F",
+    "pair": "HG=F",
+    "direction": "ENTRY",
+    "price": 6.382999897003174,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
