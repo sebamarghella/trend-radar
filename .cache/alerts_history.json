@@ -988,5 +988,15 @@
     "price": 6.382999897003174,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-16T03:28:51+00:00",
+    "asset_class": "commodities",
+    "symbol": "KC=F",
+    "pair": "KC=F",
+    "direction": "ENTRY",
+    "price": 324.5,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
