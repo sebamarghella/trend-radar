@@ -1058,5 +1058,25 @@
     "price": 490.9100036621094,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-19T03:41:21+00:00",
+    "asset_class": "crypto",
+    "symbol": "WBT",
+    "pair": "WBTUSD",
+    "direction": "EXIT",
+    "price": 56.56,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-07-19T03:41:26+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "ENTRY",
+    "price": 101.6500015258789,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
