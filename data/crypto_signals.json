@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-19T04:02:47Z",
-  "bar_close_utc": "2026-07-19T00:00:00Z",
+  "generated_at": "2026-07-20T04:12:27Z",
+  "bar_close_utc": "2026-07-20T00:00:00Z",
   "timeframe": "1d",
   "strategy": "GaussianChannel v3.1",
   "asset_class": "crypto",
@@ -11,10 +11,10 @@
       "state": "neutral",
       "hl_symbol": "BTC",
       "tradable_on_hl": true,
-      "close": 64834.22,
-      "gc_filter": 66698.36490109246,
-      "gc_upper": 69847.57510664214,
-      "gc_lower": 63549.15469554278
+      "close": 64722.54,
+      "gc_filter": 66483.42401854927,
+      "gc_upper": 69622.71112206561,
+      "gc_lower": 63344.136915032934
     },
     {
       "symbol": "ETH",
@@ -22,10 +22,10 @@
       "state": "neutral",
       "hl_symbol": "ETH",
       "tradable_on_hl": true,
-      "close": 1862.61,
-      "gc_filter": 1823.9485531605835,
-      "gc_upper": 1940.4089682342183,
-      "gc_lower": 1707.4881380869488
+      "close": 1872.23,
+      "gc_filter": 1817.9281243082132,
+      "gc_upper": 1934.0710348952769,
+      "gc_lower": 1701.7852137211496
     },
     {
       "symbol": "BNB",
@@ -33,10 +33,10 @@
       "state": "neutral",
       "hl_symbol": "BNB",
       "tradable_on_hl": true,
-      "close": 570.65,
-      "gc_filter": 605.2954281112762,
-      "gc_upper": 636.6281040352833,
-      "gc_lower": 573.9627521872692
+      "close": 571.06,
+      "gc_filter": 603.8288567008954,
+      "gc_upper": 634.9160509891585,
+      "gc_lower": 572.7416624126322
     },
     {
       "symbol": "XRP",
@@ -44,10 +44,10 @@
       "state": "short",
       "hl_symbol": "XRP",
       "tradable_on_hl": true,
-      "close": 1.0929,
-      "gc_filter": 1.1967915069199386,
-      "gc_upper": 1.2700943004141008,
-      "gc_lower": 1.1234887134257765,
+      "close": 1.0978,
+      "gc_filter": 1.1921960000073528,
+      "gc_upper": 1.2651214346903568,
+      "gc_lower": 1.1192705653243489,
       "breakout_date": "2026-06-03"
     },
     {
@@ -56,10 +56,10 @@
       "state": "neutral",
       "hl_symbol": "SOL",
       "tradable_on_hl": true,
-      "close": 75.52,
-      "gc_filter": 75.6139378058212,
-      "gc_upper": 81.27633451713154,
-      "gc_lower": 69.95154109451084
+      "close": 76.38,
+      "gc_filter": 75.56216640554828,
+      "gc_upper": 81.21690008013907,
+      "gc_lower": 69.9074327309575
     },
     {
       "symbol": "TRX",
@@ -67,10 +67,10 @@
       "state": "neutral",
       "hl_symbol": "TRX",
       "tradable_on_hl": true,
-      "close": 0.3258,
-      "gc_filter": 0.3312793039194498,
-      "gc_upper": 0.33960068878970073,
-      "gc_lower": 0.3229579190491989
+      "close": 0.327,
+      "gc_filter": 0.33096623657222424,
+      "gc_upper": 0.33921595436773233,
+      "gc_lower": 0.32271651877671614
     },
     {
       "symbol": "HYPE",
@@ -78,10 +78,10 @@
       "state": "neutral",
       "hl_symbol": "HYPE",
       "tradable_on_hl": true,
-      "close": 60.238,
-      "gc_filter": 61.67400266877744,
-      "gc_upper": 68.9682731632662,
-      "gc_lower": 54.379732174288684
+      "close": 61.136,
+      "gc_filter": 61.924417954668,
+      "gc_upper": 69.17728922795203,
+      "gc_lower": 54.67154668138397
     },
     {
       "symbol": "DOGE",
@@ -89,10 +89,10 @@
       "state": "short",
       "hl_symbol": "DOGE",
       "tradable_on_hl": true,
-      "close": 0.07253,
-      "gc_filter": 0.08767907890787377,
-      "gc_upper": 0.09349739936804287,
-      "gc_lower": 0.08186075844770467,
+      "close": 0.07243,
+      "gc_filter": 0.08715162426469039,
+      "gc_upper": 0.09292101520588233,
+      "gc_lower": 0.08138223332349845,
       "breakout_date": "2026-06-14"
     },
     {
@@ -101,10 +101,10 @@
       "state": "neutral",
       "hl_symbol": "ZEC",
       "tradable_on_hl": true,
-      "close": 558.7,
-      "gc_filter": 471.9097636705447,
-      "gc_upper": 546.1160790922464,
-      "gc_lower": 397.70344824884296
+      "close": 548.21,
+      "gc_filter": 471.24055937383895,
+      "gc_upper": 544.7425400170376,
+      "gc_lower": 397.73857873064026
     },
     {
       "symbol": "LEO",
@@ -112,10 +112,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 9.798,
-      "gc_filter": 9.679821527180788,
-      "gc_upper": 10.08412482299461,
-      "gc_lower": 9.275518231366966
+      "close": 9.769,
+      "gc_filter": 9.668197395005745,
+      "gc_upper": 10.07480588914741,
+      "gc_lower": 9.26158890086408
     },
     {
       "symbol": "ADA",
@@ -123,10 +123,10 @@
       "state": "short",
       "hl_symbol": "ADA",
       "tradable_on_hl": true,
-      "close": 0.1667,
-      "gc_filter": 0.18915195324948136,
-      "gc_upper": 0.20499520700502985,
-      "gc_lower": 0.17330869949393288,
+      "close": 0.1663,
+      "gc_filter": 0.18784592767887867,
+      "gc_upper": 0.20364768023047788,
+      "gc_lower": 0.17204417512727946,
       "breakout_date": "2026-06-02"
     },
     {
@@ -135,10 +135,10 @@
       "state": "neutral",
       "hl_symbol": "XLM",
       "tradable_on_hl": true,
-      "close": 0.1879,
-      "gc_filter": 0.19260414844414914,
-      "gc_upper": 0.2166314233963909,
-      "gc_lower": 0.16857687349190736
+      "close": 0.1882,
+      "gc_filter": 0.19275381585650125,
+      "gc_upper": 0.21655043603014346,
+      "gc_lower": 0.16895719568285905
     },
     {
       "symbol": "XMR",
@@ -146,10 +146,10 @@
       "state": "neutral",
       "hl_symbol": "XMR",
       "tradable_on_hl": true,
-      "close": 335.5,
-      "gc_filter": 342.60046402120196,
-      "gc_upper": 377.5135784353589,
-      "gc_lower": 307.687349607045
+      "close": 335.88,
+      "gc_filter": 341.58727262245066,
+      "gc_upper": 376.0377440130753,
+      "gc_lower": 307.136801231826
     },
     {
       "symbol": "LINK",
@@ -157,10 +157,10 @@
       "state": "neutral",
       "hl_symbol": "LINK",
       "tradable_on_hl": true,
-      "close": 8.35,
-      "gc_filter": 8.280865982229809,
-      "gc_upper": 8.85880798800693,
-      "gc_lower": 7.702923976452688
+      "close": 8.385,
+      "gc_filter": 8.255000967568382,
+      "gc_upper": 8.829503414449853,
+      "gc_lower": 7.6804985206869105
     },
     {
       "symbol": "LAB",
@@ -168,10 +168,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.1924,
-      "gc_filter": 10.461217185165113,
-      "gc_upper": 15.779417274442682,
-      "gc_lower": 5.143017095887544
+      "close": 0.1504,
+      "gc_filter": 10.477798125921158,
+      "gc_upper": 15.825868986527524,
+      "gc_lower": 5.1297272653147905
     },
     {
       "symbol": "WBT",
@@ -179,10 +179,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 56.32,
-      "gc_filter": 52.55982180002987,
-      "gc_upper": 55.013549295319855,
-      "gc_lower": 50.10609430473989
+      "close": 56.29,
+      "gc_filter": 52.58315241857085,
+      "gc_upper": 55.04075649960228,
+      "gc_lower": 50.12554833753941
     },
     {
       "symbol": "CC",
@@ -190,10 +190,10 @@
       "state": "short",
       "hl_symbol": "CC",
       "tradable_on_hl": true,
-      "close": 0.12521,
-      "gc_filter": 0.15338305456766455,
-      "gc_upper": 0.1645293550767863,
-      "gc_lower": 0.1422367540585428,
+      "close": 0.12683,
+      "gc_filter": 0.1529830231159361,
+      "gc_upper": 0.16408484277395083,
+      "gc_lower": 0.14188120345792135,
       "breakout_date": "2026-07-06"
     },
     {
@@ -202,10 +202,10 @@
       "state": "short",
       "hl_symbol": "BCH",
       "tradable_on_hl": true,
-      "close": 220.2,
-      "gc_filter": 260.4397732028929,
-      "gc_upper": 283.0485665038648,
-      "gc_lower": 237.83097990192107,
+      "close": 215.3,
+      "gc_filter": 258.0984487566885,
+      "gc_upper": 280.512167186003,
+      "gc_lower": 235.68473032737404,
       "breakout_date": "2026-05-15"
     },
     {
@@ -214,10 +214,10 @@
       "state": "short",
       "hl_symbol": "TON",
       "tradable_on_hl": true,
-      "close": 1.474,
-      "gc_filter": 1.7248052821774564,
-      "gc_upper": 1.9349295398038129,
-      "gc_lower": 1.5146810245511,
+      "close": 1.446,
+      "gc_filter": 1.7207780299013942,
+      "gc_upper": 1.9283199123848802,
+      "gc_lower": 1.5132361474179081,
       "breakout_date": "2026-07-17"
     },
     {
@@ -226,10 +226,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 1.2322,
-      "gc_filter": 2.5644870859271056,
-      "gc_upper": 3.0087288080550487,
-      "gc_lower": 2.1202453637991625,
+      "close": 1.2116,
+      "gc_filter": 2.5227367271027927,
+      "gc_upper": 2.9672001081402883,
+      "gc_lower": 2.078273346065297,
       "breakout_date": "2026-06-24"
     },
     {
@@ -238,10 +238,10 @@
       "state": "short",
       "hl_symbol": "HBAR",
       "tradable_on_hl": true,
-      "close": 0.06711,
-      "gc_filter": 0.08133161449153598,
-      "gc_upper": 0.08684560756168472,
-      "gc_lower": 0.07581762142138723,
+      "close": 0.06655,
+      "gc_filter": 0.08095638365264114,
+      "gc_upper": 0.0864302719700324,
+      "gc_lower": 0.07548249533524988,
       "breakout_date": "2026-06-07"
     },
     {
@@ -250,10 +250,10 @@
       "state": "neutral",
       "hl_symbol": "LTC",
       "tradable_on_hl": true,
-      "close": 47.01,
-      "gc_filter": 46.69975580590818,
-      "gc_upper": 49.38505060501194,
-      "gc_lower": 44.014461006804424
+      "close": 47.07,
+      "gc_filter": 46.54455455830953,
+      "gc_upper": 49.220089610907415,
+      "gc_lower": 43.86901950571164
     },
     {
       "symbol": "AVAX",
@@ -261,10 +261,10 @@
       "state": "short",
       "hl_symbol": "AVAX",
       "tradable_on_hl": true,
-      "close": 6.574,
-      "gc_filter": 7.409631305126875,
-      "gc_upper": 8.001748001908403,
-      "gc_lower": 6.817514608345347,
+      "close": 6.465,
+      "gc_filter": 7.368296074475454,
+      "gc_upper": 7.9568192167427885,
+      "gc_lower": 6.77977293220812,
       "breakout_date": "2026-06-04"
     },
     {
@@ -273,10 +273,10 @@
       "state": "neutral",
       "hl_symbol": "NEAR",
       "tradable_on_hl": true,
-      "close": 1.932,
-      "gc_filter": 2.0346044855985252,
-      "gc_upper": 2.3210801696985497,
-      "gc_lower": 1.748128801498501
+      "close": 1.917,
+      "gc_filter": 2.0335391980602786,
+      "gc_upper": 2.3167567134969977,
+      "gc_lower": 1.7503216826235597
     },
     {
       "symbol": "SUI",
@@ -284,10 +284,10 @@
       "state": "neutral",
       "hl_symbol": "SUI",
       "tradable_on_hl": true,
-      "close": 0.7434,
-      "gc_filter": 0.8137277737750651,
-      "gc_upper": 0.8877249733660896,
-      "gc_lower": 0.7397305741840406
+      "close": 0.7496,
+      "gc_filter": 0.8093078372380489,
+      "gc_upper": 0.8824344914175302,
+      "gc_lower": 0.7361811830585676
     },
     {
       "symbol": "SHIB",
@@ -296,9 +296,9 @@
       "hl_symbol": "kSHIB",
       "tradable_on_hl": true,
       "close": 4.15e-06,
-      "gc_filter": 4.965957439672267e-06,
-      "gc_upper": 5.290500343314067e-06,
-      "gc_lower": 4.641414536030467e-06,
+      "gc_filter": 4.938460161604648e-06,
+      "gc_upper": 5.261342074617097e-06,
+      "gc_lower": 4.615578248592198e-06,
       "breakout_date": "2026-06-04"
     },
     {
@@ -307,10 +307,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.05945,
-      "gc_filter": 0.061649426830510404,
-      "gc_upper": 0.06496574452973221,
-      "gc_lower": 0.058333109131288606
+      "close": 0.05842,
+      "gc_filter": 0.06143180144409722,
+      "gc_upper": 0.06474419292038261,
+      "gc_lower": 0.05811940996781183
     },
     {
       "symbol": "XAUT",
@@ -318,10 +318,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 4012.07,
-      "gc_filter": 4275.776159293548,
-      "gc_upper": 4389.220924316155,
-      "gc_lower": 4162.33139427094,
+      "close": 3995.89,
+      "gc_filter": 4267.902448919305,
+      "gc_upper": 4381.053375091839,
+      "gc_lower": 4154.751522746771,
       "breakout_date": "2026-06-25"
     },
     {
@@ -330,10 +330,10 @@
       "state": "short",
       "hl_symbol": "TAO",
       "tradable_on_hl": true,
-      "close": 196.1,
-      "gc_filter": 236.6689978167444,
-      "gc_upper": 261.67784880107064,
-      "gc_lower": 211.66014683241815,
+      "close": 198.8,
+      "gc_filter": 235.59497094287755,
+      "gc_upper": 260.31204585876293,
+      "gc_lower": 210.87789602699218,
       "breakout_date": "2026-06-25"
     },
     {
@@ -342,10 +342,10 @@
       "state": "short",
       "hl_symbol": "PAXG",
       "tradable_on_hl": true,
-      "close": 4012.29,
-      "gc_filter": 4297.094500760544,
-      "gc_upper": 4414.913170680313,
-      "gc_lower": 4179.275830840776,
+      "close": 3993.01,
+      "gc_filter": 4288.0624514098545,
+      "gc_upper": 4405.5310718518485,
+      "gc_lower": 4170.59383096786,
       "breakout_date": "2026-05-19"
     },
     {
@@ -354,10 +354,10 @@
       "state": "short",
       "hl_symbol": "MNT",
       "tradable_on_hl": true,
-      "close": 0.42,
-      "gc_filter": 0.5478930956102483,
-      "gc_upper": 0.5828834687729157,
-      "gc_lower": 0.512902722447581,
+      "close": 0.4249,
+      "gc_filter": 0.5437033876242535,
+      "gc_upper": 0.5784099723416968,
+      "gc_lower": 0.5089968029068103,
       "breakout_date": "2026-06-03"
     },
     {
@@ -366,10 +366,10 @@
       "state": "neutral",
       "hl_symbol": "WLFI",
       "tradable_on_hl": true,
-      "close": 0.0569,
-      "gc_filter": 0.06034096501326933,
-      "gc_upper": 0.0654824197517269,
-      "gc_lower": 0.05519951027481176
+      "close": 0.0576,
+      "gc_filter": 0.060226736637156046,
+      "gc_upper": 0.0653073651341907,
+      "gc_lower": 0.055146108140121386
     },
     {
       "symbol": "DOT",
@@ -377,10 +377,10 @@
       "state": "short",
       "hl_symbol": "DOT",
       "tradable_on_hl": true,
-      "close": 0.839,
-      "gc_filter": 1.0220880653733837,
-      "gc_upper": 1.1041325355972618,
-      "gc_lower": 0.9400435951495056,
+      "close": 0.82,
+      "gc_filter": 1.014970293732533,
+      "gc_upper": 1.096190274718184,
+      "gc_lower": 0.9337503127468819,
       "breakout_date": "2026-05-29"
     },
     {
@@ -389,10 +389,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 81.37,
-      "gc_filter": 78.99392736205739,
-      "gc_upper": 84.49678120575864,
-      "gc_lower": 73.49107351835615
+      "close": 80.2,
+      "gc_filter": 78.95378167205209,
+      "gc_upper": 84.41983875138004,
+      "gc_lower": 73.48772459272413
     },
     {
       "symbol": "UNI",
@@ -400,10 +400,10 @@
       "state": "neutral",
       "hl_symbol": "UNI",
       "tradable_on_hl": true,
-      "close": 3.569,
-      "gc_filter": 3.019640536749315,
-      "gc_upper": 3.3187839988426107,
-      "gc_lower": 2.7204970746560195
+      "close": 3.518,
+      "gc_filter": 3.0229958447448677,
+      "gc_upper": 3.322804579168702,
+      "gc_lower": 2.7231871103210334
     },
     {
       "symbol": "ONDO",
@@ -411,10 +411,10 @@
       "state": "neutral",
       "hl_symbol": "ONDO",
       "tradable_on_hl": true,
-      "close": 0.347,
-      "gc_filter": 0.34907618772898014,
-      "gc_upper": 0.3914006663428694,
-      "gc_lower": 0.30675170911509086
+      "close": 0.3456,
+      "gc_filter": 0.3482996725962771,
+      "gc_upper": 0.39000197482098187,
+      "gc_lower": 0.3065973703715723
     },
     {
       "symbol": "ASTER",
@@ -422,21 +422,22 @@
       "state": "neutral",
       "hl_symbol": "ASTER",
       "tradable_on_hl": true,
-      "close": 0.62,
-      "gc_filter": 0.6509925137641009,
-      "gc_upper": 0.7007018315744651,
-      "gc_lower": 0.6012831959537368
+      "close": 0.621,
+      "gc_filter": 0.6501050062869183,
+      "gc_upper": 0.6991879935044556,
+      "gc_lower": 0.6010220190693809
     },
     {
       "symbol": "ICP",
       "rank": 53,
-      "state": "neutral",
+      "state": "short",
       "hl_symbol": "ICP",
       "tradable_on_hl": true,
-      "close": 2.175,
-      "gc_filter": 2.42742277940484,
-      "gc_upper": 2.692380196345539,
-      "gc_lower": 2.1624653624641414
+      "close": 2.139,
+      "gc_filter": 2.4181811492837086,
+      "gc_upper": 2.6792658785399577,
+      "gc_lower": 2.1570964200274596,
+      "breakout_date": "2026-07-19"
     },
     {
       "symbol": "HTX",
@@ -444,10 +445,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 1.8247e-06,
-      "gc_filter": 1.7748858687811693e-06,
-      "gc_upper": 1.8328477350985841e-06,
-      "gc_lower": 1.7169240024637544e-06
+      "close": 1.8524e-06,
+      "gc_filter": 1.7730441756331549e-06,
+      "gc_upper": 1.8311419273256017e-06,
+      "gc_lower": 1.714946423940708e-06
     },
     {
       "symbol": "SKY",
@@ -455,10 +456,10 @@
       "state": "neutral",
       "hl_symbol": "SKY",
       "tradable_on_hl": true,
-      "close": 0.06224,
-      "gc_filter": 0.06113982820174435,
-      "gc_upper": 0.06538325955983643,
-      "gc_lower": 0.05689639684365228
+      "close": 0.06122,
+      "gc_filter": 0.06088377586215108,
+      "gc_upper": 0.06515108183392394,
+      "gc_lower": 0.056616469890378225
     },
     {
       "symbol": "PI",
@@ -466,10 +467,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.08548,
-      "gc_filter": 0.13533636309767705,
-      "gc_upper": 0.14454791884097237,
-      "gc_lower": 0.12612480735438172,
+      "close": 0.09281,
+      "gc_filter": 0.1343490914786768,
+      "gc_upper": 0.14356981609879108,
+      "gc_lower": 0.12512836685856252,
       "breakout_date": "2026-05-16"
     },
     {
@@ -478,10 +479,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 1.649,
-      "gc_filter": 1.828018078218211,
-      "gc_upper": 1.8946755203500603,
-      "gc_lower": 1.7613606360863616,
+      "close": 1.632,
+      "gc_filter": 1.8214630559917864,
+      "gc_upper": 1.8879918911847138,
+      "gc_lower": 1.754934220798859,
       "breakout_date": "2026-06-11"
     },
     {
@@ -490,10 +491,10 @@
       "state": "neutral",
       "hl_symbol": "WLD",
       "tradable_on_hl": true,
-      "close": 0.3762,
-      "gc_filter": 0.4442531390689023,
-      "gc_upper": 0.5303006486272219,
-      "gc_lower": 0.35820562951058266
+      "close": 0.3612,
+      "gc_filter": 0.44532630766069514,
+      "gc_upper": 0.530574037533198,
+      "gc_lower": 0.3600785777881923
     },
     {
       "symbol": "PEPE",
@@ -501,10 +502,10 @@
       "state": "neutral",
       "hl_symbol": "kPEPE",
       "tradable_on_hl": true,
-      "close": 2.75e-06,
-      "gc_filter": 3.004077615014116e-06,
-      "gc_upper": 3.2636682324036965e-06,
-      "gc_lower": 2.744486997624536e-06
+      "close": 2.84e-06,
+      "gc_filter": 2.985913333169309e-06,
+      "gc_upper": 3.244636205069119e-06,
+      "gc_lower": 2.7271904612694987e-06
     },
     {
       "symbol": "MORPHO",
@@ -512,10 +513,10 @@
       "state": "neutral",
       "hl_symbol": "MORPHO",
       "tradable_on_hl": true,
-      "close": 2.011,
-      "gc_filter": 1.9243220218097568,
-      "gc_upper": 2.1337476452330457,
-      "gc_lower": 1.7148963983864678
+      "close": 2.003,
+      "gc_filter": 1.9251954948528254,
+      "gc_upper": 2.134777064810874,
+      "gc_lower": 1.7156139248947764
     },
     {
       "symbol": "ETC",
@@ -523,10 +524,10 @@
       "state": "short",
       "hl_symbol": "ETC",
       "tradable_on_hl": true,
-      "close": 7.01,
-      "gc_filter": 7.619867896333273,
-      "gc_upper": 8.146108663251113,
-      "gc_lower": 7.093627129415432,
+      "close": 6.95,
+      "gc_filter": 7.593395609948569,
+      "gc_upper": 8.114815471754646,
+      "gc_lower": 7.071975748142492,
       "breakout_date": "2026-06-13"
     },
     {
@@ -535,10 +536,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.05851,
-      "gc_filter": 0.23987606004924855,
-      "gc_upper": 0.37394340134927817,
-      "gc_lower": 0.1058087187492189,
+      "close": 0.05836,
+      "gc_filter": 0.23450791164669207,
+      "gc_upper": 0.3655584405619918,
+      "gc_lower": 0.10345738273139235,
       "breakout_date": "2026-07-16"
     },
     {
@@ -547,10 +548,10 @@
       "state": "long",
       "hl_symbol": "AAVE",
       "tradable_on_hl": true,
-      "close": 89.99,
-      "gc_filter": 80.59403647277077,
-      "gc_upper": 88.40854372440582,
-      "gc_lower": 72.77952922113572,
+      "close": 89.56,
+      "gc_filter": 80.79245608225261,
+      "gc_upper": 88.64513525581764,
+      "gc_lower": 72.93977690868759,
       "breakout_date": "2026-07-17"
     },
     {
@@ -560,9 +561,9 @@
       "hl_symbol": "RENDER",
       "tradable_on_hl": true,
       "close": 1.482,
-      "gc_filter": 1.7446586796389902,
-      "gc_upper": 1.930800231662532,
-      "gc_lower": 1.5585171276154486,
+      "gc_filter": 1.737449704572856,
+      "gc_upper": 1.9207815833331132,
+      "gc_lower": 1.554117825812599,
       "breakout_date": "2026-06-25"
     },
     {
@@ -571,10 +572,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 63.86,
-      "gc_filter": 69.98007725056488,
-      "gc_upper": 75.43037033827363,
-      "gc_lower": 64.52978416285612
+      "close": 64.18,
+      "gc_filter": 69.8513697436508,
+      "gc_upper": 75.24666251733868,
+      "gc_lower": 64.45607696996294
     },
     {
       "symbol": "ALGO",
@@ -582,10 +583,10 @@
       "state": "short",
       "hl_symbol": "ALGO",
       "tradable_on_hl": true,
-      "close": 0.0833,
-      "gc_filter": 0.09839920231102933,
-      "gc_upper": 0.10769263178237345,
-      "gc_lower": 0.08910577283968521,
+      "close": 0.0829,
+      "gc_filter": 0.09789867471403618,
+      "gc_upper": 0.10707636126734273,
+      "gc_lower": 0.08872098816072964,
       "breakout_date": "2026-06-13"
     },
     {
@@ -594,10 +595,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 6.647,
-      "gc_filter": 7.273033841710201,
-      "gc_upper": 7.738237429909666,
-      "gc_lower": 6.807830253510736,
+      "close": 6.633,
+      "gc_filter": 7.256840931871146,
+      "gc_upper": 7.720322820594208,
+      "gc_lower": 6.793359043148084,
       "breakout_date": "2026-07-17"
     },
     {
@@ -606,10 +607,10 @@
       "state": "neutral",
       "hl_symbol": "POL",
       "tradable_on_hl": true,
-      "close": 0.08103,
-      "gc_filter": 0.08128451109916501,
-      "gc_upper": 0.08698162320919696,
-      "gc_lower": 0.07558739898913307
+      "close": 0.08122,
+      "gc_filter": 0.0810105350038513,
+      "gc_upper": 0.08666989102347447,
+      "gc_lower": 0.07535117898422813
     },
     {
       "symbol": "ATOM",
@@ -617,10 +618,10 @@
       "state": "short",
       "hl_symbol": "ATOM",
       "tradable_on_hl": true,
-      "close": 1.498,
-      "gc_filter": 1.8160019238618985,
-      "gc_upper": 1.9559274820768862,
-      "gc_lower": 1.6760763656469109,
+      "close": 1.477,
+      "gc_filter": 1.8077428345944284,
+      "gc_upper": 1.9457781911409542,
+      "gc_lower": 1.6697074780479026,
       "breakout_date": "2026-06-23"
     },
     {
@@ -629,10 +630,10 @@
       "state": "short",
       "hl_symbol": "VVV",
       "tradable_on_hl": true,
-      "close": 11.8251,
-      "gc_filter": 14.683453454637906,
-      "gc_upper": 17.322271431095942,
-      "gc_lower": 12.044635478179872,
+      "close": 11.6956,
+      "gc_filter": 14.612637972476364,
+      "gc_upper": 17.21887505764132,
+      "gc_lower": 12.00640088731141,
       "breakout_date": "2026-07-08"
     },
     {
@@ -641,10 +642,10 @@
       "state": "long",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 35.357,
-      "gc_filter": 19.00567896235945,
-      "gc_upper": 22.690724013567237,
-      "gc_lower": 15.320633911151663,
+      "close": 34.705,
+      "gc_filter": 19.30974729006869,
+      "gc_upper": 23.072466609698807,
+      "gc_lower": 15.54702797043857,
       "breakout_date": "2026-06-24"
     },
     {
@@ -653,10 +654,10 @@
       "state": "long",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.09855,
-      "gc_filter": 0.08517043812110789,
-      "gc_upper": 0.09083226712060004,
-      "gc_lower": 0.07950860912161574,
+      "close": 0.09732,
+      "gc_filter": 0.08535575935698164,
+      "gc_upper": 0.0909859016997895,
+      "gc_lower": 0.07972561701417379,
       "breakout_date": "2026-07-10"
     },
     {
@@ -665,10 +666,10 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.76,
-      "gc_filter": 0.8024454781145316,
-      "gc_upper": 0.8516163680751402,
-      "gc_lower": 0.753274588153923
+      "close": 0.758,
+      "gc_filter": 0.8002812594845998,
+      "gc_upper": 0.8493743776101732,
+      "gc_lower": 0.7511881413590265
     },
     {
       "symbol": "KAS",
@@ -676,10 +677,10 @@
       "state": "short",
       "hl_symbol": "KAS",
       "tradable_on_hl": true,
-      "close": 0.02777,
-      "gc_filter": 0.031239113944731365,
-      "gc_upper": 0.03381253193978201,
-      "gc_lower": 0.028665695949680717,
+      "close": 0.02833,
+      "gc_filter": 0.031166380659928092,
+      "gc_upper": 0.033719352419022026,
+      "gc_lower": 0.02861340890083416,
       "breakout_date": "2026-07-16"
     },
     {
@@ -688,10 +689,10 @@
       "state": "neutral",
       "hl_symbol": "ENA",
       "tradable_on_hl": true,
-      "close": 0.0806,
-      "gc_filter": 0.08962982614892107,
-      "gc_upper": 0.10159958577428065,
-      "gc_lower": 0.07766006652356149
+      "close": 0.0799,
+      "gc_filter": 0.0891827996637984,
+      "gc_upper": 0.10101963690125376,
+      "gc_lower": 0.07734596242634303
     },
     {
       "symbol": "GT",
@@ -699,21 +700,22 @@
       "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 6.75,
-      "gc_filter": 6.747282623585916,
-      "gc_upper": 7.084811388626968,
-      "gc_lower": 6.409753858544863
+      "close": 6.72,
+      "gc_filter": 6.741960575513449,
+      "gc_upper": 7.077937886150785,
+      "gc_lower": 6.405983264876113
     },
     {
       "symbol": "FIL",
       "rank": 86,
-      "state": "neutral",
+      "state": "short",
       "hl_symbol": "FIL",
       "tradable_on_hl": true,
-      "close": 0.749,
-      "gc_filter": 0.8361799696338054,
-      "gc_upper": 0.9233462961328125,
-      "gc_lower": 0.7490136431347982
+      "close": 0.72,
+      "gc_filter": 0.8328099471528315,
+      "gc_upper": 0.918938207559252,
+      "gc_lower": 0.746681686746411,
+      "breakout_date": "2026-07-19"
     },
     {
       "symbol": "APT",
@@ -721,10 +723,10 @@
       "state": "short",
       "hl_symbol": "APT",
       "tradable_on_hl": true,
-      "close": 0.608,
-      "gc_filter": 0.7406393016669361,
-      "gc_upper": 0.8119498880313472,
-      "gc_lower": 0.6693287153025251,
+      "close": 0.596,
+      "gc_filter": 0.7347259382666419,
+      "gc_upper": 0.8051565610865373,
+      "gc_lower": 0.6642953154467465,
       "breakout_date": "2026-06-07"
     },
     {
@@ -733,10 +735,10 @@
       "state": "neutral",
       "hl_symbol": "INJ",
       "tradable_on_hl": true,
-      "close": 5.166,
-      "gc_filter": 5.069853763063779,
-      "gc_upper": 5.758792491339862,
-      "gc_lower": 4.380915034787697
+      "close": 5.11,
+      "gc_filter": 5.062822730686112,
+      "gc_upper": 5.743673168739463,
+      "gc_lower": 4.381972292632762
     },
     {
       "symbol": "JUP",
@@ -744,22 +746,21 @@
       "state": "neutral",
       "hl_symbol": "JUP",
       "tradable_on_hl": true,
-      "close": 0.1948,
-      "gc_filter": 0.19836419675325218,
-      "gc_upper": 0.22305755231317737,
-      "gc_lower": 0.17367084119332699
+      "close": 0.1961,
+      "gc_filter": 0.19907091225940746,
+      "gc_upper": 0.22377979326914935,
+      "gc_lower": 0.17436203124966557
     },
     {
       "symbol": "XDC",
       "rank": 90,
-      "state": "short",
+      "state": "neutral",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.02806,
-      "gc_filter": 0.03009848537433699,
-      "gc_upper": 0.03192418096845215,
-      "gc_lower": 0.028272789780221828,
-      "breakout_date": "2026-07-05"
+      "close": 0.02864,
+      "gc_filter": 0.030019223101187896,
+      "gc_upper": 0.031804814188486144,
+      "gc_lower": 0.028233632013889648
     },
     {
       "symbol": "NIGHT",
@@ -767,10 +768,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.02767,
-      "gc_filter": 0.03288486715748849,
-      "gc_upper": 0.03646824086452183,
-      "gc_lower": 0.029301493450455154,
+      "close": 0.02681,
+      "gc_filter": 0.03283296076053686,
+      "gc_upper": 0.03638283715216679,
+      "gc_lower": 0.029283084368906923,
       "breakout_date": "2026-07-17"
     },
     {
@@ -779,10 +780,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.006567,
-      "gc_filter": 0.007430541757205107,
-      "gc_upper": 0.007876773599684904,
-      "gc_lower": 0.00698430991472531,
+      "close": 0.006521,
+      "gc_filter": 0.00740432657981282,
+      "gc_upper": 0.007848270139601094,
+      "gc_lower": 0.006960383020024546,
       "breakout_date": "2026-06-17"
     },
     {
@@ -791,10 +792,10 @@
       "state": "short",
       "hl_symbol": null,
       "tradable_on_hl": false,
-      "close": 0.12,
-      "gc_filter": 0.34364896624107033,
-      "gc_upper": 0.41850203870044955,
-      "gc_lower": 0.2687958937816911,
+      "close": 0.10557,
+      "gc_filter": 0.3424367801366163,
+      "gc_upper": 0.4157515603330798,
+      "gc_lower": 0.26912199994015285,
       "breakout_date": "2026-07-13"
     },
     {
@@ -803,10 +804,10 @@
       "state": "neutral",
       "hl_symbol": "PUMP",
       "tradable_on_hl": true,
-      "close": 0.001663,
-      "gc_filter": 0.001578227003773802,
-      "gc_upper": 0.001781988533412917,
-      "gc_lower": 0.001374465474134687
+      "close": 0.001997,
+      "gc_filter": 0.0015733773317696013,
+      "gc_upper": 0.0017769997293940784,
+      "gc_lower": 0.0013697549341451243
     },
     {
       "symbol": "FET",
@@ -814,10 +815,10 @@
       "state": "short",
       "hl_symbol": "FET",
       "tradable_on_hl": true,
-      "close": 0.1586,
-      "gc_filter": 0.20076161584033617,
-      "gc_upper": 0.22511067118541084,
-      "gc_lower": 0.1764125604952615,
+      "close": 0.1568,
+      "gc_filter": 0.19965491261058094,
+      "gc_upper": 0.223631680978256,
+      "gc_lower": 0.17567814424290587,
       "breakout_date": "2026-07-04"
     },
     {
@@ -826,10 +827,10 @@
       "state": "neutral",
       "hl_symbol": "ARB",
       "tradable_on_hl": true,
-      "close": 0.0884,
-      "gc_filter": 0.09133794639767333,
-      "gc_upper": 0.09980152658160114,
-      "gc_lower": 0.08287436621374551
+      "close": 0.0891,
+      "gc_filter": 0.09083157188972522,
+      "gc_upper": 0.09925865009576525,
+      "gc_lower": 0.0824044936836852
     }
   ]
 }
