@@ -1078,5 +1078,25 @@
     "price": 101.6500015258789,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-20T03:55:05+00:00",
+    "asset_class": "crypto",
+    "symbol": "UNI",
+    "pair": "UNIUSDT",
+    "direction": "ENTRY",
+    "price": 3.489,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-07-20T03:55:09+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "EXIT",
+    "price": 87.94999694824219,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
