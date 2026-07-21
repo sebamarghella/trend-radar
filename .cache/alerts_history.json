@@ -1098,5 +1098,15 @@
     "price": 87.94999694824219,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-21T03:34:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "HD",
+    "pair": "HD",
+    "direction": "EXIT",
+    "price": 333.0400085449219,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
