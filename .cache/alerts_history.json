@@ -1108,5 +1108,25 @@
     "price": 333.0400085449219,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-22T03:34:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "WBT",
+    "pair": "WBTUSD",
+    "direction": "ENTRY",
+    "price": 57.9,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-07-22T03:34:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "DEXE",
+    "pair": "DEXEUSDT",
+    "direction": "EXIT",
+    "price": 5.351,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
