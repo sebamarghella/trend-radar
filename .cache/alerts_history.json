@@ -1128,5 +1128,25 @@
     "price": 5.351,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-07-23T03:37:19+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "ENTRY",
+    "price": 39.25,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-23T03:37:19+00:00",
+    "asset_class": "metals",
+    "symbol": "HG=F",
+    "pair": "HG=F",
+    "direction": "ENTRY",
+    "price": 6.518499851226807,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
