@@ -1148,5 +1148,45 @@
     "price": 6.518499851226807,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-24T03:34:38+00:00",
+    "asset_class": "stocks",
+    "symbol": "MA",
+    "pair": "MA",
+    "direction": "ENTRY",
+    "price": 530.2899780273438,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-24T03:34:38+00:00",
+    "asset_class": "stocks",
+    "symbol": "KO",
+    "pair": "KO",
+    "direction": "EXIT",
+    "price": 81.16999816894531,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-24T03:34:40+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "EXIT",
+    "price": 38.2400016784668,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-24T03:34:40+00:00",
+    "asset_class": "metals",
+    "symbol": "HG=F",
+    "pair": "HG=F",
+    "direction": "EXIT",
+    "price": 6.321000099182129,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
