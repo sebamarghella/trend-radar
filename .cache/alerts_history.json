@@ -1198,5 +1198,25 @@
     "price": 82.25,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-26T03:48:05+00:00",
+    "asset_class": "crypto",
+    "symbol": "HTX",
+    "pair": "HTX_USDT",
+    "direction": "ENTRY",
+    "price": 1.8274e-06,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-07-26T03:48:09+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "ENTRY",
+    "price": 102.8499984741211,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
