@@ -1288,5 +1288,25 @@
     "price": 84.06999969482422,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-07-29T03:29:14+00:00",
+    "asset_class": "crypto",
+    "symbol": "WBT",
+    "pair": "WBTUSD",
+    "direction": "ENTRY",
+    "price": 55.99,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-07-29T03:29:17+00:00",
+    "asset_class": "stocks",
+    "symbol": "BRK-B",
+    "pair": "BRK-B",
+    "direction": "ENTRY",
+    "price": 512.3699951171875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
