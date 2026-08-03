@@ -1388,5 +1388,35 @@
     "price": 1172.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-03T03:46:02+00:00",
+    "asset_class": "crypto",
+    "symbol": "ONDO",
+    "pair": "ONDOUSDT",
+    "direction": "EXIT",
+    "price": 0.3704,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-03T03:46:06+00:00",
+    "asset_class": "commodities",
+    "symbol": "HE=F",
+    "pair": "HE=F",
+    "direction": "EXIT",
+    "price": 84.8499984741211,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-03T03:46:06+00:00",
+    "asset_class": "commodities",
+    "symbol": "HO=F",
+    "pair": "HO=F",
+    "direction": "ENTRY",
+    "price": 4.014800071716309,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

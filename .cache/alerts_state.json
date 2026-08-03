@@ -87,7 +87,7 @@
   "crypto|MORPHO|1440": "FLAT",
   "crypto|H|1440": "FLAT",
   "crypto|HTX|1440": "FLAT",
-  "crypto|ONDO|1440": "LONG",
+  "crypto|ONDO|1440": "FLAT",
   "crypto|OKB|1440": "LONG",
   "crypto|PAXG|1440": "FLAT",
   "crypto|ICP|1440": "FLAT",
@@ -170,7 +170,7 @@
   "commodities|KC=F|1440": "LONG",
   "commodities|ZL=F|1440": "FLAT",
   "commodities|OJ=F|1440": "FLAT",
-  "commodities|HE=F|1440": "LONG",
+  "commodities|HE=F|1440": "FLAT",
   "commodities|CL=F|1440": "FLAT",
   "commodities|ZC=F|1440": "FLAT",
   "commodities|CC=F|1440": "LONG",
@@ -178,5 +178,5 @@
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "FLAT",
   "commodities|CT=F|1440": "FLAT",
-  "commodities|HO=F|1440": "FLAT"
+  "commodities|HO=F|1440": "LONG"
 }
