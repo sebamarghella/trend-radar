@@ -1418,5 +1418,55 @@
     "price": 4.014800071716309,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-04T03:29:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "LLY",
+    "pair": "LLY",
+    "direction": "EXIT",
+    "price": 1121.3599853515625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-04T03:29:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "AAPL",
+    "pair": "AAPL",
+    "direction": "EXIT",
+    "price": 303.4200134277344,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-04T03:29:46+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "ENTRY",
+    "price": 39.63999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-04T03:29:47+00:00",
+    "asset_class": "commodities",
+    "symbol": "HO=F",
+    "pair": "HO=F",
+    "direction": "EXIT",
+    "price": 3.8777999877929688,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-04T03:29:47+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZS=F",
+    "pair": "ZS=F",
+    "direction": "ENTRY",
+    "price": 1191.75,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

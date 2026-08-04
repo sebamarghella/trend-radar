@@ -135,11 +135,11 @@
   "stocks|AVGO|1440": "FLAT",
   "stocks|JPM|1440": "LONG",
   "stocks|V|1440": "LONG",
-  "stocks|LLY|1440": "LONG",
+  "stocks|LLY|1440": "FLAT",
   "stocks|XOM|1440": "FLAT",
   "stocks|WMT|1440": "FLAT",
   "stocks|JNJ|1440": "LONG",
-  "stocks|AAPL|1440": "LONG",
+  "stocks|AAPL|1440": "FLAT",
   "stocks|ABBV|1440": "LONG",
   "stocks|CRM|1440": "FLAT",
   "stocks|BAC|1440": "LONG",
@@ -155,7 +155,7 @@
   "metals|PL=F|1440": "FLAT",
   "metals|PA=F|1440": "FLAT",
   "metals|GLD|1440": "FLAT",
-  "metals|CPER|1440": "FLAT",
+  "metals|CPER|1440": "LONG",
   "metals|SLV|1440": "FLAT",
   "metals|HG=F|1440": "FLAT",
   "metals|URA|1440": "FLAT",
@@ -166,7 +166,7 @@
   "commodities|ZW=F|1440": "LONG",
   "commodities|BZ=F|1440": "FLAT",
   "commodities|NG=F|1440": "FLAT",
-  "commodities|ZS=F|1440": "FLAT",
+  "commodities|ZS=F|1440": "LONG",
   "commodities|KC=F|1440": "LONG",
   "commodities|ZL=F|1440": "FLAT",
   "commodities|OJ=F|1440": "FLAT",
@@ -178,5 +178,5 @@
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "FLAT",
   "commodities|CT=F|1440": "FLAT",
-  "commodities|HO=F|1440": "LONG"
+  "commodities|HO=F|1440": "FLAT"
 }
