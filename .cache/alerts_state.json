@@ -157,7 +157,7 @@
   "metals|GLD|1440": "FLAT",
   "metals|CPER|1440": "LONG",
   "metals|SLV|1440": "FLAT",
-  "metals|HG=F|1440": "FLAT",
+  "metals|HG=F|1440": "LONG",
   "metals|URA|1440": "FLAT",
   "metals|PICK|1440": "FLAT",
   "metals|LIT|1440": "FLAT",
@@ -166,7 +166,7 @@
   "commodities|ZW=F|1440": "LONG",
   "commodities|BZ=F|1440": "FLAT",
   "commodities|NG=F|1440": "FLAT",
-  "commodities|ZS=F|1440": "LONG",
+  "commodities|ZS=F|1440": "FLAT",
   "commodities|KC=F|1440": "LONG",
   "commodities|ZL=F|1440": "FLAT",
   "commodities|OJ=F|1440": "FLAT",
@@ -176,7 +176,7 @@
   "commodities|CC=F|1440": "LONG",
   "commodities|LE=F|1440": "FLAT",
   "commodities|RB=F|1440": "FLAT",
-  "commodities|SB=F|1440": "FLAT",
+  "commodities|SB=F|1440": "LONG",
   "commodities|CT=F|1440": "FLAT",
   "commodities|HO=F|1440": "FLAT"
 }

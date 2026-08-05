@@ -1468,5 +1468,35 @@
     "price": 1191.75,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-05T03:25:05+00:00",
+    "asset_class": "metals",
+    "symbol": "HG=F",
+    "pair": "HG=F",
+    "direction": "ENTRY",
+    "price": 6.651500225067139,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-05T03:25:06+00:00",
+    "asset_class": "commodities",
+    "symbol": "SB=F",
+    "pair": "SB=F",
+    "direction": "ENTRY",
+    "price": 15.0600004196167,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-05T03:25:06+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZS=F",
+    "pair": "ZS=F",
+    "direction": "EXIT",
+    "price": 1180.25,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
