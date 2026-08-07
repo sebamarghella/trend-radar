@@ -163,7 +163,7 @@
   "metals|LIT|1440": "FLAT",
   "metals|SI=F|1440": "FLAT",
   "metals|SLX|1440": "FLAT",
-  "commodities|ZW=F|1440": "LONG",
+  "commodities|ZW=F|1440": "FLAT",
   "commodities|BZ=F|1440": "FLAT",
   "commodities|NG=F|1440": "FLAT",
   "commodities|ZS=F|1440": "FLAT",
@@ -178,5 +178,5 @@
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "LONG",
   "commodities|CT=F|1440": "LONG",
-  "commodities|HO=F|1440": "FLAT"
+  "commodities|HO=F|1440": "LONG"
 }
