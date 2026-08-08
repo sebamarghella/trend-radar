@@ -50,7 +50,7 @@
   "ARB|1440": "FLAT",
   "crypto|WBT|1440": "FLAT",
   "crypto|RAIN|1440": "LONG",
-  "crypto|XMR|1440": "FLAT",
+  "crypto|XMR|1440": "LONG",
   "crypto|LAB|1440": "FLAT",
   "crypto|CC|1440": "FLAT",
   "crypto|M|1440": "FLAT",
@@ -178,5 +178,5 @@
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "LONG",
   "commodities|CT=F|1440": "LONG",
-  "commodities|HO=F|1440": "LONG"
+  "commodities|HO=F|1440": "FLAT"
 }
