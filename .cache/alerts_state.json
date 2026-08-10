@@ -178,5 +178,5 @@
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "LONG",
   "commodities|CT=F|1440": "LONG",
-  "commodities|HO=F|1440": "FLAT"
+  "commodities|HO=F|1440": "LONG"
 }
