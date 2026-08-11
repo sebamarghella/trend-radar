@@ -139,7 +139,7 @@
   "stocks|XOM|1440": "FLAT",
   "stocks|WMT|1440": "FLAT",
   "stocks|JNJ|1440": "LONG",
-  "stocks|AAPL|1440": "LONG",
+  "stocks|AAPL|1440": "FLAT",
   "stocks|ABBV|1440": "LONG",
   "stocks|CRM|1440": "FLAT",
   "stocks|BAC|1440": "LONG",
@@ -178,5 +178,5 @@
   "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "LONG",
   "commodities|CT=F|1440": "LONG",
-  "commodities|HO=F|1440": "LONG"
+  "commodities|HO=F|1440": "FLAT"
 }

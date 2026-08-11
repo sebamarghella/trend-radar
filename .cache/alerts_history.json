@@ -1598,5 +1598,25 @@
     "price": 3.960900068283081,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-11T02:20:43+00:00",
+    "asset_class": "stocks",
+    "symbol": "AAPL",
+    "pair": "AAPL",
+    "direction": "EXIT",
+    "price": 308.260009765625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-11T02:20:45+00:00",
+    "asset_class": "commodities",
+    "symbol": "HO=F",
+    "pair": "HO=F",
+    "direction": "EXIT",
+    "price": 4.161099910736084,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
