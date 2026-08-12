@@ -1618,5 +1618,35 @@
     "price": 4.161099910736084,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-12T02:35:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "LINK",
+    "pair": "LINKUSDT",
+    "direction": "ENTRY",
+    "price": 8.775,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-12T02:35:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "MSFT",
+    "pair": "MSFT",
+    "direction": "ENTRY",
+    "price": 503.80999755859375,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-12T02:35:45+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZW=F",
+    "pair": "ZW=F",
+    "direction": "EXIT",
+    "price": 633.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
