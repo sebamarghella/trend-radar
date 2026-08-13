@@ -1648,5 +1648,35 @@
     "price": 633.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-13T02:37:59+00:00",
+    "asset_class": "crypto",
+    "symbol": "UNI",
+    "pair": "UNIUSDT",
+    "direction": "EXIT",
+    "price": 3.53,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-13T02:38:01+00:00",
+    "asset_class": "stocks",
+    "symbol": "HD",
+    "pair": "HD",
+    "direction": "EXIT",
+    "price": 343.42999267578125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-13T02:38:03+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZW=F",
+    "pair": "ZW=F",
+    "direction": "ENTRY",
+    "price": 650.75,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
