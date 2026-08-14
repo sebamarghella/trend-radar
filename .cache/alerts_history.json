@@ -1678,5 +1678,25 @@
     "price": 650.75,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-14T02:35:56+00:00",
+    "asset_class": "stocks",
+    "symbol": "CRM",
+    "pair": "CRM",
+    "direction": "ENTRY",
+    "price": 201.3699951171875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-14T02:35:58+00:00",
+    "asset_class": "commodities",
+    "symbol": "KC=F",
+    "pair": "KC=F",
+    "direction": "EXIT",
+    "price": 313.3999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
