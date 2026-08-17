@@ -1708,5 +1708,25 @@
     "price": 338.1000061035156,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-17T01:49:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "BNB",
+    "pair": "BNBUSDT",
+    "direction": "ENTRY",
+    "price": 604.28,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-17T01:49:40+00:00",
+    "asset_class": "commodities",
+    "symbol": "KC=F",
+    "pair": "KC=F",
+    "direction": "EXIT",
+    "price": 312.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
