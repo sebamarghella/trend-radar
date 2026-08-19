@@ -1778,5 +1778,55 @@
     "price": 202.6999969482422,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-19T01:46:45+00:00",
+    "asset_class": "stocks",
+    "symbol": "BRK-B",
+    "pair": "BRK-B",
+    "direction": "ENTRY",
+    "price": 502.9599914550781,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-19T01:46:47+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "EXIT",
+    "price": 39.18000030517578,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-19T01:46:48+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZC=F",
+    "pair": "ZC=F",
+    "direction": "ENTRY",
+    "price": 490.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-19T01:46:48+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZS=F",
+    "pair": "ZS=F",
+    "direction": "ENTRY",
+    "price": 1221.25,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-19T01:46:48+00:00",
+    "asset_class": "commodities",
+    "symbol": "KC=F",
+    "pair": "KC=F",
+    "direction": "ENTRY",
+    "price": 331.6000061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
