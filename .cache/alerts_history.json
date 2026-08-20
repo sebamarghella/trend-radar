@@ -1828,5 +1828,95 @@
     "price": 331.6000061035156,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-20T01:45:15+00:00",
+    "asset_class": "crypto",
+    "symbol": "WBT",
+    "pair": "WBTUSD",
+    "direction": "ENTRY",
+    "price": 59.79,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-08-20T01:45:15+00:00",
+    "asset_class": "crypto",
+    "symbol": "ZEC",
+    "pair": "ZECUSDT",
+    "direction": "ENTRY",
+    "price": 563.42,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-20T01:45:15+00:00",
+    "asset_class": "crypto",
+    "symbol": "ADA",
+    "pair": "ADAUSDT",
+    "direction": "ENTRY",
+    "price": 0.1871,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-20T01:45:15+00:00",
+    "asset_class": "crypto",
+    "symbol": "ETH",
+    "pair": "ETHUSDT",
+    "direction": "ENTRY",
+    "price": 2265.84,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-20T01:45:15+00:00",
+    "asset_class": "crypto",
+    "symbol": "MORPHO",
+    "pair": "MORPHOUSDT",
+    "direction": "ENTRY",
+    "price": 2.234,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-20T01:45:19+00:00",
+    "asset_class": "stocks",
+    "symbol": "BRK-B",
+    "pair": "BRK-B",
+    "direction": "EXIT",
+    "price": 499.6199951171875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-20T01:45:20+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "ENTRY",
+    "price": 39.38999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-20T01:45:20+00:00",
+    "asset_class": "metals",
+    "symbol": "SLX",
+    "pair": "SLX",
+    "direction": "ENTRY",
+    "price": 106.69999694824219,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-20T01:45:22+00:00",
+    "asset_class": "commodities",
+    "symbol": "HO=F",
+    "pair": "HO=F",
+    "direction": "ENTRY",
+    "price": 4.3140997886657715,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
