@@ -1918,5 +1918,75 @@
     "price": 4.3140997886657715,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-21T01:51:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "TRX",
+    "pair": "TRXUSDT",
+    "direction": "ENTRY",
+    "price": 0.3381,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-21T01:51:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "XAUT",
+    "pair": "XAUTUSDT",
+    "direction": "ENTRY",
+    "price": 4508.72,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-21T01:51:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "SHIB",
+    "pair": "SHIBUSDT",
+    "direction": "ENTRY",
+    "price": 4.99e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-21T01:51:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "ENA",
+    "pair": "ENAUSDT",
+    "direction": "ENTRY",
+    "price": 0.1205,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-21T01:51:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "AAVE",
+    "pair": "AAVEUSDT",
+    "direction": "ENTRY",
+    "price": 100.09,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-21T01:51:20+00:00",
+    "asset_class": "stocks",
+    "symbol": "AMZN",
+    "pair": "AMZN",
+    "direction": "ENTRY",
+    "price": 260.1099853515625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-21T01:51:21+00:00",
+    "asset_class": "metals",
+    "symbol": "SLX",
+    "pair": "SLX",
+    "direction": "EXIT",
+    "price": 104.80000305175781,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
