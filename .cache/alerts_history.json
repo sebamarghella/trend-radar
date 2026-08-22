@@ -1988,5 +1988,85 @@
     "price": 104.80000305175781,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-22T01:44:00+00:00",
+    "asset_class": "crypto",
+    "symbol": "BTC",
+    "pair": "BTCUSDT",
+    "direction": "ENTRY",
+    "price": 77930.0,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-22T01:44:00+00:00",
+    "asset_class": "crypto",
+    "symbol": "LTC",
+    "pair": "LTCUSDT",
+    "direction": "ENTRY",
+    "price": 53.63,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-22T01:44:00+00:00",
+    "asset_class": "crypto",
+    "symbol": "ONDO",
+    "pair": "ONDOUSDT",
+    "direction": "ENTRY",
+    "price": 0.407,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-22T01:44:00+00:00",
+    "asset_class": "crypto",
+    "symbol": "PAXG",
+    "pair": "PAXGUSDT",
+    "direction": "ENTRY",
+    "price": 4590.43,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-22T01:44:00+00:00",
+    "asset_class": "crypto",
+    "symbol": "UNI",
+    "pair": "UNIUSDT",
+    "direction": "ENTRY",
+    "price": 4.225,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-22T01:44:05+00:00",
+    "asset_class": "stocks",
+    "symbol": "NVDA",
+    "pair": "NVDA",
+    "direction": "EXIT",
+    "price": 214.72000122070312,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-22T01:44:05+00:00",
+    "asset_class": "stocks",
+    "symbol": "AMZN",
+    "pair": "AMZN",
+    "direction": "EXIT",
+    "price": 258.6300048828125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-22T01:44:07+00:00",
+    "asset_class": "metals",
+    "symbol": "SLX",
+    "pair": "SLX",
+    "direction": "ENTRY",
+    "price": 107.19999694824219,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
