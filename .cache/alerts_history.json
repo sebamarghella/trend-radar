@@ -2068,5 +2068,55 @@
     "price": 107.19999694824219,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-23T01:54:04+00:00",
+    "asset_class": "crypto",
+    "symbol": "SOL",
+    "pair": "SOLUSDT",
+    "direction": "ENTRY",
+    "price": 96.26,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-23T01:54:04+00:00",
+    "asset_class": "crypto",
+    "symbol": "ONDO",
+    "pair": "ONDOUSDT",
+    "direction": "EXIT",
+    "price": 0.3667,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-23T01:54:04+00:00",
+    "asset_class": "crypto",
+    "symbol": "PEPE",
+    "pair": "PEPEUSDT",
+    "direction": "ENTRY",
+    "price": 4.11e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-23T01:54:04+00:00",
+    "asset_class": "crypto",
+    "symbol": "GT",
+    "pair": "GT_USDT",
+    "direction": "ENTRY",
+    "price": 7.84,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-08-23T01:54:09+00:00",
+    "asset_class": "commodities",
+    "symbol": "RB=F",
+    "pair": "RB=F",
+    "direction": "ENTRY",
+    "price": 3.347899913787842,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
