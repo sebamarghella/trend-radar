@@ -2128,5 +2128,25 @@
     "price": 2.9911000728607178,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-25T01:46:01+00:00",
+    "asset_class": "crypto",
+    "symbol": "JST",
+    "pair": "JSTUSDT",
+    "direction": "EXIT",
+    "price": 0.10123,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-25T01:46:04+00:00",
+    "asset_class": "stocks",
+    "symbol": "AMZN",
+    "pair": "AMZN",
+    "direction": "ENTRY",
+    "price": 262.07000732421875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
