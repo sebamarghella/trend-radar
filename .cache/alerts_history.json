@@ -2148,5 +2148,25 @@
     "price": 262.07000732421875,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-26T01:51:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "POL",
+    "pair": "POLUSDT",
+    "direction": "ENTRY",
+    "price": 0.12252,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-08-26T01:51:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "VVV",
+    "pair": "VVV_USDT",
+    "direction": "ENTRY",
+    "price": 17.4962,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
   }
 ]
