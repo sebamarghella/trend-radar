@@ -2208,5 +2208,25 @@
     "price": 310.1499938964844,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-28T11:12:55+00:00",
+    "asset_class": "crypto",
+    "symbol": "HYPE",
+    "pair": "HYPE_USDT",
+    "direction": "ENTRY",
+    "price": 83.28,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-08-28T11:12:55+00:00",
+    "asset_class": "crypto",
+    "symbol": "BGB",
+    "pair": "BGBUSD",
+    "direction": "ENTRY",
+    "price": 1.955,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
   }
 ]
