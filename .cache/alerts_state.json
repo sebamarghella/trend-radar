@@ -167,7 +167,7 @@
   "commodities|BZ=F|1440": "FLAT",
   "commodities|NG=F|1440": "FLAT",
   "commodities|ZS=F|1440": "LONG",
-  "commodities|KC=F|1440": "LONG",
+  "commodities|KC=F|1440": "FLAT",
   "commodities|ZL=F|1440": "FLAT",
   "commodities|OJ=F|1440": "FLAT",
   "commodities|HE=F|1440": "FLAT",
@@ -175,7 +175,7 @@
   "commodities|ZC=F|1440": "LONG",
   "commodities|CC=F|1440": "LONG",
   "commodities|LE=F|1440": "FLAT",
-  "commodities|RB=F|1440": "LONG",
+  "commodities|RB=F|1440": "FLAT",
   "commodities|SB=F|1440": "LONG",
   "commodities|CT=F|1440": "LONG",
   "commodities|HO=F|1440": "LONG"
