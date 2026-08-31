@@ -2288,5 +2288,25 @@
     "price": 3.0501999855041504,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-08-31T05:20:41+00:00",
+    "asset_class": "crypto",
+    "symbol": "MNT",
+    "pair": "MNT_USDT",
+    "direction": "ENTRY",
+    "price": 0.5732,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-08-31T05:20:45+00:00",
+    "asset_class": "commodities",
+    "symbol": "KC=F",
+    "pair": "KC=F",
+    "direction": "ENTRY",
+    "price": 345.8500061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
