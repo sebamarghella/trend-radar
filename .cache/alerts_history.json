@@ -2308,5 +2308,65 @@
     "price": 345.8500061035156,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-01T04:55:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "TRX",
+    "pair": "TRXUSDT",
+    "direction": "EXIT",
+    "price": 0.332,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-01T04:55:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "DOGE",
+    "pair": "DOGEUSDT",
+    "direction": "ENTRY",
+    "price": 0.0832,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-01T04:55:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "KCS",
+    "pair": "KCS-USDT",
+    "direction": "ENTRY",
+    "price": 7.181,
+    "interval_minutes": 1440,
+    "exchange": "KuCoin"
+  },
+  {
+    "ts": "2026-09-01T04:55:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "ICP",
+    "pair": "ICPUSDT",
+    "direction": "ENTRY",
+    "price": 2.428,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-01T04:55:22+00:00",
+    "asset_class": "metals",
+    "symbol": "GLD",
+    "pair": "GLD",
+    "direction": "ENTRY",
+    "price": 408.4200134277344,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-01T04:55:22+00:00",
+    "asset_class": "metals",
+    "symbol": "GC=F",
+    "pair": "GC=F",
+    "direction": "ENTRY",
+    "price": 4476.5,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
