@@ -2368,5 +2368,115 @@
     "price": 4476.5,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "HYPE",
+    "pair": "HYPE_USDT",
+    "direction": "ENTRY",
+    "price": 82.71,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "BCH",
+    "pair": "BCHUSDT",
+    "direction": "ENTRY",
+    "price": 247.7,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "XRP",
+    "pair": "XRPUSDT",
+    "direction": "ENTRY",
+    "price": 1.3431,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "AVAX",
+    "pair": "AVAXUSDT",
+    "direction": "ENTRY",
+    "price": 7.188,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "MNT",
+    "pair": "MNT_USDT",
+    "direction": "EXIT",
+    "price": 0.5427,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "TAO",
+    "pair": "TAOUSDT",
+    "direction": "ENTRY",
+    "price": 218.9,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "KCS",
+    "pair": "KCS-USDT",
+    "direction": "EXIT",
+    "price": 6.948,
+    "interval_minutes": 1440,
+    "exchange": "KuCoin"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "NEXO",
+    "pair": "NEXOUSDT",
+    "direction": "ENTRY",
+    "price": 0.838,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-02T04:17:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "ARB",
+    "pair": "ARBUSDT",
+    "direction": "ENTRY",
+    "price": 0.1138,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-02T04:17:42+00:00",
+    "asset_class": "stocks",
+    "symbol": "AAPL",
+    "pair": "AAPL",
+    "direction": "ENTRY",
+    "price": 325.1300048828125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-02T04:17:43+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "EXIT",
+    "price": 39.06999969482422,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
