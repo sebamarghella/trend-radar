@@ -2478,5 +2478,65 @@
     "price": 39.06999969482422,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-03T04:11:25+00:00",
+    "asset_class": "crypto",
+    "symbol": "HBAR",
+    "pair": "HBARUSDT",
+    "direction": "ENTRY",
+    "price": 0.07591,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-03T04:11:25+00:00",
+    "asset_class": "crypto",
+    "symbol": "TAO",
+    "pair": "TAOUSDT",
+    "direction": "EXIT",
+    "price": 219.1,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-03T04:11:25+00:00",
+    "asset_class": "crypto",
+    "symbol": "ETC",
+    "pair": "ETCUSDT",
+    "direction": "ENTRY",
+    "price": 7.36,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-03T04:11:25+00:00",
+    "asset_class": "crypto",
+    "symbol": "JST",
+    "pair": "JSTUSDT",
+    "direction": "ENTRY",
+    "price": 0.10808,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-03T04:11:29+00:00",
+    "asset_class": "metals",
+    "symbol": "PL=F",
+    "pair": "PL=F",
+    "direction": "ENTRY",
+    "price": 1783.4000244140625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-03T04:11:30+00:00",
+    "asset_class": "commodities",
+    "symbol": "KC=F",
+    "pair": "KC=F",
+    "direction": "EXIT",
+    "price": 328.3999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
