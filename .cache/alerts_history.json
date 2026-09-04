@@ -2538,5 +2538,45 @@
     "price": 328.3999938964844,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-04T04:19:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "MNT",
+    "pair": "MNT_USDT",
+    "direction": "ENTRY",
+    "price": 0.5687,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-04T04:19:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "TAO",
+    "pair": "TAOUSDT",
+    "direction": "ENTRY",
+    "price": 229.7,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-04T04:19:23+00:00",
+    "asset_class": "crypto",
+    "symbol": "SKY",
+    "pair": "SKYUSDT",
+    "direction": "ENTRY",
+    "price": 0.06929,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-04T04:19:27+00:00",
+    "asset_class": "commodities",
+    "symbol": "BZ=F",
+    "pair": "BZ=F",
+    "direction": "ENTRY",
+    "price": 95.98999786376953,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
