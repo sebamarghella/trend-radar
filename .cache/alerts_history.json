@@ -2578,5 +2578,35 @@
     "price": 95.98999786376953,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-05T04:15:03+00:00",
+    "asset_class": "crypto",
+    "symbol": "BGB",
+    "pair": "BGBUSD",
+    "direction": "ENTRY",
+    "price": 1.962,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-09-05T04:15:06+00:00",
+    "asset_class": "stocks",
+    "symbol": "AAPL",
+    "pair": "AAPL",
+    "direction": "EXIT",
+    "price": 319.9700012207031,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-05T04:15:08+00:00",
+    "asset_class": "commodities",
+    "symbol": "CL=F",
+    "pair": "CL=F",
+    "direction": "ENTRY",
+    "price": 91.4800033569336,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
