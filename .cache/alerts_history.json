@@ -2608,5 +2608,35 @@
     "price": 91.4800033569336,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-06T04:24:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "BGB",
+    "pair": "BGBUSD",
+    "direction": "EXIT",
+    "price": 2.022,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-09-06T04:24:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "ASTER",
+    "pair": "ASTERUSDT",
+    "direction": "ENTRY",
+    "price": 0.783,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-06T04:24:17+00:00",
+    "asset_class": "crypto",
+    "symbol": "JUP",
+    "pair": "JUPUSDT",
+    "direction": "ENTRY",
+    "price": 0.2331,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
