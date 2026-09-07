@@ -2638,5 +2638,35 @@
     "price": 0.2331,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-07T04:23:02+00:00",
+    "asset_class": "crypto",
+    "symbol": "BGB",
+    "pair": "BGBUSD",
+    "direction": "ENTRY",
+    "price": 2.033,
+    "interval_minutes": 1440,
+    "exchange": "Kraken"
+  },
+  {
+    "ts": "2026-09-07T04:23:02+00:00",
+    "asset_class": "crypto",
+    "symbol": "ALGO",
+    "pair": "ALGOUSDT",
+    "direction": "ENTRY",
+    "price": 0.0947,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-07T04:23:02+00:00",
+    "asset_class": "crypto",
+    "symbol": "JUP",
+    "pair": "JUPUSDT",
+    "direction": "EXIT",
+    "price": 0.2473,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
