@@ -2668,5 +2668,45 @@
     "price": 0.2473,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-08T04:23:20+00:00",
+    "asset_class": "crypto",
+    "symbol": "SUI",
+    "pair": "SUIUSDT",
+    "direction": "ENTRY",
+    "price": 0.818,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-08T04:23:20+00:00",
+    "asset_class": "crypto",
+    "symbol": "DOT",
+    "pair": "DOTUSDT",
+    "direction": "ENTRY",
+    "price": 1.075,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-08T04:23:20+00:00",
+    "asset_class": "crypto",
+    "symbol": "JST",
+    "pair": "JSTUSDT",
+    "direction": "EXIT",
+    "price": 0.10551,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-08T04:23:20+00:00",
+    "asset_class": "crypto",
+    "symbol": "INJ",
+    "pair": "INJUSDT",
+    "direction": "ENTRY",
+    "price": 6.473,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
