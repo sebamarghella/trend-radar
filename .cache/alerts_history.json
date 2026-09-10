@@ -2738,5 +2738,65 @@
     "price": 248.77999877929688,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-10T04:26:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "TRX",
+    "pair": "TRXUSDT",
+    "direction": "ENTRY",
+    "price": 0.3405,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-10T04:26:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "SUI",
+    "pair": "SUIUSDT",
+    "direction": "EXIT",
+    "price": 0.7689,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-10T04:26:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "SKY",
+    "pair": "SKYUSDT",
+    "direction": "EXIT",
+    "price": 0.06076,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-10T04:26:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "KAS",
+    "pair": "KAS_USDT",
+    "direction": "ENTRY",
+    "price": 0.03591,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-10T04:26:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "JUP",
+    "pair": "JUPUSDT",
+    "direction": "ENTRY",
+    "price": 0.2332,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-10T04:26:52+00:00",
+    "asset_class": "stocks",
+    "symbol": "ADBE",
+    "pair": "ADBE",
+    "direction": "EXIT",
+    "price": 254.86000061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
