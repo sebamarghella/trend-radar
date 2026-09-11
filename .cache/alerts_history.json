@@ -2798,5 +2798,95 @@
     "price": 254.86000061035156,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-11T04:26:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "BCH",
+    "pair": "BCHUSDT",
+    "direction": "EXIT",
+    "price": 228.4,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-11T04:26:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "XAUT",
+    "pair": "XAUTUSDT",
+    "direction": "EXIT",
+    "price": 4328.24,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-11T04:26:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "SHIB",
+    "pair": "SHIBUSDT",
+    "direction": "EXIT",
+    "price": 5.1e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-11T04:26:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "PAXG",
+    "pair": "PAXGUSDT",
+    "direction": "EXIT",
+    "price": 4336.06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-11T04:26:12+00:00",
+    "asset_class": "crypto",
+    "symbol": "ALGO",
+    "pair": "ALGOUSDT",
+    "direction": "EXIT",
+    "price": 0.092,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-11T04:26:16+00:00",
+    "asset_class": "stocks",
+    "symbol": "NVDA",
+    "pair": "NVDA",
+    "direction": "EXIT",
+    "price": 218.36000061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-11T04:26:16+00:00",
+    "asset_class": "stocks",
+    "symbol": "ABBV",
+    "pair": "ABBV",
+    "direction": "ENTRY",
+    "price": 255.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-11T04:26:17+00:00",
+    "asset_class": "metals",
+    "symbol": "HG=F",
+    "pair": "HG=F",
+    "direction": "EXIT",
+    "price": 6.5320000648498535,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-11T04:26:17+00:00",
+    "asset_class": "metals",
+    "symbol": "GLD",
+    "pair": "GLD",
+    "direction": "EXIT",
+    "price": 396.3599853515625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
