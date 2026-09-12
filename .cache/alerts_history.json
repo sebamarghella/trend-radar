@@ -2888,5 +2888,55 @@
     "price": 396.3599853515625,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-12T04:24:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "HBAR",
+    "pair": "HBARUSDT",
+    "direction": "EXIT",
+    "price": 0.0745,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-12T04:24:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "SHIB",
+    "pair": "SHIBUSDT",
+    "direction": "ENTRY",
+    "price": 5.22e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-12T04:24:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "MORPHO",
+    "pair": "MORPHOUSDT",
+    "direction": "EXIT",
+    "price": 2.274,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-12T04:24:46+00:00",
+    "asset_class": "crypto",
+    "symbol": "PEPE",
+    "pair": "PEPEUSDT",
+    "direction": "EXIT",
+    "price": 3.32e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-12T04:24:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "BRK-B",
+    "pair": "BRK-B",
+    "direction": "ENTRY",
+    "price": 510.3699951171875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
