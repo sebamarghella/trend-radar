@@ -94,7 +94,7 @@
   "crypto|DOT|1440": "LONG",
   "crypto|UNI|1440": "LONG",
   "crypto|WLD|1440": "FLAT",
-  "crypto|PEPE|1440": "FLAT",
+  "crypto|PEPE|1440": "LONG",
   "crypto|RENDER|1440": "FLAT",
   "crypto|ETC|1440": "LONG",
   "crypto|KCS|1440": "FLAT",

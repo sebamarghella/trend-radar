@@ -2938,5 +2938,15 @@
     "price": 510.3699951171875,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-13T04:36:36+00:00",
+    "asset_class": "crypto",
+    "symbol": "PEPE",
+    "pair": "PEPEUSDT",
+    "direction": "ENTRY",
+    "price": 3.45e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
