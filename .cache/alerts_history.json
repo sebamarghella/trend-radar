@@ -2948,5 +2948,45 @@
     "price": 3.45e-06,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-14T04:43:59+00:00",
+    "asset_class": "crypto",
+    "symbol": "HBAR",
+    "pair": "HBARUSDT",
+    "direction": "ENTRY",
+    "price": 0.07625,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-14T04:43:59+00:00",
+    "asset_class": "crypto",
+    "symbol": "SHIB",
+    "pair": "SHIBUSDT",
+    "direction": "EXIT",
+    "price": 5.22e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-14T04:43:59+00:00",
+    "asset_class": "crypto",
+    "symbol": "JST",
+    "pair": "JSTUSDT",
+    "direction": "ENTRY",
+    "price": 0.11409,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-14T04:43:59+00:00",
+    "asset_class": "crypto",
+    "symbol": "FIL",
+    "pair": "FILUSDT",
+    "direction": "ENTRY",
+    "price": 0.9693,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
