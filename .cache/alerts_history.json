@@ -2988,5 +2988,115 @@
     "price": 0.9693,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-15T04:43:40+00:00",
+    "asset_class": "crypto",
+    "symbol": "RAIN",
+    "pair": "RAIN_USDT",
+    "direction": "EXIT",
+    "price": 0.014161,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-15T04:43:40+00:00",
+    "asset_class": "crypto",
+    "symbol": "ADA",
+    "pair": "ADAUSDT",
+    "direction": "EXIT",
+    "price": 0.2052,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-15T04:43:40+00:00",
+    "asset_class": "crypto",
+    "symbol": "NEXO",
+    "pair": "NEXOUSDT",
+    "direction": "EXIT",
+    "price": 0.808,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-15T04:43:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "JPM",
+    "pair": "JPM",
+    "direction": "EXIT",
+    "price": 350.1300048828125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "AAPL",
+    "pair": "AAPL",
+    "direction": "ENTRY",
+    "price": 333.0799865722656,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "BAC",
+    "pair": "BAC",
+    "direction": "EXIT",
+    "price": 59.470001220703125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:44+00:00",
+    "asset_class": "stocks",
+    "symbol": "ADBE",
+    "pair": "ADBE",
+    "direction": "ENTRY",
+    "price": 265.6000061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:47+00:00",
+    "asset_class": "metals",
+    "symbol": "GC=F",
+    "pair": "GC=F",
+    "direction": "EXIT",
+    "price": 4343.7998046875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:47+00:00",
+    "asset_class": "metals",
+    "symbol": "PICK",
+    "pair": "PICK",
+    "direction": "EXIT",
+    "price": 61.63999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:47+00:00",
+    "asset_class": "metals",
+    "symbol": "SLX",
+    "pair": "SLX",
+    "direction": "EXIT",
+    "price": 106.11000061035156,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-15T04:43:49+00:00",
+    "asset_class": "commodities",
+    "symbol": "CT=F",
+    "pair": "CT=F",
+    "direction": "EXIT",
+    "price": 80.63999938964844,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
