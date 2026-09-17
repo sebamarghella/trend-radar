@@ -3218,5 +3218,35 @@
     "price": 257.760009765625,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-17T04:43:13+00:00",
+    "asset_class": "crypto",
+    "symbol": "ASTER",
+    "pair": "ASTERUSDT",
+    "direction": "ENTRY",
+    "price": 0.725,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-17T04:43:13+00:00",
+    "asset_class": "crypto",
+    "symbol": "POL",
+    "pair": "POLUSDT",
+    "direction": "ENTRY",
+    "price": 0.0968,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-17T04:43:13+00:00",
+    "asset_class": "crypto",
+    "symbol": "PUMP",
+    "pair": "PUMPUSDT",
+    "direction": "ENTRY",
+    "price": 0.003816,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
   }
 ]
