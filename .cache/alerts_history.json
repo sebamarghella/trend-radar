@@ -3348,5 +3348,115 @@
     "price": 5772.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "HBAR",
+    "pair": "HBARUSDT",
+    "direction": "EXIT",
+    "price": 0.07954,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "SUI",
+    "pair": "SUIUSDT",
+    "direction": "ENTRY",
+    "price": 0.8272,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "ONDO",
+    "pair": "ONDOUSDT",
+    "direction": "ENTRY",
+    "price": 0.4065,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "PEPE",
+    "pair": "PEPEUSDT",
+    "direction": "ENTRY",
+    "price": 3.79e-06,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "RENDER",
+    "pair": "RENDERUSDT",
+    "direction": "ENTRY",
+    "price": 1.565,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "ALGO",
+    "pair": "ALGOUSDT",
+    "direction": "EXIT",
+    "price": 0.0975,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "ATOM",
+    "pair": "ATOMUSDT",
+    "direction": "EXIT",
+    "price": 1.736,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:22+00:00",
+    "asset_class": "crypto",
+    "symbol": "NEXO",
+    "pair": "NEXOUSDT",
+    "direction": "ENTRY",
+    "price": 0.846,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-19T04:27:28+00:00",
+    "asset_class": "stocks",
+    "symbol": "MA",
+    "pair": "MA",
+    "direction": "EXIT",
+    "price": 565.239990234375,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-19T04:27:29+00:00",
+    "asset_class": "metals",
+    "symbol": "SLX",
+    "pair": "SLX",
+    "direction": "EXIT",
+    "price": 106.08999633789062,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-19T04:27:30+00:00",
+    "asset_class": "commodities",
+    "symbol": "RB=F",
+    "pair": "RB=F",
+    "direction": "ENTRY",
+    "price": 3.527600049972534,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
