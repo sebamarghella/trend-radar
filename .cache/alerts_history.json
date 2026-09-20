@@ -3458,5 +3458,65 @@
     "price": 3.527600049972534,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-20T04:44:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "ADA",
+    "pair": "ADAUSDT",
+    "direction": "ENTRY",
+    "price": 0.2214,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-20T04:44:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "TRX",
+    "pair": "TRXUSDT",
+    "direction": "ENTRY",
+    "price": 0.3402,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-20T04:44:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "SKY",
+    "pair": "SKYUSDT",
+    "direction": "ENTRY",
+    "price": 0.0678,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-20T04:44:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "MORPHO",
+    "pair": "MORPHOUSDT",
+    "direction": "ENTRY",
+    "price": 2.567,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-20T04:44:28+00:00",
+    "asset_class": "crypto",
+    "symbol": "APT",
+    "pair": "APTUSDT",
+    "direction": "ENTRY",
+    "price": 0.724,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-20T04:44:33+00:00",
+    "asset_class": "commodities",
+    "symbol": "RB=F",
+    "pair": "RB=F",
+    "direction": "EXIT",
+    "price": 3.255500078201294,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
