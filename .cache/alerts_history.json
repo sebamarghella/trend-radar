@@ -3568,5 +3568,65 @@
     "price": 0.1097,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-22T04:41:10+00:00",
+    "asset_class": "crypto",
+    "symbol": "DOGE",
+    "pair": "DOGEUSDT",
+    "direction": "ENTRY",
+    "price": 0.10214,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-22T04:41:10+00:00",
+    "asset_class": "crypto",
+    "symbol": "CRO",
+    "pair": "CRO_USDT",
+    "direction": "ENTRY",
+    "price": 0.06776,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-22T04:41:10+00:00",
+    "asset_class": "crypto",
+    "symbol": "KCS",
+    "pair": "KCS-USDT",
+    "direction": "ENTRY",
+    "price": 7.362,
+    "interval_minutes": 1440,
+    "exchange": "KuCoin"
+  },
+  {
+    "ts": "2026-09-22T04:41:10+00:00",
+    "asset_class": "crypto",
+    "symbol": "WLD",
+    "pair": "WLDUSDT",
+    "direction": "ENTRY",
+    "price": 0.4541,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-22T04:41:14+00:00",
+    "asset_class": "stocks",
+    "symbol": "MA",
+    "pair": "MA",
+    "direction": "ENTRY",
+    "price": 567.6500244140625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-22T04:41:14+00:00",
+    "asset_class": "stocks",
+    "symbol": "KO",
+    "pair": "KO",
+    "direction": "EXIT",
+    "price": 87.12000274658203,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
