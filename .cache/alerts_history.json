@@ -3668,5 +3668,85 @@
     "price": 0.2107,
     "interval_minutes": 1440,
     "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-24T04:34:08+00:00",
+    "asset_class": "crypto",
+    "symbol": "ASTER",
+    "pair": "ASTERUSDT",
+    "direction": "EXIT",
+    "price": 0.7018,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-24T04:34:08+00:00",
+    "asset_class": "crypto",
+    "symbol": "KCS",
+    "pair": "KCS-USDT",
+    "direction": "EXIT",
+    "price": 7.165,
+    "interval_minutes": 1440,
+    "exchange": "KuCoin"
+  },
+  {
+    "ts": "2026-09-24T04:34:08+00:00",
+    "asset_class": "crypto",
+    "symbol": "WLD",
+    "pair": "WLDUSDT",
+    "direction": "EXIT",
+    "price": 0.4126,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-24T04:34:11+00:00",
+    "asset_class": "stocks",
+    "symbol": "META",
+    "pair": "META",
+    "direction": "ENTRY",
+    "price": 744.0999755859375,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-24T04:34:11+00:00",
+    "asset_class": "stocks",
+    "symbol": "V",
+    "pair": "V",
+    "direction": "EXIT",
+    "price": 361.5199890136719,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-24T04:34:11+00:00",
+    "asset_class": "stocks",
+    "symbol": "MA",
+    "pair": "MA",
+    "direction": "EXIT",
+    "price": 559.9199829101562,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-24T04:34:11+00:00",
+    "asset_class": "stocks",
+    "symbol": "NVDA",
+    "pair": "NVDA",
+    "direction": "ENTRY",
+    "price": 225.50999450683594,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-24T04:34:13+00:00",
+    "asset_class": "metals",
+    "symbol": "PL=F",
+    "pair": "PL=F",
+    "direction": "EXIT",
+    "price": 1758.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
