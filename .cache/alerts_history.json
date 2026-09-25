@@ -3748,5 +3748,45 @@
     "price": 1758.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-25T04:44:56+00:00",
+    "asset_class": "crypto",
+    "symbol": "TRX",
+    "pair": "TRXUSDT",
+    "direction": "EXIT",
+    "price": 0.3385,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-25T04:44:56+00:00",
+    "asset_class": "crypto",
+    "symbol": "PUMP",
+    "pair": "PUMPUSDT",
+    "direction": "EXIT",
+    "price": 0.003922,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-25T04:44:59+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "ENTRY",
+    "price": 40.650001525878906,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-25T04:45:00+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZW=F",
+    "pair": "ZW=F",
+    "direction": "EXIT",
+    "price": 692.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
