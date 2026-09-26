@@ -3788,5 +3788,25 @@
     "price": 692.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-26T04:46:36+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZW=F",
+    "pair": "ZW=F",
+    "direction": "ENTRY",
+    "price": 703.25,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-26T04:46:36+00:00",
+    "asset_class": "commodities",
+    "symbol": "RB=F",
+    "pair": "RB=F",
+    "direction": "ENTRY",
+    "price": 3.393399953842163,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
