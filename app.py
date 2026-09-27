@@ -881,7 +881,8 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
     F = COLUMN_FLEX
     gb.configure_column("rank", header_name="#", flex=F["rank"], minWidth=40, type=["numericColumn"])
     gb.configure_column("symbol", header_name="Sym", flex=F["symbol"], minWidth=55)
-    gb.configure_column("name", header_name="Name", flex=F["name"], minWidth=90)
+    gb.configure_column("name", header_name="Name", flex=F["name"], minWidth=90, maxWidth=220,
+                        tooltipField="name")
     gb.configure_column("exchange_short", header_name="Src", flex=F["exchange_short"], minWidth=45)
     gb.configure_column("pair", header_name="Pair", flex=F["pair"], minWidth=65)
     gb.configure_column("exchange", hide=True)
@@ -952,6 +953,12 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
     # Autosize only measures rendered columns; render all ~22 so off-screen ones
     # get sized too (otherwise they keep a 200px default and leave gaps).
     opts["suppressColumnVirtualisation"] = True
+    # Tabs other than the first render their grid while hidden (0px wide), so the
+    # initial autosize measures nothing. Re-fit when the grid gets a real size
+    # (i.e. when its tab is opened) and on window resizes.
+    opts["onGridSizeChanged"] = JsCode(
+        "function(p) { if (p.clientWidth > 0) { p.api.autoSizeAllColumns(); } }"
+    )
     return opts
 
 
