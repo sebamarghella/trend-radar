@@ -17,7 +17,7 @@
 - Overlay columns the chart draws are `filt`, `hband`, `lband`. Any other name is silently ignored.
 - If a custom strategy hits constructor mismatch issues with the shared `SignalState` object in deployment, a lightweight attribute object like `SimpleNamespace` is a safe fallback as long as it exposes the same field names.
 - For Donchian logic in this app, use the previous-bar channel values with `.shift(1)` so the breakout compares the close against the prior channel, not the current bar's own high/low.
-- `pandas-ta` needs Python 3.12+, and its pinned `numba==0.61.2` refuses to install on 3.14. Streamlit Cloud runs **Python 3.14**, so `requirements.txt` gates it to `>=3.12,<3.14`; `indicator_engine.py` hides the EMA/Supertrend logics when it is missing. An open-ended `>=` marker took the app down on 2026-09-27: a failed dependency install doesn't show on the next push (the old process keeps running) — it breaks on the next restart.
+- `pandas-ta` needs Python 3.12+, and its pinned `numba==0.61.2` refuses to install on 3.14. `requirements.txt` gates it to `>=3.12,<3.14`, and `indicator_engine.py` hides the EMA/Supertrend logics when it is missing. The Streamlit Cloud app is pinned to **Python 3.13** (App settings → General → Python version; changeable in place, no redeploy) so those logics are available. Streamlit's default for new deploys was 3.14. An open-ended `>=` marker took the app down on 2026-09-27: a failed dependency install doesn't show on the next push (the old process keeps running) — it breaks on the next restart.
 
 ## Data & Universe
 
