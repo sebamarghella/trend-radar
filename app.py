@@ -896,33 +896,33 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
     gb.configure_column("filter_up", header_name="F↑", flex=F["filter_up"], minWidth=40, cellStyle=cs["FILTER"])
     gb.configure_column("bars_in_state", header_name="Bars", flex=F["bars_in_state"], minWidth=45, type=["numericColumn"])
     gb.configure_column(
-        "close_vs_hband_pct", header_name="vs HB", flex=F["close_vs_hband_pct"], minWidth=60,
+        "close_vs_hband_pct", header_name="vs HB", flex=F["close_vs_hband_pct"], minWidth=84,
         type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
     )
     gb.configure_column("stoch_k", header_name="StK", flex=F["stoch_k"], minWidth=45, type=["numericColumn"], valueFormatter=_FMT_K)
     if "flow_delta" in df.columns:
         gb.configure_column(
-            "flow_delta", header_name="Flow", flex=F["flow_delta"], minWidth=55,
+            "flow_delta", header_name="Flow", flex=F["flow_delta"], minWidth=76,
             type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
             headerTooltip="Taker buy vs sell volume on the last bar (Binance only). Positive = aggressive buying.",
         )
     if "trend_pnl" in df.columns:
         gb.configure_column(
-            "trend_pnl", header_name="Trend P&L", flex=F["trend_pnl"], minWidth=70,
+            "trend_pnl", header_name="Trend P&L", flex=F["trend_pnl"], minWidth=96,
             type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
             headerTooltip="Trend start P&L %: open of the day after the trend flipped up to the latest close "
                           "(same as Signum). Blank in a downtrend.",
         )
     if "breakout" in df.columns:
         gb.configure_column(
-            "breakout", header_name="Breakout", flex=F["breakout"], minWidth=75,
+            "breakout", header_name="Breakout", flex=F["breakout"], minWidth=96,
             headerTooltip="Latest breakout above a consolidation range (held at least 20 days). "
                           "\u2713 validated (trend turned up), \u2026 pending, \u2717 invalidated (closed below support).",
         )
     gb.configure_column("last_close", header_name="Close", flex=F["last_close"], minWidth=60, type=["numericColumn"], valueFormatter=_FMT_PRICE)
     gb.configure_column("trades", header_name="Trades", flex=F["trades"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_INT)
     gb.configure_column(
-        "net_pct", header_name="Net %", flex=F["net_pct"], minWidth=60,
+        "net_pct", header_name="Net %", flex=F["net_pct"], minWidth=80,
         type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
     )
     gb.configure_column("win_pct", header_name="Win %", flex=F["win_pct"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_WIN)
@@ -942,7 +942,17 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
         valueFormatter=_TV_VALUE_FMT, cellStyle=tv_style,
     )
     gb.configure_grid_options(onCellClicked=_TV_CLICK_HANDLER)
-    return gb.build()
+    opts = gb.build()
+    # Size every column to its content (header included) instead of flex weights:
+    # with ~22 columns, flex + fit-to-viewport crushed narrow columns below their
+    # minWidth and truncated values. The grid scrolls horizontally when needed.
+    for col in opts.get("columnDefs", []):
+        col.pop("flex", None)
+    opts["autoSizeStrategy"] = {"type": "fitCellContents"}
+    # Autosize only measures rendered columns; render all ~22 so off-screen ones
+    # get sized too (otherwise they keep a 200px default and leave gaps).
+    opts["suppressColumnVirtualisation"] = True
+    return opts
 
 
 # --- Per-tab render ------------------------------------------------------------
@@ -1254,7 +1264,10 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         height=grid_height,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         allow_unsafe_jscode=True,
-        fit_columns_on_grid_load=True,
+        # Flex weights + per-column minWidth size the columns. fit_columns_on_grid_load
+        # squeezed all ~22 columns into the viewport below their minWidth, truncating
+        # every value; without it the grid scrolls horizontally on narrow windows.
+        fit_columns_on_grid_load=False,
         theme=PALETTE["AGGRID_THEME"],
         key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
     )

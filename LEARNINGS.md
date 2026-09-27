@@ -5,6 +5,7 @@
 - Keep the `AgGrid(...)` call outside any optional focus or deep-link conditionals. If the grid render is nested under a branch like `if focus_symbol ...`, `grid_response` can be undefined for normal page loads.
 - When tightening the table layout, `fit_columns_on_grid_load=True` is the safe way to make columns fill the available table width and remove the empty right gutter.
 - If we make the grid denser, reduce both the AgGrid theme variables and the cell/header font sizes together so row height, header height, and text stay visually aligned.
+- Grid column sizing: flex weights + `fit_columns_on_grid_load=True` squeezed ~22 columns into the viewport *below* their minWidth and truncated almost every value. Now `build_grid_options` drops flex and uses `autoSizeStrategy: fitCellContents` + `suppressColumnVirtualisation` (autosize only measures rendered columns; off-screen ones otherwise keep a 200px default), and the grid scrolls horizontally. `COLUMN_FLEX` now only sets column order.
 - A field added to the signal dict does not show up in the grid by itself: it also needs a `COLUMN_FLEX` weight (weights must sum to 100) and a `configure_column(...)` call. Grid column order follows `COLUMN_FLEX`. (`confluence` and `flow_delta` were computed for months without being displayed.)
 
 ## Strategy Integration
