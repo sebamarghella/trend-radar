@@ -442,6 +442,11 @@ def load_universe_data(
     return ok, skipped
 
 
+def _short_date(ts: pd.Timestamp, ref: pd.Timestamp) -> str:
+    """Grid-width date: 'Aug 21' within a year of `ref`, else "Aug '25"."""
+    return ts.strftime("%b %d") if (ref - ts).days < 330 else ts.strftime("%b '%y")
+
+
 def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
     df = row["df"]
     result = strat_registry.run_strategy_cached(strategy, df)
@@ -481,7 +486,8 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "sharpe": stats.sharpe,
         "max_dd_pct": stats.max_drawdown_pct,
         "flow_delta_pct": taker_delta_pct,
-        "breakout": (f"{bo_last.date.date()} {bo_mod.STATUS_GLYPH[bo_last.status]}" if bo_last else None),
+        "breakout": (f"{_short_date(bo_last.date, df.index[-1])} {bo_mod.STATUS_GLYPH[bo_last.status]}"
+                     if bo_last else None),
         "bo_date": bo_last.date.date().isoformat() if bo_last else None,
         "_bo": bo_state,
         "_df": df,
@@ -887,7 +893,7 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
         )
     if "breakout" in df.columns:
         gb.configure_column(
-            "breakout", header_name="Breakout", flex=F["breakout"], minWidth=95,
+            "breakout", header_name="Breakout", flex=F["breakout"], minWidth=75,
             headerTooltip="Latest breakout above a consolidation range (held at least 20 days). "
                           "\u2713 validated (trend turned up), \u2026 pending, \u2717 invalidated (closed below support).",
         )
