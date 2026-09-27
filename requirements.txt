@@ -5,4 +5,6 @@ numpy>=1.24
 requests>=2.31
 altair>=5.0
 yfinance>=0.2.40
-pandas-ta>=0.4.71b0; python_version >= "3.12"
+# pandas-ta pins numba==0.61.2, which refuses Python 3.14 (Streamlit Cloud runs 3.14).
+# Upper bound keeps the install from failing; the pandas-ta logics just stay hidden.
+pandas-ta>=0.4.71b0; python_version >= "3.12" and python_version < "3.14"
