@@ -1224,8 +1224,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     st.caption("Click any cell in a row to drill down into that coin's chart.")
     help_col, search_col = st.columns([3, 1], vertical_alignment="center")
     search = search_col.text_input(
-        "Search", key=f"search_{key}", placeholder="🔍 Search ticker or name",
-        label_visibility="collapsed",
+        "Search", key=f"search_{key}", type="search", placeholder="Search ticker or name",
+        live="300ms", label_visibility="collapsed",
     ).strip()
     help_col.markdown(
         """
