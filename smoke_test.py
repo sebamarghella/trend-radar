@@ -333,6 +333,36 @@ def test_run_strategy_cached():
     print("run_strategy_cached: ok")
 
 
+def test_breakouts():
+    """Offline: range -> breakout -> validated / invalidated; early escape drops the range."""
+    import breakouts as B
+
+    def frame(closes):
+        idx = pd.date_range("2026-01-01", periods=len(closes), freq="1D", tz="UTC")
+        c = pd.Series(closes, index=idx, dtype=float)
+        return pd.DataFrame({"open": c, "high": c + 0.5, "low": c - 0.5, "close": c, "volume": 1.0})
+
+    # rally into a swing high at 100, 30 days of 92-98 chop (swing low ~92), then a breakout
+    chop = [95, 97, 93, 96, 92, 94, 97, 95, 93, 96] * 3
+    base = list(range(80, 100)) + [100] + [98, 97] + chop
+    up = lambda df, k: pd.Series(df.index >= df.index[k], index=df.index)
+
+    df = frame(base + [103, 105, 106])
+    st = B.detect(df, up(df, len(base) + 1))           # trend turns up the day after the breakout
+    assert st.last is not None and st.last.date == df.index[len(base)], st
+    assert abs(st.last.resistance - 100.5) < 1e-9 and st.last.support < 95
+    assert st.last.status == "validated" and st.last.status_date == df.index[len(base) + 1]
+
+    df2 = frame(base + [103, 90, 89])                  # breaks out, then closes below support
+    st2 = B.detect(df2, pd.Series(False, index=df2.index))
+    assert st2.last.status == "invalidated", st2.last
+
+    early = list(range(80, 100)) + [100] + [98, 97, 96, 95, 103, 104, 105]  # above 100.5 after 5 days
+    st3 = B.detect(frame(early), None)
+    assert st3.last is None, st3.last
+    print("breakouts: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -348,4 +378,5 @@ if __name__ == "__main__":
     test_fetch_series_staleness_and_renames()
     test_stocks_universe_ranking()
     test_run_strategy_cached()
+    test_breakouts()
     print("\nAll smoke tests passed.")

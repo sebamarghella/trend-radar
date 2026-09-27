@@ -18,6 +18,7 @@ from st_aggrid.shared import JsCode
 import json
 
 import alerts
+import breakouts as bo_mod
 import cache as ohlc_cache
 import strategies as strat_registry
 import theme as T
@@ -445,6 +446,12 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
     df = row["df"]
     result = strat_registry.run_strategy_cached(strategy, df)
     snap = result.snapshot
+    trend_up = None
+    if result.overlays is not None and "filt" in result.overlays.columns:
+        filt = result.overlays["filt"]
+        trend_up = filt > filt.shift()
+    bo_state = bo_mod.detect_cached(df, trend_up, strat_registry._df_fingerprint(df))
+    bo_last = bo_state.last
     stats = compute_stats(result.trades, now=df.index[-1], lookback_days=lookback_days_)
     taker_delta_pct = None
     taker_buy_base = None
@@ -474,6 +481,9 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "sharpe": stats.sharpe,
         "max_dd_pct": stats.max_drawdown_pct,
         "flow_delta_pct": taker_delta_pct,
+        "breakout": (f"{bo_last.date.date()} {bo_mod.STATUS_GLYPH[bo_last.status]}" if bo_last else None),
+        "bo_date": bo_last.date.date().isoformat() if bo_last else None,
+        "_bo": bo_state,
         "_df": df,
         "_overlays": result.overlays,
         "_state_series": result.state_series,
@@ -832,10 +842,10 @@ function(event) {{
 # the grid always fills 100% width; minWidth is just a readability floor that
 # triggers horizontal scroll only when the pane gets very narrow.
 COLUMN_FLEX = {
-    "rank": 4, "symbol": 6, "name": 7, "exchange_short": 4, "pair": 6,
-    "state": 6, "confluence": 6, "bar_color": 6, "filter_up": 4, "bars_in_state": 4,
-    "close_vs_hband_pct": 6, "stoch_k": 4, "flow_delta": 5, "last_close": 5, "trades": 4,
-    "net_pct": 5, "win_pct": 4, "sharpe": 5, "max_dd_pct": 5, "tv": 4,
+    "rank": 4, "symbol": 6, "name": 5, "exchange_short": 4, "pair": 5,
+    "state": 6, "confluence": 6, "bar_color": 5, "filter_up": 4, "bars_in_state": 4,
+    "close_vs_hband_pct": 6, "stoch_k": 4, "flow_delta": 5, "breakout": 7, "last_close": 4,
+    "trades": 4, "net_pct": 5, "win_pct": 3, "sharpe": 5, "max_dd_pct": 5, "tv": 3,
 }  # sums to 100
 
 assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
@@ -874,6 +884,12 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
             "flow_delta", header_name="Flow", flex=F["flow_delta"], minWidth=55,
             type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
             headerTooltip="Taker buy vs sell volume on the last bar (Binance only). Positive = aggressive buying.",
+        )
+    if "breakout" in df.columns:
+        gb.configure_column(
+            "breakout", header_name="Breakout", flex=F["breakout"], minWidth=95,
+            headerTooltip="Latest breakout above a consolidation range (held at least 20 days). "
+                          "\u2713 validated (trend turned up), \u2026 pending, \u2717 invalidated (closed below support).",
         )
     gb.configure_column("last_close", header_name="Close", flex=F["last_close"], minWidth=60, type=["numericColumn"], valueFormatter=_FMT_PRICE)
     gb.configure_column("trades", header_name="Trades", flex=F["trades"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_INT)
@@ -916,6 +932,7 @@ SORT_MAP = {
     "Trades": ("trades", False),
     "Sharpe": ("sharpe", False),
     "MaxDD (shallowest first)": ("max_dd_pct", False),  # closer to 0 = better
+    "Breakout (most recent first)": ("bo_date", False),
 }
 
 
@@ -1138,7 +1155,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     # Grid + drilldown
     df = pd.DataFrame(signals)
-    df_display = df.drop(columns=["_df", "_overlays", "_state_series", "_trades"]).copy()
+    df_display = df.drop(columns=["_df", "_overlays", "_state_series", "_trades", "_bo", "bo_date"]).copy()
     if "flow_delta_pct" in df_display.columns:
         df_display["flow_delta"] = df_display.pop("flow_delta_pct")
     sort_col, ascending = SORT_MAP[sort_by]
@@ -1312,6 +1329,46 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     color=PALETTE["BEARISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
                 ).encode(y="lband:Q"))
 
+            # Breakout box: resistance / support lines + marker (latest event,
+            # plus the current unbroken range when there is one).
+            bo_state = sel.get("_bo")
+            win_start, win_end = chart_df["time"].iloc[0], chart_df["time"].iloc[-1]
+            bo_lines = []
+            if bo_state is not None:
+                ev = bo_state.last
+                if ev is not None and ev.date >= win_start:
+                    bo_lines += [("Resistance", ev.resistance, ev.resistance_start, ev.date, PALETTE["BEARISH"]),
+                                 ("Support", ev.support, ev.support_start, ev.date, PALETTE["BULLISH"])]
+                if bo_state.resistance is not None:
+                    bo_lines.append(("Range top", bo_state.resistance, bo_state.resistance_start, win_end,
+                                     PALETTE["BEARISH"]))
+                    if bo_state.support is not None:
+                        bo_lines.append(("Range floor", bo_state.support, bo_state.support_start, win_end,
+                                         PALETTE["BULLISH"]))
+            for label, level, start, end, colour in bo_lines:
+                seg = pd.DataFrame({"t0": [max(start, win_start)], "t1": [end], "y": [level], "label": [label]})
+                layers.append(
+                    alt.Chart(seg).mark_rule(color=colour, strokeWidth=1.6, strokeDash=[2, 3]).encode(
+                        x=alt.X("t0:T", axis=x_axis), x2="t1:T", y="y:Q",
+                        tooltip=[alt.Tooltip("label:N", title="Level"),
+                                 alt.Tooltip("y:Q", title="Price", format=".6g")],
+                    )
+                )
+            if bo_state is not None and bo_state.last is not None and bo_state.last.date >= win_start:
+                ev = bo_state.last
+                pt = chart_df[chart_df["time"] == ev.date]
+                if not pt.empty:
+                    layers.append(
+                        alt.Chart(pt.assign(status=ev.status)).mark_point(
+                            shape="diamond", color=PALETTE["FG_PRIMARY"], filled=True, size=140,
+                        ).encode(
+                            x=alt.X("time:T", axis=x_axis), y="close:Q",
+                            tooltip=[alt.Tooltip("time:T", title="Breakout"),
+                                     alt.Tooltip("status:N", title="Status"),
+                                     alt.Tooltip("close:Q", title="Close", format=".6g")],
+                        )
+                    )
+
             buys = chart_df[chart_df["signal"] == "BUY"]
             sells = chart_df[chart_df["signal"] == "SELL"]
             if not buys.empty:
@@ -1419,6 +1476,25 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                 mc3.metric("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—")
                 mc4.metric("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%")
                 mc5.metric("Taker flow", f"{sel['flow_delta_pct']:+.1f}%" if sel.get("flow_delta_pct") is not None else "—")
+
+                bo_state = sel.get("_bo")
+                ev = bo_state.last if bo_state is not None else None
+                bc1, bc2, bc3, bc4 = st.columns(4)
+                if ev is not None:
+                    bc1.metric("Last breakout", str(ev.date.date()), delta=ev.status.capitalize(),
+                               delta_color={"validated": "normal", "invalidated": "inverse"}.get(ev.status, "off"))
+                    bc2.metric("Resistance", f"{ev.resistance:.6g}")
+                    bc3.metric("Support", f"{ev.support:.6g}")
+                else:
+                    bc1.metric("Last breakout", "—")
+                    bc2.metric("Resistance", "—")
+                    bc3.metric("Support", "—")
+                if bo_state is not None and bo_state.resistance is not None:
+                    dist = (sel["last_close"] / bo_state.resistance - 1) * 100
+                    bc4.metric("Current range top", f"{bo_state.resistance:.6g}",
+                               delta=f"{dist:+.1f}% from close", delta_color="off")
+                else:
+                    bc4.metric("Current range top", "—")
 
                 with st.expander("Strategy comparison", expanded=False):
                     compare_strategies = strat_registry.load_strategies()
