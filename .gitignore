@@ -16,3 +16,6 @@ venv/
 .idea/
 .vscode/
 *.swp
+
+# CoinGecko universe snapshot — refreshed daily at runtime
+.cache/universe.json

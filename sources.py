@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from typing import Iterable
+from dataclasses import dataclass
+from typing import Callable, Iterable
 
 import pandas as pd
 import requests
@@ -23,6 +24,11 @@ DEFAULT_TIMEOUT = 15
 
 class SourceError(RuntimeError):
     pass
+
+
+class StaleDataError(SourceError):
+    """Every source for a symbol returned data whose last bar is too old —
+    typically a delisted or renamed ticker that still answers with frozen candles."""
 
 
 # --- Base class ----------------------------------------------------------------
@@ -389,19 +395,33 @@ class Resolver:
             out[src.name] = "trust" if avail is None else len(avail)
         return out
 
-    def resolve(self, base: str) -> tuple[DataSource, str] | None:
+    def resolve_all(self, base: str) -> list[tuple[DataSource, str]]:
+        """Every (source, pair) that lists this coin, in priority order — at most
+        one pair per source (the first matching candidate)."""
+        hits: list[tuple[DataSource, str]] = []
         for src in self.sources:
             avail = self._available[src.name]
             cands = src.candidate_symbols(base)
             if avail is None:
                 # Trust mode: take the first candidate without checking.
                 if cands:
-                    return (src, cands[0])
+                    hits.append((src, cands[0]))
                 continue
             for cand in cands:
                 if cand in avail:
-                    return (src, cand)
-        return None
+                    hits.append((src, cand))
+                    break
+        return hits
+
+    def resolve(self, base: str) -> tuple[DataSource, str] | None:
+        hits = self.resolve_all(base)
+        return hits[0] if hits else None
+
+    def can_supply(self, base: str) -> bool:
+        """True if any source lists the coin, directly or via a renamed predecessor."""
+        if self.resolve_all(base):
+            return True
+        return any(self.resolve_all(p.symbol) for p in RENAMES.get(base, []))
 
 
 def default_resolver() -> Resolver:
@@ -412,3 +432,121 @@ def default_resolver() -> Resolver:
 def yahoo_resolver() -> Resolver:
     """Resolver wrapping a single YahooSource for stocks/metals/commodities."""
     return Resolver([YahooSource()])
+
+
+# --- Renames + staleness-aware fetch -------------------------------------------
+
+
+@dataclass(frozen=True)
+class Predecessor:
+    """An old ticker whose history continues under a new one (1:1 rebrand)."""
+    symbol: str
+    until: str  # ISO date: first day the NEW ticker's data is authoritative
+
+
+# Coins that were rebranded. The old ticker's candles are stitched in front of
+# the new ticker's so the channel has full warm-up history (Signum does the
+# same — its GRAM row carries Toncoin's history). Only add 1:1 rebrands; a
+# redenomination would need price rescaling.
+RENAMES: dict[str, list[Predecessor]] = {
+    "GRAM": [Predecessor("TON", until="2026-07-01")],
+}
+
+
+def max_bar_age(interval_minutes: int, is_24_7: bool) -> pd.Timedelta:
+    """How old the last bar may be before we call the series stale. Markets
+    that close (stocks/futures) get slack for weekends + holidays."""
+    age = pd.Timedelta(minutes=3 * interval_minutes)
+    return age if is_24_7 else max(age, pd.Timedelta(days=6))
+
+
+@dataclass
+class SeriesResult:
+    df: pd.DataFrame
+    source: DataSource
+    pair: str
+    stitched_from: str | None = None  # e.g. "TON" when history was spliced in
+
+
+FetchFn = Callable[[DataSource, str, int], pd.DataFrame]
+
+
+def _default_fetch(src: DataSource, pair: str, interval_minutes: int) -> pd.DataFrame:
+    return src.fetch_with_retry(pair, interval_minutes=interval_minutes)
+
+
+def fetch_series(
+    base: str,
+    resolver: Resolver,
+    interval_minutes: int,
+    *,
+    is_24_7: bool = True,
+    fetch: FetchFn = _default_fetch,
+    now: pd.Timestamp | None = None,
+) -> SeriesResult:
+    """Fetch a symbol's OHLC from the first source whose data is current.
+
+    Sources are tried in priority order; one whose last bar is older than
+    `max_bar_age` is skipped (a delisted pair can keep answering with frozen
+    candles). If the symbol has renamed predecessors, their history is stitched
+    in front. Raises SourceError when nothing usable is found — StaleDataError
+    if the only data found was stale.
+    """
+    now = now if now is not None else pd.Timestamp.now(tz="UTC")
+    limit = max_bar_age(interval_minutes, is_24_7)
+    hits = resolver.resolve_all(base)
+    if not hits:
+        raise SourceError("not on any source")
+
+    errors: list[str] = []
+    stale: list[str] = []
+    for src, pair in hits:
+        try:
+            df = fetch(src, pair, interval_minutes)
+        except SourceError as e:
+            errors.append(f"{src.name}: {e}")
+            continue
+        if df is None or df.empty:
+            errors.append(f"{src.name}: empty")
+            continue
+        last = df.index[-1]
+        if now - last > limit:
+            stale.append(f"{src.name}:{pair} last bar {last.date()}")
+            continue
+        result = SeriesResult(df=df, source=src, pair=pair)
+        return _stitch_predecessors(base, result, resolver, interval_minutes, fetch)
+
+    if stale:
+        raise StaleDataError("stale data — " + "; ".join(stale))
+    raise SourceError("; ".join(errors))
+
+
+def _stitch_predecessors(
+    base: str,
+    result: SeriesResult,
+    resolver: Resolver,
+    interval_minutes: int,
+    fetch: FetchFn,
+) -> SeriesResult:
+    for pred in RENAMES.get(base, []):
+        until = pd.Timestamp(pred.until, tz="UTC")
+        if result.df.index[0] > until + pd.Timedelta(days=7):
+            # The new ticker's window doesn't reach back to the rename (short
+            # TFs with a capped bar count) — stitching would leave a gap, and
+            # there's already a full window of history anyway.
+            continue
+        cutoff = min(until, result.df.index[0])
+        for src, pair in resolver.resolve_all(pred.symbol):
+            try:
+                old = fetch(src, pair, interval_minutes)
+            except SourceError:
+                continue
+            old = old[old.index < cutoff]
+            if old.empty:
+                continue
+            cols = list(result.df.columns)
+            merged = pd.concat([old.reindex(columns=cols), result.df]).sort_index()
+            result.df = merged[~merged.index.duplicated(keep="last")]
+            result.stitched_from = pred.symbol
+            break
+    return result

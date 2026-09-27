@@ -1,6 +1,20 @@
-"""Top-100 crypto universe and Binance symbol candidates."""
+"""Crypto universe: live top-100 by market cap (CoinGecko), with a static fallback.
+
+`live_universe()` is what the radar scans. It pulls the current CoinGecko
+ranking once a day (disk-cached), drops stablecoins / tokenized funds, and keeps
+the first `target` coins that at least one of our exchanges can supply — the
+same "top N tradable" rule Signum's radar uses. `TOP_100` below is only the
+fallback for when CoinGecko is unreachable and there's no cached copy.
+"""
 
 from __future__ import annotations
+
+import json
+import time
+from pathlib import Path
+from typing import Callable
+
+import requests
 
 # Top 100 by market cap (snapshot from CoinGecko, ranks may shift over time).
 # The Streamlit app filters this list against Binance's live tradable symbols at runtime.
@@ -28,7 +42,7 @@ TOP_100: list[dict] = [
     {"rank": 21, "symbol": "WBT", "name": "WhiteBIT Coin"},
     {"rank": 22, "symbol": "CC", "name": "Canton"},
     {"rank": 23, "symbol": "BCH", "name": "Bitcoin Cash"},
-    {"rank": 24, "symbol": "TON", "name": "Toncoin"},
+    {"rank": 24, "symbol": "GRAM", "name": "Gram (prev. Toncoin)"},
     {"rank": 25, "symbol": "USD1", "name": "USD1"},
     {"rank": 26, "symbol": "USDE", "name": "Ethena USDe"},
     {"rank": 27, "symbol": "DAI", "name": "Dai"},
@@ -109,14 +123,121 @@ TOP_100: list[dict] = [
 
 # Stablecoins + tokenized RWAs + wrapped fiat — no meaningful trend signal.
 # NOTE: gold tokens (PAXG, XAUT) are intentionally NOT excluded — they trend and
-# Signum lists them. Only pegged/peg-like assets are dropped here.
+# Signum lists them. Only pegged/peg-like assets are dropped here. CoinGecko's
+# "stablecoins" category catches most new ones automatically; this list is the
+# belt-and-braces for tokenized funds, which have no category of their own.
 EXCLUDED_SYMBOLS = {
     "USDT", "USDC", "DAI", "USDS", "PYUSD", "USDE", "USD1", "USDG", "USDY",
     "USDF", "USDD", "BFUSD", "USDTB", "USTB", "RLUSD", "GHO", "USD0",
-    "BUIDL", "EUTBL", "JTRSY", "USYC", "BCAP", "U", "STABLE",
-    "FIGR_HELOC", "BNLIFE", "HASH",
+    "USDGO", "TUSD", "YLDS", "EURC", "A7A5",
+    "BUIDL", "EUTBL", "JTRSY", "USYC", "BCAP", "U", "EURSAFO", "JAAA",
+    "FIGR_HELOC", "HASH",
 }
+# Pegged-looking assets we still want (price near $1 is coincidence, not a peg).
+PEG_HEURISTIC_KEEP = {"PAXG", "XAUT"}
+
+COINGECKO_MARKETS_URL = "https://api.coingecko.com/api/v3/coins/markets"
+UNIVERSE_CACHE = Path(__file__).parent / ".cache" / "universe.json"
+UNIVERSE_TTL_S = 24 * 3600
+# 120 rather than 100: CoinGecko ranks mid-caps differently from Signum's source
+# (JTO is #114 there, #141 here). 120 tradable ≈ covers their whole top 100.
+UNIVERSE_TARGET = 120
+
 
 def tradable_universe() -> list[dict]:
-    """Top 100 minus stablecoins/RWAs."""
+    """Static fallback: snapshot top 100 minus stablecoins/RWAs."""
     return [c for c in TOP_100 if c["symbol"] not in EXCLUDED_SYMBOLS]
+
+
+def _coingecko(params: dict, attempts: int = 3) -> list[dict]:
+    """GET /coins/markets with backoff — the free tier 429s under burst load."""
+    last: Exception | None = None
+    for i in range(attempts):
+        try:
+            r = requests.get(COINGECKO_MARKETS_URL, params=params, timeout=20)
+            if r.status_code == 429:
+                raise requests.HTTPError("429 rate limited")
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, list):
+                return data
+            raise requests.HTTPError(f"unexpected payload: {str(data)[:120]}")
+        except requests.RequestException as e:
+            last = e
+            time.sleep(4 * (i + 1))
+    raise RuntimeError(f"CoinGecko failed: {last}")
+
+
+def _looks_pegged(c: dict) -> bool:
+    price = c.get("current_price") or 0
+    chg = abs(c.get("price_change_percentage_24h") or 0)
+    return 0.98 <= price <= 1.02 and chg < 0.3
+
+
+def fetch_ranked_coins(pool: int = 250) -> list[dict]:
+    """Current market-cap ranking from CoinGecko, stablecoins removed."""
+    base = {"vs_currency": "usd", "order": "market_cap_desc", "per_page": pool, "page": 1}
+    markets = _coingecko(base)
+    try:
+        stable_ids = {c["id"] for c in _coingecko({**base, "category": "stablecoins"})}
+    except RuntimeError as e:
+        print(f"[warn] CoinGecko stablecoin category unavailable ({e}); using symbol list + peg heuristic")
+        stable_ids = set()
+    out: list[dict] = []
+    seen: set[str] = set()
+    for c in markets:
+        sym = str(c.get("symbol", "")).upper()
+        rank = c.get("market_cap_rank")
+        if not sym or rank is None or sym in seen:
+            continue
+        seen.add(sym)  # duplicate tickers: keep the higher-ranked coin
+        if c["id"] in stable_ids or sym in EXCLUDED_SYMBOLS:
+            continue
+        if sym not in PEG_HEURISTIC_KEEP and _looks_pegged(c):
+            continue
+        out.append({"rank": int(rank), "symbol": sym, "name": c.get("name", sym)})
+    return sorted(out, key=lambda c: c["rank"])
+
+
+def _read_cache() -> tuple[float, list[dict]] | None:
+    try:
+        payload = json.loads(UNIVERSE_CACHE.read_text(encoding="utf-8"))
+        return float(payload["fetched_at"]), list(payload["coins"])
+    except Exception:
+        return None
+
+
+def ranked_coins() -> tuple[list[dict], str]:
+    """(coins, provenance). Fresh cache → CoinGecko → stale cache → static snapshot."""
+    cached = _read_cache()
+    if cached and time.time() - cached[0] < UNIVERSE_TTL_S:
+        return cached[1], "coingecko (cached)"
+    try:
+        coins = fetch_ranked_coins()
+        try:
+            UNIVERSE_CACHE.parent.mkdir(parents=True, exist_ok=True)
+            UNIVERSE_CACHE.write_text(
+                json.dumps({"fetched_at": time.time(), "coins": coins}), encoding="utf-8",
+            )
+        except OSError:
+            pass
+        return coins, "coingecko"
+    except RuntimeError as e:
+        print(f"[warn] {e}")
+        if cached:
+            return cached[1], "coingecko (stale cache)"
+        return tradable_universe(), "static snapshot"
+
+
+def live_universe(
+    is_resolvable: Callable[[str], bool] | None = None,
+    target: int = UNIVERSE_TARGET,
+) -> list[dict]:
+    """Top `target` coins by market cap that at least one exchange can supply."""
+    coins, provenance = ranked_coins()
+    if is_resolvable is not None:
+        coins = [c for c in coins if is_resolvable(c["symbol"])]
+    picked = coins[:target]
+    print(f"[universe] {len(picked)} coins from {provenance}"
+          + (f" (down to rank {picked[-1]['rank']})" if picked else ""))
+    return picked

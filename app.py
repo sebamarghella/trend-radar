@@ -23,7 +23,7 @@ import strategies as strat_registry
 import theme as T
 from asset_classes import ASSET_CLASSES, AssetClass
 from gaussian_channel import BAR_COLORS, compute_stats
-from sources import Resolver, SourceError
+from sources import DataSource, Resolver, SourceError, fetch_series
 from strategies import Strategy
 
 
@@ -299,37 +299,41 @@ def cached_resolver(asset_key: str) -> Resolver:
     raise ValueError(f"unknown asset class {asset_key}")
 
 
-def fetch_one(base: str, resolver: Resolver, interval: int, force_refresh: bool = False) -> dict:
-    hit = resolver.resolve(base)
-    if hit is None:
-        return {"symbol": base, "ok": False, "reason": "not on any source"}
-    src, resolved = hit
-    cached_df = None
-    if not force_refresh:
-        cached_df = ohlc_cache.load(src.name, resolved, interval)
-        if cached_df is not None and ohlc_cache.is_fresh(cached_df, interval):
-            return {
-                "symbol": base, "ok": True, "pair": resolved,
-                "exchange": src.name, "exchange_short": src.short, "tv_prefix": src.tv_prefix,
-                "df": cached_df, "cache_status": "cache",
-            }
+def fetch_one(
+    base: str, resolver: Resolver, interval: int,
+    force_refresh: bool = False, is_24_7: bool = True,
+) -> dict:
+    statuses: dict[str, str] = {}
+
+    def cached_fetch(src: DataSource, pair: str, interval_minutes: int) -> pd.DataFrame:
+        key = f"{src.name}:{pair}"
+        cached_df = None if force_refresh else ohlc_cache.load(src.name, pair, interval_minutes)
+        if cached_df is not None and ohlc_cache.is_fresh(cached_df, interval_minutes):
+            statuses[key] = "cache"
+            return cached_df
+        try:
+            df = src.fetch_with_retry(pair, interval_minutes=interval_minutes)
+        except SourceError:
+            if cached_df is not None:
+                statuses[key] = "stale"  # source errored — serve last good copy
+                return cached_df
+            raise
+        ohlc_cache.save(src.name, pair, interval_minutes, df)
+        statuses[key] = "fresh"
+        return df
+
     try:
-        df = src.fetch_with_retry(resolved, interval_minutes=interval)
+        res = fetch_series(base, resolver, interval, is_24_7=is_24_7, fetch=cached_fetch)
     except SourceError as e:
-        if cached_df is not None:
-            return {
-                "symbol": base, "ok": True, "pair": resolved,
-                "exchange": src.name, "exchange_short": src.short, "tv_prefix": src.tv_prefix,
-                "df": cached_df, "cache_status": "stale",
-            }
-        return {"symbol": base, "ok": False, "reason": f"{src.name}: {e}"}
-    if len(df) < 60:
+        return {"symbol": base, "ok": False, "reason": str(e)}
+    src = res.source
+    if len(res.df) < 60:
         return {"symbol": base, "ok": False, "reason": f"insufficient history on {src.name}"}
-    ohlc_cache.save(src.name, resolved, interval, df)
     return {
-        "symbol": base, "ok": True, "pair": resolved,
+        "symbol": base, "ok": True, "pair": res.pair,
         "exchange": src.name, "exchange_short": src.short, "tv_prefix": src.tv_prefix,
-        "df": df, "cache_status": "fresh",
+        "df": res.df, "cache_status": statuses.get(f"{src.name}:{res.pair}", "fresh"),
+        "stitched_from": res.stitched_from,
     }
 
 
@@ -339,11 +343,11 @@ def load_universe_data(
 ) -> tuple[list[dict], list[dict]]:
     ac = next(a for a in ASSET_CLASSES if a.key == asset_key)
     resolver = cached_resolver(asset_key)
-    universe = ac.universe
+    universe = ac.get_universe(resolver)
     results: list[dict] = []
     with ThreadPoolExecutor(max_workers=20) as ex:
         futures = {
-            ex.submit(fetch_one, c["symbol"], resolver, interval, force_refresh): c
+            ex.submit(fetch_one, c["symbol"], resolver, interval, force_refresh, ac.is_24_7): c
             for c in universe
         }
         progress = st.progress(0.0, text=f"Loading {ac.label.lower()} candles…")
@@ -796,7 +800,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     long_count = sum(1 for s in signals if s["state"] == "LONG")
     green_filter = sum(1 for s in signals if s["filter_up"])
     covered = len(signals)
-    total = len(ac.universe)
+    total = len(ok_rows) + len(skipped_rows)
     cache_hits = sum(1 for r in ok_rows if r.get("cache_status") == "cache")
     stale_hits = sum(1 for r in ok_rows if r.get("cache_status") == "stale")
 

@@ -27,26 +27,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import alerts
 import strategies as strat_registry
 from asset_classes import ASSET_CLASSES, AssetClass
-from sources import Resolver, SourceError
+from sources import Resolver, SourceError, fetch_series
 
 
 def _env(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
 
-def fetch_one(base: str, resolver: Resolver, interval_minutes: int) -> dict | None:
-    hit = resolver.resolve(base)
-    if hit is None:
-        return None
-    src, resolved = hit
+def fetch_one(base: str, resolver: Resolver, interval_minutes: int, is_24_7: bool) -> dict | None:
     try:
-        df = src.fetch_with_retry(resolved, interval_minutes=interval_minutes)
+        res = fetch_series(base, resolver, interval_minutes, is_24_7=is_24_7)
     except SourceError as e:
-        print(f"  [warn] {base} ({src.name}:{resolved}): {e}", file=sys.stderr)
+        print(f"  [warn] {base}: {e}", file=sys.stderr)
         return None
-    if len(df) < 60:
+    if len(res.df) < 60:
         return None
-    return {"symbol": base, "pair": resolved, "exchange": src.name, "df": df}
+    return {"symbol": base, "pair": res.pair, "exchange": res.source.name, "df": res.df}
 
 
 def scan_class(
@@ -71,11 +67,15 @@ def scan_class(
     coverage = resolver.coverage()
     cov_str = " · ".join(f"{k}={v}" for k, v in coverage.items())
     print(f"  Sources: {cov_str}")
-    print(f"  Universe: {len(ac.universe)} symbols")
+    universe = ac.get_universe(resolver)
+    print(f"  Universe: {len(universe)} symbols")
 
     rows: list[dict] = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futures = {ex.submit(fetch_one, c["symbol"], resolver, interval): c for c in ac.universe}
+        futures = {
+            ex.submit(fetch_one, c["symbol"], resolver, interval, ac.is_24_7): c
+            for c in universe
+        }
         for fut in as_completed(futures):
             res = fut.result()
             if res is not None:
@@ -84,7 +84,7 @@ def scan_class(
     for r in rows:
         per_exchange[r["exchange"]] = per_exchange.get(r["exchange"], 0) + 1
     breakdown = ", ".join(f"{k}={v}" for k, v in sorted(per_exchange.items()))
-    print(f"  Fetched: {len(rows)}/{len(ac.universe)} ({breakdown})")
+    print(f"  Fetched: {len(rows)}/{len(universe)} ({breakdown})")
 
     signals: list[dict] = []
     for r in rows:

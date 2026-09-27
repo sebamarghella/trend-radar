@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
-from coins import tradable_universe as crypto_universe
+from coins import live_universe, tradable_universe as crypto_universe
 from sources import Resolver, default_resolver, yahoo_resolver
 
 
@@ -105,13 +105,26 @@ class AssetClass:
     default_interval_idx: int = 0
     tv_default_prefix: str = ""  # leaves TV to autoresolve when empty
     is_24_7: bool = True  # crypto is 24/7; stocks/futures aren't (affects cache freshness)
+    # Optional dynamic universe, given the class's resolver. `universe` stays
+    # as the static fallback / default.
+    universe_loader: Callable[[Resolver], list[dict]] | None = None
+
+    def get_universe(self, resolver: Resolver) -> list[dict]:
+        if self.universe_loader is None:
+            return self.universe
+        try:
+            return self.universe_loader(resolver)
+        except Exception as e:  # never blank a tab over a ranking-API hiccup
+            print(f"[warn] {self.key} universe loader failed ({e}); using static list")
+            return self.universe
 
 
 CRYPTO = AssetClass(
     key="crypto",
     label="Crypto",
-    description="Top 100 by market cap on Binance / Gate.io / Kraken.",
+    description="Top 120 tradable by market cap (live CoinGecko ranking) on Binance / Gate.io / Kraken / KuCoin.",
     universe=crypto_universe(),
+    universe_loader=lambda resolver: live_universe(resolver.can_supply),
     resolver_factory=default_resolver,
     interval_options=[("1 day", 1440), ("4 hour", 240), ("1 hour", 60)],
     default_interval_idx=0,

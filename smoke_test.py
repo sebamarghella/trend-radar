@@ -237,6 +237,66 @@ def test_crypto_signal_export_helpers():
     print("crypto signals export helpers: ok")
 
 
+def test_fetch_series_staleness_and_renames():
+    """Offline: frozen candles fall through to the next source; renamed tickers
+    get their predecessor's history stitched in front."""
+    import sources
+
+    def ohlc(start, end):
+        idx = pd.date_range(start, end, freq="1D", tz="UTC")
+        v = np.arange(len(idx), dtype=float) + 1
+        return pd.DataFrame({"open": v, "high": v, "low": v, "close": v, "volume": v}, index=idx)
+
+    class Fake(sources.DataSource):
+        short = tv_prefix = "X"
+
+        def __init__(self, name, frames):
+            self.name, self.frames = name, frames
+
+        def tradable_symbols(self):
+            return set(self.frames)
+
+        def candidate_symbols(self, base):
+            return [base]
+
+        def fetch_klines(self, symbol, interval_minutes):
+            return self.frames[symbol]
+
+    now = pd.Timestamp("2026-09-27T12:00:00Z")
+    frozen = Fake("A", {"OLD": ohlc("2025-01-01", "2026-06-30"), "NEW": ohlc("2026-07-01", "2026-09-27")})
+    live = Fake("B", {"OLD": ohlc("2025-01-01", "2026-09-27")})
+    r = sources.Resolver([frozen, live])
+
+    # Source A's OLD is frozen in June -> falls through to B.
+    res = sources.fetch_series("OLD", r, 1440, now=now)
+    assert res.source.name == "B"
+
+    # Only frozen data anywhere -> StaleDataError.
+    try:
+        sources.fetch_series("OLD", sources.Resolver([frozen]), 1440, now=now)
+        raise AssertionError("expected StaleDataError")
+    except sources.StaleDataError:
+        pass
+
+    # Stocks: a 4-day-old daily bar (long weekend) is not stale.
+    res = sources.fetch_series("OLD", r, 1440, is_24_7=False, now=pd.Timestamp("2026-10-01T00:00:00Z"))
+    assert res.source.name == "B"
+
+    # Rename stitching: NEW gets OLD's pre-cutoff history, no duplicates, no gap.
+    orig = dict(sources.RENAMES)
+    sources.RENAMES["NEW"] = [sources.Predecessor("OLD", until="2026-07-01")]
+    try:
+        res = sources.fetch_series("NEW", sources.Resolver([frozen]), 1440, now=now)
+    finally:
+        sources.RENAMES.clear()
+        sources.RENAMES.update(orig)
+    assert res.stitched_from == "OLD"
+    assert res.df.index[0] == pd.Timestamp("2025-01-01", tz="UTC")
+    assert res.df.index.is_unique and res.df.index.is_monotonic_increasing
+    assert (res.df.index.to_series().diff().dropna() == pd.Timedelta(days=1)).all()
+    print("fetch_series staleness + renames: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -249,4 +309,5 @@ if __name__ == "__main__":
     test_alerts_flip_detection()
     test_gc_short_state()
     test_crypto_signal_export_helpers()
+    test_fetch_series_staleness_and_renames()
     print("\nAll smoke tests passed.")

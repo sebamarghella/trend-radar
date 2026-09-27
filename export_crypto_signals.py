@@ -20,7 +20,7 @@ import requests
 import strategies as strat_registry
 from asset_classes import CRYPTO
 from gaussian_channel import stoch_rsi_k as _gc_stoch
-from sources import Resolver, SourceError
+from sources import Resolver, SourceError, fetch_series
 
 
 OUTPUT_PATH = Path(__file__).parent / "data" / "crypto_signals.json"
@@ -81,18 +81,14 @@ def _bar_close_utc(df: pd.DataFrame, interval_minutes: int) -> pd.Timestamp:
 
 def _fetch_one(base: dict, resolver: Resolver, interval_minutes: int) -> dict | None:
     symbol = base["symbol"]
-    hit = resolver.resolve(symbol)
-    if hit is None:
-        return None
-
-    src, resolved = hit
     try:
-        df = src.fetch_with_retry(resolved, interval_minutes=interval_minutes)
+        res = fetch_series(symbol, resolver, interval_minutes)
     except SourceError as e:
-        print(f"  [warn] {symbol} ({src.name}:{resolved}): {e}", file=sys.stderr)
+        print(f"  [warn] {symbol}: {e}", file=sys.stderr)
         return None
+    src, resolved = res.source, res.pair
 
-    df = _completed_ohlc(df, interval_minutes)
+    df = _completed_ohlc(res.df, interval_minutes)
     if len(df) < 60:
         return None
 
@@ -220,13 +216,14 @@ def build_payload(interval_minutes: int = 1440, max_workers: int = 20) -> dict:
 
     resolver = CRYPTO.resolver_factory()
     print(f"Sources: {resolver.coverage()}")
-    print(f"Universe: {len(CRYPTO.universe)} symbols")
+    universe = CRYPTO.get_universe(resolver)
+    print(f"Universe: {len(universe)} symbols")
 
     rows: list[dict] = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = {
             ex.submit(_fetch_one, coin, resolver, interval_minutes): coin
-            for coin in CRYPTO.universe
+            for coin in universe
         }
         for fut in as_completed(futures):
             row = fut.result()
