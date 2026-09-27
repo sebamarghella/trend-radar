@@ -343,7 +343,7 @@ def _run_donchian_v10(df: pd.DataFrame, params: dict) -> StrategyResult:
         close_vs_hband_pct=float(close_vs_hband_pct),
         stoch_k=None,
         last_close=close_last,
-        last_filter=last_filter,
+        last_filt=last_filter,
         last_hband=last_hband,
         last_lband=last_lband,
     )
