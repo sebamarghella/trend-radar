@@ -970,6 +970,7 @@ SORT_MAP = {
     "State (long first)": ("state", False),  # LONG before FLAT (desc)
     "Rank": ("rank", True),
     "Bars in state": ("bars_in_state", False),
+    "Bars in state (newest first)": ("bars_in_state", True),  # fresh flips on top
     "Stoch K": ("stoch_k", False),
     "Close vs HBand %": ("close_vs_hband_pct", False),
     "Net %": ("net_pct", False),
@@ -1085,7 +1086,10 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         format_func=lambda x: x[0], index=ac.default_interval_idx, key=f"tf_{key}",
     )
     interval_minutes = interval_label[1]
-    sort_by = c3.selectbox("Sort by", list(SORT_MAP.keys()), key=f"sort_{key}")
+    sort_options = list(SORT_MAP.keys())
+    # Stocks default to newest trades first (pairs with the "Pos: Long" filter).
+    default_sort = "Bars in state (newest first)" if key == "stocks" else sort_options[0]
+    sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
 
     r1, r2, _sp = st.columns([1, 1, 8])
     soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
