@@ -548,7 +548,7 @@ def parse_strategy_dict(d: dict) -> Strategy:
 
 def save_strategy(strategy: Strategy) -> Path:
     path = STRATEGIES_DIR / _safe_filename(strategy.name)
-    path.write_text(json.dumps(strategy.to_dict(), indent=2))
+    path.write_text(json.dumps(strategy.to_dict(), indent=2), encoding="utf-8")
     return path
 
 
@@ -557,7 +557,7 @@ def load_strategies() -> dict[str, Strategy]:
     out: dict[str, Strategy] = {s.name: s for s in _builtin_strategies()}
     for p in sorted(STRATEGIES_DIR.glob("*.json")):
         try:
-            d = json.loads(p.read_text())
+            d = json.loads(p.read_text(encoding="utf-8"))
             strat = parse_strategy_dict(d)
             out[strat.name] = strat  # user file overrides builtin of same name
         except (json.JSONDecodeError, ValueError, OSError) as e:
@@ -578,7 +578,7 @@ def delete_strategy(name: str) -> bool:
         return False
     for p in STRATEGIES_DIR.glob("*.json"):
         try:
-            d = json.loads(p.read_text())
+            d = json.loads(p.read_text(encoding="utf-8"))
             if d.get("name") == name:
                 p.unlink()
                 return True
@@ -594,7 +594,7 @@ def load_assignments() -> dict[str, str]:
     if not ASSIGNMENTS_FILE.exists():
         return {}
     try:
-        return json.loads(ASSIGNMENTS_FILE.read_text())
+        return json.loads(ASSIGNMENTS_FILE.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
 
@@ -603,7 +603,7 @@ def save_assignment(asset_key: str, strategy_name: str) -> None:
     state = load_assignments()
     state[asset_key] = strategy_name
     try:
-        ASSIGNMENTS_FILE.write_text(json.dumps(state, indent=2))
+        ASSIGNMENTS_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
     except OSError:
         pass
 

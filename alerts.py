@@ -63,14 +63,14 @@ def load_state() -> dict[str, str]:
     if not STATE_FILE.exists():
         return {}
     try:
-        return json.loads(STATE_FILE.read_text())
+        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
 
 
 def save_state(state: dict[str, str]) -> None:
     try:
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
     except OSError:
         pass
 
@@ -167,7 +167,7 @@ def load_history() -> list[dict]:
     if not HISTORY_FILE.exists():
         return []
     try:
-        data = json.loads(HISTORY_FILE.read_text())
+        data = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
         return data if isinstance(data, list) else []
     except (json.JSONDecodeError, OSError):
         return []
@@ -175,7 +175,7 @@ def load_history() -> list[dict]:
 
 def save_history(entries: list[dict]) -> None:
     try:
-        HISTORY_FILE.write_text(json.dumps(entries[-HISTORY_MAX:], indent=2))
+        HISTORY_FILE.write_text(json.dumps(entries[-HISTORY_MAX:], indent=2), encoding="utf-8")
     except OSError:
         pass
 
