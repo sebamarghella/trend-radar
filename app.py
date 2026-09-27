@@ -442,6 +442,20 @@ def load_universe_data(
     return ok, skipped
 
 
+def _trend_start_pnl(df: pd.DataFrame, trend_up: pd.Series | None) -> float | None:
+    """Signum's "Trend Start P&L %": while the trend is up, % change from the open
+    of the bar after the flip to Green to the latest close. None in a downtrend.
+    Matches Signum to the hundredth (5/5 stocks, median 0.00pp on 91 crypto rows)."""
+    if trend_up is None or trend_up.empty or not bool(trend_up.iloc[-1]):
+        return None
+    changed = trend_up.ne(trend_up.shift())
+    flip_i = df.index.get_loc(changed[changed].index[-1])
+    if flip_i + 1 >= len(df):
+        return 0.0  # flipped on the latest bar: the trend starts next bar
+    start_open = float(df["open"].iloc[flip_i + 1])
+    return (float(df["close"].iloc[-1]) / start_open - 1) * 100 if start_open else None
+
+
 def _short_date(ts: pd.Timestamp, ref: pd.Timestamp) -> str:
     """Grid-width date: 'Aug 21' within a year of `ref`, else "Aug '25"."""
     return ts.strftime("%b %d") if (ref - ts).days < 330 else ts.strftime("%b '%y")
@@ -486,6 +500,7 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "sharpe": stats.sharpe,
         "max_dd_pct": stats.max_drawdown_pct,
         "flow_delta_pct": taker_delta_pct,
+        "trend_pnl": _trend_start_pnl(df, trend_up),
         "breakout": (f"{_short_date(bo_last.date, df.index[-1])} {bo_mod.STATUS_GLYPH[bo_last.status]}"
                      if bo_last else None),
         "bo_date": bo_last.date.date().isoformat() if bo_last else None,
@@ -849,8 +864,8 @@ function(event) {{
 # triggers horizontal scroll only when the pane gets very narrow.
 COLUMN_FLEX = {
     "rank": 4, "symbol": 6, "name": 5, "exchange_short": 4, "pair": 5,
-    "state": 6, "confluence": 6, "bar_color": 5, "filter_up": 4, "bars_in_state": 4,
-    "close_vs_hband_pct": 6, "stoch_k": 4, "flow_delta": 5, "breakout": 7, "last_close": 4,
+    "state": 5, "confluence": 5, "bar_color": 5, "filter_up": 4, "bars_in_state": 3,
+    "close_vs_hband_pct": 5, "stoch_k": 4, "flow_delta": 5, "trend_pnl": 5, "breakout": 6, "last_close": 4,
     "trades": 4, "net_pct": 5, "win_pct": 3, "sharpe": 5, "max_dd_pct": 5, "tv": 3,
 }  # sums to 100
 
@@ -890,6 +905,13 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
             "flow_delta", header_name="Flow", flex=F["flow_delta"], minWidth=55,
             type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
             headerTooltip="Taker buy vs sell volume on the last bar (Binance only). Positive = aggressive buying.",
+        )
+    if "trend_pnl" in df.columns:
+        gb.configure_column(
+            "trend_pnl", header_name="Trend P&L", flex=F["trend_pnl"], minWidth=70,
+            type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
+            headerTooltip="Trend start P&L %: open of the day after the trend flipped up to the latest close "
+                          "(same as Signum). Blank in a downtrend.",
         )
     if "breakout" in df.columns:
         gb.configure_column(
@@ -938,6 +960,7 @@ SORT_MAP = {
     "Trades": ("trades", False),
     "Sharpe": ("sharpe", False),
     "MaxDD (shallowest first)": ("max_dd_pct", False),  # closer to 0 = better
+    "Trend start P&L %": ("trend_pnl", False),
     "Breakout (most recent first)": ("bo_date", False),
 }
 
