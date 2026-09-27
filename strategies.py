@@ -26,12 +26,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable
 
+import numpy as np
 import pandas as pd
 
 from gaussian_channel import (
     GCParams,
     SignalState,
     TradeRecord,
+    classify_bar,
     compute_stats,  # re-exported for convenience
     gaussian_channel,
     replay_strategy,
@@ -138,6 +140,11 @@ class LogicSpec:
     description: str
     param_schema: list[ParamSpec]
     run: Callable[[pd.DataFrame, dict], StrategyResult]
+    # Asset-class keys this logic is offered for; None = every class.
+    asset_classes: tuple[str, ...] | None = None
+
+    def available_for(self, asset_key: str | None) -> bool:
+        return asset_key is None or self.asset_classes is None or asset_key in self.asset_classes
 
     def defaults(self) -> dict:
         return {p.key: p.default for p in self.param_schema}
@@ -223,6 +230,111 @@ register(LogicSpec(
     ),
     param_schema=_GC_V31_SCHEMA,
     run=_run_gc_v31,
+))
+
+
+# --- Gaussian Channel Stocks Trend Radar -------------------------------------
+# Pine "Gaussian Channel Stocks Trend Radar": same Donovan Wall channel, but the
+# trade is the filter's colour. Enter on the first green bar (filt rising) right
+# after a red bar (filt falling); exit on the first red bar right after a green
+# one. A flat (grey) bar breaks the sequence, so green-after-grey is no entry.
+# Entries are gated to bars on/after the start year (Pine: 1 Jan 2018).
+
+_GC_STOCKS_SCHEMA = [
+    ParamSpec("poles", "Poles (N)", "int", 4, 1, 9, 1),
+    ParamSpec("period", "Sampling period", "int", 144, 2, 1000, 1),
+    ParamSpec("multiplier", "TR multiplier", "float", 1.414, 0.0, 10.0, 0.1),
+    ParamSpec("reduced_lag", "Reduced lag mode", "bool", False),
+    ParamSpec("fast_response", "Fast response mode", "bool", False),
+    ParamSpec("start_year", "Entries from year", "int", 2018, 1970, 2100, 1),
+]
+
+
+def _run_gc_stocks_v1(df: pd.DataFrame, params: dict) -> StrategyResult:
+    gc = GCParams(
+        poles=params["poles"],
+        period=params["period"],
+        multiplier=params["multiplier"],
+        reduced_lag=params["reduced_lag"],
+        fast_response=params["fast_response"],
+    )
+    channel = gaussian_channel(df, gc)
+    filt = channel["filt"].to_numpy()
+    close = df["close"].to_numpy(dtype=np.float64)
+    index = df.index
+    start_ts = pd.Timestamp(year=int(params["start_year"]), month=1, day=1)
+    tradable = index >= (start_ts.tz_localize(index.tz) if index.tz is not None else start_ts)
+
+    L = len(df)
+    green = np.zeros(L, dtype=bool)
+    red = np.zeros(L, dtype=bool)
+    green[1:] = filt[1:] > filt[:-1]
+    red[1:] = filt[1:] < filt[:-1]
+
+    state = np.zeros(L, dtype=np.int8)
+    trades: list[TradeRecord] = []
+    in_pos = False
+    entry_idx: int | None = None
+    entry_price: float | None = None
+    state_start = 0
+    for t in range(2, L):
+        if in_pos:
+            if red[t] and green[t - 1]:
+                trades[-1].exit_ts = index[t]
+                trades[-1].exit_price = float(close[t])
+                in_pos = False
+                entry_idx = None
+                entry_price = None
+                state_start = t
+        elif green[t] and red[t - 1] and tradable[t]:
+            in_pos = True
+            entry_idx = t
+            entry_price = float(close[t])
+            state_start = t
+            trades.append(TradeRecord(
+                entry_ts=index[t],
+                entry_price=entry_price,
+                exit_ts=None,
+                exit_price=None,
+            ))
+        state[t] = 1 if in_pos else 0
+
+    src = channel["src"].to_numpy()
+    hband = channel["hband"].to_numpy()
+    lband = channel["lband"].to_numpy()
+    snapshot = SignalState(
+        in_position=in_pos,
+        bars_in_state=max(L - 1 - state_start, 0),
+        entry_index=entry_idx,
+        entry_price=entry_price,
+        bar_color=classify_bar(src[-1], src[-2] if L >= 2 else src[-1], filt[-1], hband[-1], lband[-1]),
+        filter_up=bool(green[-1]),
+        close_vs_hband_pct=float((close[-1] - hband[-1]) / hband[-1] * 100) if hband[-1] != 0 else 0.0,
+        stoch_k=None,
+        last_close=float(close[-1]),
+        last_filt=float(filt[-1]),
+        last_hband=float(hband[-1]),
+        last_lband=float(lband[-1]),
+    )
+    return StrategyResult(
+        snapshot=snapshot,
+        state_series=pd.Series(state, index=index, name="long"),
+        trades=trades,
+        overlays=channel,
+    )
+
+
+register(LogicSpec(
+    key="gaussian_channel_stocks_v1",
+    label="Gaussian Channel Stocks",
+    description=(
+        "Stocks only. Donovan Wall Gaussian filter colour flip: long on the first "
+        "green (rising) filter bar after a red one; flat on the first red bar after "
+        "a green one."
+    ),
+    param_schema=_GC_STOCKS_SCHEMA,
+    run=_run_gc_stocks_v1,
+    asset_classes=("stocks",),
 ))
 
 
@@ -497,6 +609,8 @@ def _builtin_strategies() -> list[Strategy]:
         Strategy("GaussianChannel v3.1 — Fast response", "gaussian_channel_v3_1", fast),
         Strategy("GaussianChannel v3.1 — Slow (period 200)", "gaussian_channel_v3_1", slow),
         Strategy("Donchian Breakout v1.0 (20/10)", "donchian_breakout_v1_0", donchian_base),
+        Strategy(GC_STOCKS_STRATEGY_NAME, "gaussian_channel_stocks_v1",
+                 LOGICS["gaussian_channel_stocks_v1"].defaults()),
     ]
     if PANDAS_TA_AVAILABLE:
         builtins.extend([
@@ -507,6 +621,7 @@ def _builtin_strategies() -> list[Strategy]:
 
 
 DEFAULT_STRATEGY_NAME = "GaussianChannel v3.1 (default)"
+GC_STOCKS_STRATEGY_NAME = "Gaussian Channel Stocks Trend Radar"
 DEFAULT_LOGIC_KEY = "gaussian_channel_v3_1"
 
 
@@ -518,9 +633,10 @@ def is_builtin(name: str) -> bool:
     return name in _builtin_names()
 
 
-def list_logics() -> list[tuple[str, str]]:
-    """(key, label) for every registered logic — drives the Strategy dropdown."""
-    return [(spec.key, spec.label) for spec in LOGICS.values()]
+def list_logics(asset_key: str | None = None) -> list[tuple[str, str]]:
+    """(key, label) for every logic offered on `asset_key` (all when None) —
+    drives the Strategy dropdown."""
+    return [(spec.key, spec.label) for spec in LOGICS.values() if spec.available_for(asset_key)]
 
 
 # --- Persistence ---------------------------------------------------------------
@@ -568,6 +684,12 @@ def load_strategies() -> dict[str, Strategy]:
     return out
 
 
+def strategies_for_asset(asset_key: str, strategies: dict[str, Strategy] | None = None) -> dict[str, Strategy]:
+    """Presets whose logic is offered on this asset class."""
+    strategies = strategies if strategies is not None else load_strategies()
+    return {n: s for n, s in strategies.items() if LOGICS[s.logic_key].available_for(asset_key)}
+
+
 def presets_for_logic(logic_key: str, strategies: dict[str, Strategy] | None = None) -> dict[str, Strategy]:
     """Presets that belong to one logic — drives the Preset dropdown."""
     strategies = strategies if strategies is not None else load_strategies()
@@ -612,7 +734,11 @@ def save_assignment(asset_key: str, strategy_name: str) -> None:
 
 
 def get_assignment(asset_key: str, fallback: str = DEFAULT_STRATEGY_NAME) -> str:
-    return load_assignments().get(asset_key, fallback)
+    name = load_assignments().get(asset_key, fallback)
+    strat = load_strategies().get(name)
+    if strat is not None and not LOGICS[strat.logic_key].available_for(asset_key):
+        return fallback  # e.g. the stocks-only preset assigned to crypto
+    return name
 
 
 # --- Run -----------------------------------------------------------------------

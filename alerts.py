@@ -79,6 +79,21 @@ def _key(asset_class: str, symbol: str, interval_minutes: int) -> str:
     return f"{asset_class}|{symbol}|{interval_minutes}"
 
 
+def reseed_on_strategy_change(
+    prev_state: dict[str, str], asset_class: str, strategy_name: str, legacy_name: str,
+) -> dict[str, str]:
+    """Drop a class's saved states when its assigned strategy changed, so the
+    next diff seeds silently instead of alerting every symbol whose state merely
+    differs between the two strategies. States saved before this marker existed
+    are assumed to come from `legacy_name`."""
+    marker = f"__strategy__|{asset_class}"  # never matches the "{class}|" prefix
+    state = dict(prev_state)
+    if state.get(marker, legacy_name) != strategy_name:
+        state = {k: v for k, v in state.items() if not k.startswith(f"{asset_class}|")}
+    state[marker] = strategy_name
+    return state
+
+
 def detect_flips(
     signals: Iterable[dict],
     interval_minutes: int,

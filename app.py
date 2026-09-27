@@ -1060,7 +1060,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     assigned_strat = all_strategies.get(assigned_name)
     assigned_logic = assigned_strat.logic_key if assigned_strat else strat_registry.DEFAULT_LOGIC_KEY
 
-    logics = strat_registry.list_logics()
+    logics = strat_registry.list_logics(key)
     logic_keys = [k for k, _ in logics]
     logic_labels = dict(logics)
 
@@ -1148,7 +1148,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     )
 
     # Alert detection — per-asset-class state key prevents cross-contamination
-    prev_alert_state = alerts.load_state()
+    prev_alert_state = alerts.reseed_on_strategy_change(
+        alerts.load_state(), key, strategy.name, strat_registry.DEFAULT_STRATEGY_NAME,
+    )
     class_prefix = f"{key}|"
     interval_suffix = f"|{interval_minutes}"
     had_baseline = any(
@@ -1546,7 +1548,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     bc4.metric("Current range top", "—")
 
                 with st.expander("Strategy comparison", expanded=False):
-                    compare_strategies = strat_registry.load_strategies()
+                    compare_strategies = strat_registry.strategies_for_asset(key)
                     compare_names = list(compare_strategies.keys())
                     default_left = strategy.name if strategy.name in compare_strategies else compare_names[0]
                     preferred_right = next(

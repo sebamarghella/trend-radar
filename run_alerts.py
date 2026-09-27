@@ -105,6 +105,9 @@ def scan_class(
     long_count = sum(1 for s in signals if s["state"] == "LONG")
     print(f"  State: {long_count} LONG / {len(signals) - long_count} FLAT")
 
+    prev_state = alerts.reseed_on_strategy_change(
+        prev_state, ac.key, assigned_name, strat_registry.DEFAULT_STRATEGY_NAME,
+    )
     class_prefix = f"{ac.key}|"
     interval_suffix = f"|{interval}"
     had_baseline = any(
