@@ -1222,7 +1222,12 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     st.subheader("Radar")
     st.caption("Click any cell in a row to drill down into that coin's chart.")
-    st.markdown(
+    help_col, search_col = st.columns([3, 1], vertical_alignment="center")
+    search = search_col.text_input(
+        "Search", key=f"search_{key}", placeholder="🔍 Search ticker or name",
+        label_visibility="collapsed",
+    ).strip()
+    help_col.markdown(
         """
         <div class="radar-help-row">
           <span class="radar-help-pill"><b>Fl</b>
@@ -1249,10 +1254,27 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         """,
         unsafe_allow_html=True,
     )
-    grid_opts = build_grid_options(df_display, PALETTE)
+    # Filter rows server-side: AgGrid only renders the rows in view, so the
+    # browser's Ctrl+F misses tickers further down the list.
+    df_grid = df_display
+    if search:
+        needle = search.lower()
+        hay = [df_display[c].astype(str).str.lower() for c in ("symbol", "name", "pair") if c in df_display.columns]
+        mask = hay[0].str.contains(needle, regex=False)
+        for col in hay[1:]:
+            mask |= col.str.contains(needle, regex=False)
+        # Exact ticker match first, then the current sort order.
+        exact = hay[0] == needle
+        df_grid = pd.concat([df_display[mask & exact], df_display[mask & ~exact]]).reset_index(drop=True)
+        if df_grid.empty:
+            st.info(f"No {ac.label.lower()} match “{search}”. Clear the search to see all rows.")
+            df_grid = df_display
+        else:
+            st.caption(f"{len(df_grid)} of {len(df_display)} rows match “{search}”.")
+    grid_opts = build_grid_options(df_grid, PALETTE)
     # If we arrived via an alert deep-link, mark that row as pre-selected so
     # AgGrid highlights + ensures it's visible on first render.
-    if focus_symbol and focus_symbol in set(df_display["symbol"]):
+    if focus_symbol and focus_symbol in set(df_grid["symbol"]):
         for row in grid_opts.get("rowData", []) or []:
             if row.get("symbol") == focus_symbol:
                 row["__pre_selected__"] = True
@@ -1268,7 +1290,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         """)
     # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
     grid_response = AgGrid(
-        df_display,
+        df_grid,
         gridOptions=grid_opts,
         height=grid_height,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
@@ -1278,7 +1300,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         # every value; without it the grid scrolls horizontally on narrow windows.
         fit_columns_on_grid_load=False,
         theme=PALETTE["AGGRID_THEME"],
-        key=f"grid_{key}_{sort_by}_{focus_symbol or ''}",
+        key=f"grid_{key}_{sort_by}_{focus_symbol or ''}_{search.lower()}",
     )
 
     if True:
@@ -1289,10 +1311,10 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         elif isinstance(selected, list) and selected:
             selected_sym = selected[0].get("symbol")
         # Alert deep-link takes priority over the default-first fallback.
-        if not selected_sym and focus_symbol and focus_symbol in set(df_display["symbol"]):
+        if not selected_sym and focus_symbol and focus_symbol in set(df_grid["symbol"]):
             selected_sym = focus_symbol
         if not selected_sym:
-            selected_sym = df_display.iloc[0]["symbol"]
+            selected_sym = df_grid.iloc[0]["symbol"]
 
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
