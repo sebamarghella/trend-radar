@@ -108,6 +108,59 @@ section[data-testid='stSidebar'] [data-testid='stCaptionContainer'] {{ font-size
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown(f"""
+<style>
+.radar-help-row {{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin: 2px 0 10px 0;
+}}
+.radar-help-pill {{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid {PALETTE["BORDER"]};
+    background:{PALETTE["BG_CARD"]};
+    color:{PALETTE["FG_MUTED"]};
+    font-size:12px;
+    line-height:1.2;
+    cursor:default;
+}}
+.radar-help-pill b {{
+    color:{PALETTE["FG_PRIMARY"]};
+    font-family:{PALETTE["FONT_MONO"]};
+    font-weight:600;
+}}
+.radar-help-bubble {{
+    position:absolute;
+    left:0;
+    top:calc(100% + 8px);
+    width:220px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid {PALETTE["BORDER"]};
+    background:{PALETTE["BG_CARD"]};
+    color:{PALETTE["FG_PRIMARY"]};
+    box-shadow:0 10px 24px rgba(0,0,0,0.12);
+    font-size:12px;
+    line-height:1.45;
+    opacity:0;
+    transform:translateY(-4px);
+    pointer-events:none;
+    transition:opacity .16s ease, transform .16s ease;
+    z-index:999;
+}}
+.radar-help-pill:hover .radar-help-bubble {{
+    opacity:1;
+    transform:translateY(0);
+}}
+</style>
+""", unsafe_allow_html=True)
+
 
 # --- Global sidebar (shared across all tabs) -----------------------------------
 
@@ -382,6 +435,13 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
     result = strat_registry.run_strategy(strategy, df)
     snap = result.snapshot
     stats = compute_stats(result.trades, now=df.index[-1], lookback_days=lookback_days_)
+    taker_delta_pct = None
+    taker_buy_base = None
+    if {"volume", "taker_buy_base_volume"}.issubset(df.columns):
+        volume_now = pd.to_numeric(df["volume"], errors="coerce").iloc[-1]
+        taker_buy_base = pd.to_numeric(df["taker_buy_base_volume"], errors="coerce").iloc[-1]
+        if pd.notna(volume_now) and volume_now not in (None, 0) and pd.notna(taker_buy_base):
+            taker_delta_pct = float(((2.0 * taker_buy_base) - volume_now) / volume_now * 100.0)
     return {
         "rank": row["rank"],
         "symbol": row["symbol"],
@@ -402,10 +462,240 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "win_pct": stats.win_pct,
         "sharpe": stats.sharpe,
         "max_dd_pct": stats.max_drawdown_pct,
+        "flow_delta_pct": taker_delta_pct,
         "_df": df,
         "_overlays": result.overlays,
         "_state_series": result.state_series,
+        "_trades": result.trades,
     }
+
+
+def _mark_to_market_return(trade, latest_close: float, commission_per_side: float = 0.001) -> float | None:
+    if trade is None or trade.entry_price in (None, 0):
+        return None
+    gross = latest_close / trade.entry_price
+    fee_factor = (1.0 - commission_per_side) ** 2
+    return gross * fee_factor - 1.0
+
+
+def _build_equity_curve(
+    trades: list,
+    *,
+    now: pd.Timestamp,
+    lookback_days_: int,
+    latest_ts: pd.Timestamp,
+    latest_close: float,
+    commission_per_side: float = 0.001,
+) -> pd.DataFrame:
+    cutoff = now - pd.Timedelta(days=lookback_days_)
+    points = [{"time": cutoff, "equity": 1.0, "stage": "Start"}]
+    equity = 1.0
+
+    for trade in [t for t in trades if t.entry_ts >= cutoff]:
+        if trade.closed and trade.exit_ts is not None:
+            ret = trade.net_return(commission_per_side)
+            point_ts = trade.exit_ts
+            stage = "Closed trade"
+        else:
+            ret = _mark_to_market_return(trade, latest_close, commission_per_side)
+            point_ts = latest_ts
+            stage = "Open trade"
+        if ret is None:
+            continue
+        equity *= 1.0 + ret
+        points.append({"time": point_ts, "equity": equity, "stage": stage})
+
+    curve = (
+        pd.DataFrame(points)
+        .sort_values("time")
+        .drop_duplicates(subset=["time"], keep="last")
+        .reset_index(drop=True)
+    )
+    curve["peak"] = curve["equity"].cummax()
+    curve["drawdown"] = (curve["equity"] - curve["peak"]) / curve["peak"] * 100.0
+    return curve[["time", "equity", "drawdown", "stage"]]
+
+
+def _compute_tear_sheet(
+    trades: list,
+    *,
+    now: pd.Timestamp,
+    lookback_days_: int,
+    latest_ts: pd.Timestamp,
+    latest_close: float,
+    commission_per_side: float = 0.001,
+) -> dict:
+    cutoff = now - pd.Timedelta(days=lookback_days_)
+    recent = [t for t in trades if t.entry_ts >= cutoff]
+    closed = [t for t in recent if t.closed and t.exit_ts is not None]
+    closed_returns = [
+        ret for ret in (t.net_return(commission_per_side) for t in closed) if ret is not None
+    ]
+    equity_curve = _build_equity_curve(
+        recent,
+        now=now,
+        lookback_days_=lookback_days_,
+        latest_ts=latest_ts,
+        latest_close=latest_close,
+        commission_per_side=commission_per_side,
+    )
+
+    end_equity = float(equity_curve["equity"].iloc[-1]) if not equity_curve.empty else 1.0
+    net_return = end_equity - 1.0
+    max_dd_pct = float(equity_curve["drawdown"].min()) if not equity_curve.empty else 0.0
+    max_dd_abs = abs(max_dd_pct) / 100.0
+    annual_return = (end_equity ** (365.0 / lookback_days_) - 1.0) if lookback_days_ > 0 else 0.0
+    calmar = (annual_return / max_dd_abs) if max_dd_abs > 0 else None
+    recovery = (net_return / max_dd_abs) if max_dd_abs > 0 else None
+
+    profit_sum = sum(r for r in closed_returns if r > 0)
+    loss_sum = abs(sum(r for r in closed_returns if r < 0))
+    profit_factor = (profit_sum / loss_sum) if loss_sum > 0 else (None if profit_sum == 0 else float("inf"))
+    expectancy = (sum(closed_returns) / len(closed_returns)) if closed_returns else None
+
+    sharpe = None
+    sortino = None
+    if len(closed_returns) >= 2 and lookback_days_ > 0:
+        mean_ret = sum(closed_returns) / len(closed_returns)
+        variance = sum((r - mean_ret) ** 2 for r in closed_returns) / (len(closed_returns) - 1)
+        std_ret = variance ** 0.5
+        trades_per_year = len(closed_returns) * 365.0 / lookback_days_
+        if std_ret > 0:
+            sharpe = (mean_ret / std_ret) * (trades_per_year ** 0.5)
+        downside = [r for r in closed_returns if r < 0]
+        if downside:
+            downside_sq = sum(r * r for r in downside) / len(downside)
+            downside_dev = downside_sq ** 0.5
+            if downside_dev > 0:
+                sortino = (mean_ret / downside_dev) * (trades_per_year ** 0.5)
+
+    wins = sum(1 for r in closed_returns if r > 0)
+    avg_win = (sum(r for r in closed_returns if r > 0) / wins) if wins else None
+    losses = sum(1 for r in closed_returns if r < 0)
+    avg_loss = (sum(r for r in closed_returns if r < 0) / losses) if losses else None
+
+    recent_trades = []
+    for trade in recent[-5:]:
+        if trade.closed and trade.exit_ts is not None:
+            ret = trade.net_return(commission_per_side)
+            exit_ts = trade.exit_ts
+            status = "Closed"
+        else:
+            ret = _mark_to_market_return(trade, latest_close, commission_per_side)
+            exit_ts = latest_ts
+            status = "Open (MTM)"
+        recent_trades.append(
+            {
+                "Entry": trade.entry_ts.strftime("%Y-%m-%d"),
+                "Exit": exit_ts.strftime("%Y-%m-%d") if exit_ts is not None else "—",
+                "Status": status,
+                "Return %": (ret * 100.0) if ret is not None else None,
+            }
+        )
+
+    return {
+        "trades": len(recent),
+        "closed_trades": len(closed_returns),
+        "win_rate": (wins / len(closed_returns) * 100.0) if closed_returns else None,
+        "net_return_pct": net_return * 100.0,
+        "annual_return_pct": annual_return * 100.0,
+        "max_dd_pct": max_dd_pct,
+        "sharpe": sharpe,
+        "sortino": sortino,
+        "calmar": calmar,
+        "profit_factor": profit_factor,
+        "recovery_factor": recovery,
+        "expectancy_pct": (expectancy * 100.0) if expectancy is not None else None,
+        "avg_win_pct": (avg_win * 100.0) if avg_win is not None else None,
+        "avg_loss_pct": (avg_loss * 100.0) if avg_loss is not None else None,
+        "recent_trades": pd.DataFrame(recent_trades),
+    }
+
+
+def _fmt_number(value: float | None, *, pct: bool = False) -> str:
+    if value is None:
+        return "—"
+    if value == float("inf"):
+        return "Inf"
+    return f"{value:+.2f}%" if pct else f"{value:.2f}"
+
+
+def _comparison_curve_frame(
+    name: str,
+    strategy_result,
+    *,
+    now: pd.Timestamp,
+    lookback_days_: int,
+    latest_ts: pd.Timestamp,
+    latest_close: float,
+) -> pd.DataFrame:
+    curve = _build_equity_curve(
+        strategy_result.trades,
+        now=now,
+        lookback_days_=lookback_days_,
+        latest_ts=latest_ts,
+        latest_close=latest_close,
+    ).copy()
+    curve["strategy"] = name
+    return curve
+
+
+def _add_confluence(
+    signals: list[dict],
+    ok_rows: list[dict],
+    *,
+    asset_key: str,
+    strategy: Strategy,
+    interval_options: list[tuple[str, int]],
+    current_interval_minutes: int,
+    force_refetch: bool,
+) -> None:
+    interval_labels: dict[int, str] = {}
+    ordered_intervals: list[int] = []
+    for label, minutes in interval_options:
+        if minutes not in interval_labels:
+            interval_labels[minutes] = label
+            ordered_intervals.append(minutes)
+
+    if not signals:
+        return
+
+    state_by_symbol = {
+        signal["symbol"]: {current_interval_minutes: signal["state"] == "LONG"}
+        for signal in signals
+    }
+    extra_intervals = [m for m in ordered_intervals if m != current_interval_minutes]
+
+    if extra_intervals:
+        resolver = cached_resolver(asset_key)
+        is_24_7 = next(a.is_24_7 for a in ASSET_CLASSES if a.key == asset_key)
+        with ThreadPoolExecutor(max_workers=min(24, max(1, len(extra_intervals) * 8))) as ex:
+            futures = {
+                ex.submit(fetch_one, row["symbol"], resolver, minutes, force_refetch, is_24_7): (row["symbol"], minutes)
+                for row in ok_rows
+                for minutes in extra_intervals
+            }
+            for fut in as_completed(futures):
+                symbol, minutes = futures[fut]
+                try:
+                    res = fut.result()
+                except Exception:
+                    state_by_symbol.setdefault(symbol, {})[minutes] = None
+                    continue
+                if not res.get("ok"):
+                    state_by_symbol.setdefault(symbol, {})[minutes] = None
+                    continue
+                snap = strat_registry.run_strategy(strategy, res["df"]).snapshot
+                state_by_symbol.setdefault(symbol, {})[minutes] = bool(snap.in_position)
+
+    for signal in signals:
+        flags = [state_by_symbol.get(signal["symbol"], {}).get(minutes) for minutes in ordered_intervals]
+        known = [flag for flag in flags if flag is not None]
+        if not known:
+            signal["confluence"] = "—"
+            continue
+        long_count = sum(1 for flag in known if flag)
+        signal["confluence"] = f"{long_count}/{len(known)} LONG"
 
 
 # --- Bar cycle helpers ---------------------------------------------------------
@@ -531,10 +821,10 @@ function(event) {{
 # the grid always fills 100% width; minWidth is just a readability floor that
 # triggers horizontal scroll only when the pane gets very narrow.
 COLUMN_FLEX = {
-    "rank": 4, "symbol": 6, "name": 10, "exchange_short": 5, "pair": 8,
-    "state": 6, "bar_color": 7, "filter_up": 4, "bars_in_state": 4,
-    "close_vs_hband_pct": 6, "stoch_k": 4, "last_close": 6, "trades": 5,
-    "net_pct": 6, "win_pct": 5, "sharpe": 5, "max_dd_pct": 5, "tv": 4,
+    "rank": 4, "symbol": 6, "name": 7, "exchange_short": 4, "pair": 6,
+    "state": 6, "confluence": 6, "bar_color": 6, "filter_up": 4, "bars_in_state": 4,
+    "close_vs_hband_pct": 6, "stoch_k": 4, "flow_delta": 5, "last_close": 5, "trades": 4,
+    "net_pct": 5, "win_pct": 4, "sharpe": 5, "max_dd_pct": 5, "tv": 4,
 }  # sums to 100
 
 assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
@@ -555,6 +845,11 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
     gb.configure_column("exchange", hide=True)
     gb.configure_column("tv_prefix", hide=True)
     gb.configure_column("state", header_name="Pos", flex=F["state"], minWidth=55, cellStyle=cs["STATE"])
+    if "confluence" in df.columns:
+        gb.configure_column(
+            "confluence", header_name="TF✓", flex=F["confluence"], minWidth=55,
+            headerTooltip="Timeframe confluence: how many of 1d / 4h / 1h are LONG under this strategy.",
+        )
     gb.configure_column("bar_color", header_name="Bar", flex=F["bar_color"], minWidth=80, cellStyle=cs["BAR"])
     gb.configure_column("filter_up", header_name="F↑", flex=F["filter_up"], minWidth=40, cellStyle=cs["FILTER"])
     gb.configure_column("bars_in_state", header_name="Bars", flex=F["bars_in_state"], minWidth=45, type=["numericColumn"])
@@ -563,6 +858,12 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
         type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
     )
     gb.configure_column("stoch_k", header_name="StK", flex=F["stoch_k"], minWidth=45, type=["numericColumn"], valueFormatter=_FMT_K)
+    if "flow_delta" in df.columns:
+        gb.configure_column(
+            "flow_delta", header_name="Flow", flex=F["flow_delta"], minWidth=55,
+            type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
+            headerTooltip="Taker buy vs sell volume on the last bar (Binance only). Positive = aggressive buying.",
+        )
     gb.configure_column("last_close", header_name="Close", flex=F["last_close"], minWidth=60, type=["numericColumn"], valueFormatter=_FMT_PRICE)
     gb.configure_column("trades", header_name="Trades", flex=F["trades"], minWidth=50, type=["numericColumn"], valueFormatter=_FMT_INT)
     gb.configure_column(
@@ -762,6 +1063,15 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         return
 
     signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
+    _add_confluence(
+        signals,
+        ok_rows,
+        asset_key=key,
+        strategy=strategy,
+        interval_options=ac.interval_options,
+        current_interval_minutes=interval_minutes,
+        force_refetch=force_refetch,
+    )
 
     # Alert detection — per-asset-class state key prevents cross-contamination
     prev_alert_state = alerts.load_state()
@@ -817,7 +1127,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     # Grid + drilldown
     df = pd.DataFrame(signals)
-    df_display = df.drop(columns=["_df", "_overlays", "_state_series"]).copy()
+    df_display = df.drop(columns=["_df", "_overlays", "_state_series", "_trades"]).copy()
+    if "flow_delta_pct" in df_display.columns:
+        df_display["flow_delta"] = df_display.pop("flow_delta_pct")
     sort_col, ascending = SORT_MAP[sort_by]
     # Tie-break by rank so each group (e.g. all LONG rows) reads top-mcap first.
     if sort_col == "rank":
@@ -828,9 +1140,39 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         )
     df_display = df_display.reset_index(drop=True)
     df_display["tv"] = df_display["pair"]
+    # Grid column order follows COLUMN_FLEX; anything else (hidden helpers) trails.
+    ordered = [c for c in COLUMN_FLEX if c in df_display.columns]
+    df_display = df_display[ordered + [c for c in df_display.columns if c not in ordered]]
 
     st.subheader("Radar")
     st.caption("Click any cell in a row to drill down into that coin's chart.")
+    st.markdown(
+        """
+        <div class="radar-help-row">
+          <span class="radar-help-pill"><b>Fl</b>
+            <span class="radar-help-bubble">
+              Filter slope. Checked means the strategy's core trend filter is rising right now.
+            </span>
+          </span>
+          <span class="radar-help-pill"><b>vs HB</b>
+            <span class="radar-help-bubble">
+              Close versus upper band. Positive means price is above the trigger band; negative means it is still below it.
+            </span>
+          </span>
+          <span class="radar-help-pill"><b>StK</b>
+            <span class="radar-help-bubble">
+              Stochastic RSI K value. A fast momentum gauge: high values mean hot momentum, low values mean washed-out momentum.
+            </span>
+          </span>
+          <span class="radar-help-pill"><b>MaxDD</b>
+            <span class="radar-help-bubble">
+              Maximum drawdown over the selected lookback. It shows the worst peak-to-trough equity drop the strategy suffered.
+            </span>
+          </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     grid_opts = build_grid_options(df_display, PALETTE)
     # If we arrived via an alert deep-link, mark that row as pre-selected so
     # AgGrid highlights + ensures it's visible on first render.
@@ -876,7 +1218,37 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
         with st.container():
-            st.subheader(f"Drilldown — {selected_sym}")
+            title_col, action_col = st.columns([4, 1])
+            with title_col:
+                st.subheader(f"Drilldown — {selected_sym}")
+            with action_col:
+                tear_sheet = _compute_tear_sheet(
+                    sel.get("_trades", []),
+                    now=sel["_df"].index[-1],
+                    lookback_days_=lookback_days,
+                    latest_ts=sel["_df"].index[-1],
+                    latest_close=float(sel["_df"]["close"].iloc[-1]),
+                )
+                with st.popover("Tear sheet", use_container_width=True):
+                    st.caption(f"{selected_sym} · {lookback_days}d strategy report")
+                    ts1, ts2 = st.columns(2)
+                    ts1.metric("Sharpe", _fmt_number(tear_sheet["sharpe"]))
+                    ts2.metric("Sortino", _fmt_number(tear_sheet["sortino"]))
+                    ts3, ts4 = st.columns(2)
+                    ts3.metric("Calmar", _fmt_number(tear_sheet["calmar"]))
+                    ts4.metric("Profit factor", _fmt_number(tear_sheet["profit_factor"]))
+                    ts5, ts6 = st.columns(2)
+                    ts5.metric("Recovery", _fmt_number(tear_sheet["recovery_factor"]))
+                    ts6.metric("Expectancy", _fmt_number(tear_sheet["expectancy_pct"], pct=True))
+                    ts7, ts8 = st.columns(2)
+                    ts7.metric("Net return", _fmt_number(tear_sheet["net_return_pct"], pct=True))
+                    ts8.metric("Max drawdown", _fmt_number(tear_sheet["max_dd_pct"], pct=True))
+                    ts9, ts10 = st.columns(2)
+                    ts9.metric("Trades", str(tear_sheet["trades"]))
+                    ts10.metric("Win rate", _fmt_number(tear_sheet["win_rate"], pct=True))
+                    if not tear_sheet["recent_trades"].empty:
+                        st.caption("Recent trades")
+                        st.dataframe(tear_sheet["recent_trades"], use_container_width=True, hide_index=True)
             st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
 
             chart_df = sel["_df"].copy()
@@ -975,13 +1347,176 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                 height=chart_height,
                 background=PALETTE["BG_CARD"],
             ).configure_view(stroke=None).interactive(bind_y=False)
-            st.altair_chart(chart, use_container_width=True)
+            with st.container():
+                st.altair_chart(chart, use_container_width=True)
 
-            mc1, mc2, mc3, mc4 = st.columns(4)
-            mc1.metric("State", sel["state"])
-            mc2.metric("Bars in state", sel["bars_in_state"])
-            mc3.metric("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—")
-            mc4.metric("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%")
+                equity_df = _build_equity_curve(
+                    sel.get("_trades", []),
+                    now=sel["_df"].index[-1],
+                    lookback_days_=lookback_days,
+                    latest_ts=chart_df["time"].iloc[-1],
+                    latest_close=float(chart_df["close"].iloc[-1]),
+                )
+                eq_col, dd_col = st.columns(2)
+                eq_axis = alt.Axis(
+                    grid=True,
+                    gridColor=PALETTE["BORDER"],
+                    gridOpacity=PALETTE["GRID_OPACITY"],
+                    labelColor=PALETTE["FG_MUTED"],
+                    tickColor=PALETTE["BORDER"],
+                    domainColor=PALETTE["BORDER"],
+                    title=None,
+                )
+                eq_base = alt.Chart(equity_df).encode(x=alt.X("time:T", axis=x_axis))
+                with eq_col:
+                    st.caption(f"Equity curve ({lookback_days}d lookback)")
+                    equity_chart = (
+                        eq_base.mark_line(color=PALETTE["BULLISH"], strokeWidth=2)
+                        .encode(
+                            y=alt.Y("equity:Q", axis=eq_axis, scale=alt.Scale(zero=False)),
+                            tooltip=[
+                                alt.Tooltip("time:T", title="Time"),
+                                alt.Tooltip("equity:Q", title="Equity", format=".3f"),
+                                alt.Tooltip("stage:N", title="Stage"),
+                            ],
+                        )
+                        .properties(height=170, background=PALETTE["BG_CARD"])
+                        .configure_view(stroke=None)
+                    )
+                    st.altair_chart(equity_chart, use_container_width=True)
+
+                with dd_col:
+                    st.caption("Underwater")
+                    underwater_chart = (
+                        eq_base.mark_area(color=PALETTE["BEARISH"], opacity=0.18)
+                        .encode(
+                            y=alt.Y("drawdown:Q", axis=eq_axis, scale=alt.Scale(domainMax=0)),
+                            tooltip=[
+                                alt.Tooltip("time:T", title="Time"),
+                                alt.Tooltip("drawdown:Q", title="Drawdown", format=".2f"),
+                                alt.Tooltip("stage:N", title="Stage"),
+                            ],
+                        )
+                        .properties(height=170, background=PALETTE["BG_CARD"])
+                        .configure_view(stroke=None)
+                    )
+                    st.altair_chart(underwater_chart, use_container_width=True)
+
+                mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+                mc1.metric("State", sel["state"])
+                mc2.metric("Bars in state", sel["bars_in_state"])
+                mc3.metric("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—")
+                mc4.metric("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%")
+                mc5.metric("Taker flow", f"{sel['flow_delta_pct']:+.1f}%" if sel.get("flow_delta_pct") is not None else "—")
+
+                with st.expander("Strategy comparison", expanded=False):
+                    compare_strategies = strat_registry.load_strategies()
+                    compare_names = list(compare_strategies.keys())
+                    default_left = strategy.name if strategy.name in compare_strategies else compare_names[0]
+                    preferred_right = next(
+                        (
+                            candidate for candidate in (
+                                "Supertrend v1 (10, 3.0)",
+                                "EMA Cross v1 (21/55)",
+                                "Donchian Breakout v1.0 (20/10)",
+                                "GaussianChannel v3.1 (default)",
+                            )
+                            if candidate in compare_strategies and candidate != default_left
+                        ),
+                        next((name for name in compare_names if name != default_left), default_left),
+                    )
+                    cmp1, cmp2 = st.columns(2)
+                    left_name = cmp1.selectbox(
+                        "Strategy A",
+                        compare_names,
+                        index=compare_names.index(default_left),
+                        key=f"cmp_left_{key}_{selected_sym}",
+                    )
+                    right_name = cmp2.selectbox(
+                        "Strategy B",
+                        compare_names,
+                        index=compare_names.index(preferred_right),
+                        key=f"cmp_right_{key}_{selected_sym}",
+                    )
+
+                    left_result = strat_registry.run_strategy(compare_strategies[left_name], sel["_df"])
+                    right_result = strat_registry.run_strategy(compare_strategies[right_name], sel["_df"])
+                    latest_ts = sel["_df"].index[-1]
+                    latest_close = float(sel["_df"]["close"].iloc[-1])
+                    now_ts = latest_ts
+                    left_stats = compute_stats(left_result.trades, now=now_ts, lookback_days=lookback_days)
+                    right_stats = compute_stats(right_result.trades, now=now_ts, lookback_days=lookback_days)
+
+                    cmp_curves = pd.concat(
+                        [
+                            _comparison_curve_frame(
+                                left_name,
+                                left_result,
+                                now=now_ts,
+                                lookback_days_=lookback_days,
+                                latest_ts=latest_ts,
+                                latest_close=latest_close,
+                            ),
+                            _comparison_curve_frame(
+                                right_name,
+                                right_result,
+                                now=now_ts,
+                                lookback_days_=lookback_days,
+                                latest_ts=latest_ts,
+                                latest_close=latest_close,
+                            ),
+                        ],
+                        ignore_index=True,
+                    )
+                    cmp_chart = (
+                        alt.Chart(cmp_curves)
+                        .mark_line(strokeWidth=2.2)
+                        .encode(
+                            x=alt.X("time:T", axis=x_axis),
+                            y=alt.Y("equity:Q", axis=y_axis, scale=alt.Scale(zero=False)),
+                            color=alt.Color(
+                                "strategy:N",
+                                legend=alt.Legend(title=None, orient="top"),
+                                scale=alt.Scale(range=[PALETTE["BULLISH"], PALETTE["ACCENT"]]),
+                            ),
+                            strokeDash=alt.StrokeDash(
+                                "strategy:N",
+                                legend=None,
+                                scale=alt.Scale(range=[[1, 0], [5, 3]]),
+                            ),
+                            tooltip=[
+                                alt.Tooltip("time:T", title="Time"),
+                                alt.Tooltip("strategy:N", title="Strategy"),
+                                alt.Tooltip("equity:Q", title="Equity", format=".3f"),
+                            ],
+                        )
+                        .properties(height=220, background=PALETTE["BG_CARD"])
+                        .configure_view(stroke=None)
+                    )
+                    st.altair_chart(cmp_chart, use_container_width=True)
+
+                    ca1, ca2, ca3 = st.columns(3)
+                    with ca1:
+                        st.caption(left_name)
+                        st.metric("Net", f"{left_stats.net_pct:+.2f}%")
+                        st.metric("Sharpe", _fmt_number(left_stats.sharpe))
+                        st.metric("Max DD", _fmt_number(left_stats.max_drawdown_pct, pct=True))
+                    with ca2:
+                        st.caption(right_name)
+                        st.metric("Net", f"{right_stats.net_pct:+.2f}%")
+                        st.metric("Sharpe", _fmt_number(right_stats.sharpe))
+                        st.metric("Max DD", _fmt_number(right_stats.max_drawdown_pct, pct=True))
+                    with ca3:
+                        st.caption("Head-to-head")
+                        st.metric("Net edge", f"{(left_stats.net_pct - right_stats.net_pct):+.2f}%")
+                        if left_stats.sharpe is not None and right_stats.sharpe is not None:
+                            st.metric("Sharpe edge", _fmt_number(left_stats.sharpe - right_stats.sharpe))
+                        else:
+                            st.metric("Sharpe edge", "—")
+                        if left_stats.max_drawdown_pct is not None and right_stats.max_drawdown_pct is not None:
+                            st.metric("DD edge", _fmt_number(left_stats.max_drawdown_pct - right_stats.max_drawdown_pct, pct=True))
+                        else:
+                            st.metric("DD edge", "—")
 
     if skipped_rows:
         with st.expander(f"Skipped ({len(skipped_rows)})"):

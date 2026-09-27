@@ -15,7 +15,9 @@ streamlit run app.py
 ## What it shows
 
 - **Radar grid**: every top-100 coin tradable on Binance, with current strategy state (LONG / FLAT), Pine bar color, filter slope, bars in state, Stoch K, and distance from the upper band.
+- **Order-flow context**: crypto rows can now expose Binance taker buy/sell delta from the native kline payload, derived from `taker_buy_base_volume` vs total bar volume.
 - **Drilldown**: per-coin price chart with the Gaussian channel overlaid and long-position bars highlighted.
+- **Strategy comparison**: on a selected coin, compare two presets side by side with a head-to-head equity curve in drilldown.
 - **Headline strip**: total coverage, % in long, % with rising filter, current timeframe, cache hit rate.
 
 ## Strategy rules (faithful to the Pine v6 source)
@@ -90,6 +92,7 @@ sharing set to "Only specific people" if commit is enabled.
 - `app.py` — Streamlit UI (4 tabs, per-class strategy dropdowns)
 - `run_alerts.py` — Headless alert engine; each class uses its assigned strategy
 - `strategies.py` — Logic registry, Strategy presets, JSON load/save, assignments
+- `indicator_engine.py` — optional `pandas-ta` wrapper for library-backed indicators
 - `asset_classes.py` — Crypto / Stocks / Metals / Commodities universes + resolvers
 - `sources.py` — Binance / Gate.io / Kraken / Yahoo data sources + multi-source resolver
 - `gaussian_channel.py` — N-pole Gaussian filter, True Range, Wilder RSI, Stoch RSI, replay
@@ -98,10 +101,23 @@ sharing set to "Only specific people" if commit is enabled.
 - `coins.py` — Top-100 crypto universe + exclusion list
 - `strategies/` — user preset JSONs
 - `strategy_assignments.json` — which strategy each asset class uses
+- `export_crypto_signals.py` - Headless JSON producer for external routines
+- `data/crypto_signals.json` - Latest committed crypto signal snapshot
 
 ## Tweaking the strategy
 
 The sidebar exposes the same inputs as the Pine script. If you have a different version with a non-default `mult` or `period`, change them there — no code edits needed.
+
+## pandas-ta engine
+
+The app now supports an optional `pandas-ta` indicator engine for library-backed
+strategy logics such as EMA cross and Supertrend. When `pandas-ta` is installed,
+those logics appear in the same strategy dropdown as the hand-ported strategies.
+
+- Install path: `pip install -r requirements.txt`
+- Current package constraint: `pandas-ta` on PyPI requires Python 3.12+, so the
+  dependency is gated with an environment marker and older runtimes will simply
+  keep showing the hand-ported logics only.
 
 ## Autonomous alerts via GitHub Actions
 
@@ -129,3 +145,20 @@ You don't need to keep the Streamlit app open to receive Telegram alerts — the
 ```cron
 5 0 * * * cd /path/to/trend_radar && TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... python run_alerts.py >> alerts.log 2>&1
 ```
+
+## Public crypto signals JSON
+
+The repo also publishes `data/crypto_signals.json` for unattended routines that
+need one stable file to read with a single GET. The separate workflow at
+`.github/workflows/crypto-signals.yml` runs daily at **00:30 UTC**, computes the
+Crypto tab's assigned strategy on the last completed 1-day bar, enriches symbols
+with HyperLiquid perp availability, and commits the JSON back to the repo.
+
+Raw URL pattern:
+
+```text
+https://raw.githubusercontent.com/sebamarghella/<repo>/<branch>/data/crypto_signals.json
+```
+
+The exporter is independent of Streamlit and Telegram, so it keeps running even
+when the app is asleep or alert secrets are not configured.

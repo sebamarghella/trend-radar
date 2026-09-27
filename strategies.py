@@ -34,6 +34,11 @@ from gaussian_channel import (
     replay_strategy,
     stoch_rsi_k,
 )
+from indicator_engine import (
+    PANDAS_TA_AVAILABLE,
+    ema as pandasta_ema,
+    supertrend as pandasta_supertrend,
+)
 
 STRATEGIES_DIR = Path(__file__).parent / "strategies"
 STRATEGIES_DIR.mkdir(exist_ok=True)
@@ -60,6 +65,67 @@ class StrategyResult:
     state_series: pd.Series
     trades: list[TradeRecord]
     overlays: pd.DataFrame | None  # price-overlay columns to chart (e.g. filt/hband/lband)
+
+
+def _stateful_result(
+    df: pd.DataFrame,
+    state_series: pd.Series,
+    *,
+    bar_color: str,
+    filter_up: bool,
+    close_vs_hband_pct: float,
+    last_filter: float,
+    last_hband: float,
+    last_lband: float,
+    overlays: pd.DataFrame | None = None,
+    stoch_k: float | None = None,
+) -> StrategyResult:
+    close = df["close"]
+    index = df.index
+    state = state_series.fillna(0).astype("int8")
+    trades: list[TradeRecord] = []
+    entry_idx: int | None = None
+    entry_price: float | None = None
+
+    for i, current in enumerate(state.to_list()):
+        prev = int(state.iloc[i - 1]) if i > 0 else 0
+        if current == 1 and prev == 0:
+            entry_idx = i
+            entry_price = float(close.iloc[i])
+            trades.append(
+                TradeRecord(
+                    entry_ts=index[i],
+                    entry_price=entry_price,
+                    exit_ts=None,
+                    exit_price=None,
+                )
+            )
+        elif current == 0 and prev == 1 and trades:
+            trades[-1].exit_ts = index[i]
+            trades[-1].exit_price = float(close.iloc[i])
+            entry_idx = None
+            entry_price = None
+
+    current_state = int(state.iloc[-1]) if len(state) else 0
+    state_start = len(state) - 1
+    while state_start > 0 and int(state.iloc[state_start - 1]) == current_state:
+        state_start -= 1
+
+    snapshot = SignalState(
+        in_position=bool(current_state),
+        bars_in_state=max(len(state) - 1 - state_start, 0),
+        entry_index=entry_idx,
+        entry_price=entry_price,
+        bar_color=bar_color,
+        filter_up=bool(filter_up),
+        close_vs_hband_pct=float(close_vs_hband_pct),
+        stoch_k=stoch_k,
+        last_close=float(close.iloc[-1]),
+        last_filt=float(last_filter),
+        last_hband=float(last_hband),
+        last_lband=float(last_lband),
+    )
+    return StrategyResult(snapshot=snapshot, state_series=state, trades=trades, overlays=overlays)
 
 
 @dataclass
@@ -304,6 +370,115 @@ register(LogicSpec(
 ))
 
 
+def _classify_ema_bar(close_now: float, close_prev: float, ema_fast: float, ema_slow: float) -> str:
+    if ema_fast >= ema_slow and close_now >= ema_fast:
+        return "STRONG_UP"
+    if ema_fast >= ema_slow and close_now >= close_prev:
+        return "UP"
+    if ema_fast >= ema_slow:
+        return "WEAK_UP"
+    if ema_fast < ema_slow and close_now <= ema_fast:
+        return "STRONG_DOWN"
+    if ema_fast < ema_slow and close_now <= close_prev:
+        return "DOWN"
+    return "WEAK_DOWN"
+
+
+def _classify_supertrend_bar(close_now: float, close_prev: float, trend_line: float, bullish: bool) -> str:
+    if bullish and close_now >= trend_line:
+        return "STRONG_UP" if close_now >= close_prev else "UP"
+    if bullish:
+        return "WEAK_UP"
+    if close_now <= trend_line:
+        return "STRONG_DOWN" if close_now <= close_prev else "DOWN"
+    return "WEAK_DOWN"
+
+
+_EMA_CROSS_SCHEMA = [
+    ParamSpec("fast_len", "Fast EMA", "int", 21, 2, 500, 1),
+    ParamSpec("slow_len", "Slow EMA", "int", 55, 2, 500, 1),
+]
+
+
+def _run_ema_cross_v1(df: pd.DataFrame, params: dict) -> StrategyResult:
+    fast = pandasta_ema(df["close"], length=params["fast_len"])
+    slow = pandasta_ema(df["close"], length=params["slow_len"])
+    state = (fast > slow).fillna(False).astype("int8")
+    last_close = float(df["close"].iloc[-1])
+    last_fast = float(fast.iloc[-1]) if not pd.isna(fast.iloc[-1]) else last_close
+    last_slow = float(slow.iloc[-1]) if not pd.isna(slow.iloc[-1]) else last_close
+    prev_close = float(df["close"].iloc[-2]) if len(df) >= 2 else last_close
+    prev_fast = float(fast.iloc[-2]) if len(fast) >= 2 and not pd.isna(fast.iloc[-2]) else last_fast
+    overlays = pd.DataFrame({"filt": fast, "hband": slow, "lband": slow}, index=df.index)
+    return _stateful_result(
+        df,
+        state,
+        bar_color=_classify_ema_bar(last_close, prev_close, last_fast, last_slow),
+        filter_up=last_fast > prev_fast,
+        close_vs_hband_pct=((last_close - last_slow) / last_slow * 100.0) if last_slow else 0.0,
+        last_filter=last_fast,
+        last_hband=last_slow,
+        last_lband=last_slow,
+        overlays=overlays,
+    )
+
+
+_SUPERTREND_SCHEMA = [
+    ParamSpec("length", "ATR Length", "int", 10, 2, 200, 1),
+    ParamSpec("multiplier", "Multiplier", "float", 3.0, 0.5, 10.0, 0.1),
+]
+
+
+def _run_supertrend_v1(df: pd.DataFrame, params: dict) -> StrategyResult:
+    st = pandasta_supertrend(
+        df["high"],
+        df["low"],
+        df["close"],
+        length=params["length"],
+        multiplier=params["multiplier"],
+    )
+    line_col = next(col for col in st.columns if col.startswith("SUPERT_"))
+    dir_col = next(col for col in st.columns if col.startswith("SUPERTd_"))
+    trend_line = st[line_col]
+    direction = st[dir_col]
+    state = (direction > 0).fillna(False).astype("int8")
+    last_close = float(df["close"].iloc[-1])
+    last_line = float(trend_line.iloc[-1]) if not pd.isna(trend_line.iloc[-1]) else last_close
+    prev_close = float(df["close"].iloc[-2]) if len(df) >= 2 else last_close
+    prev_line = float(trend_line.iloc[-2]) if len(trend_line) >= 2 and not pd.isna(trend_line.iloc[-2]) else last_line
+    bullish = bool(state.iloc[-1]) if len(state) else False
+    overlays = pd.DataFrame({"filt": trend_line, "hband": trend_line, "lband": trend_line}, index=df.index)
+    return _stateful_result(
+        df,
+        state,
+        bar_color=_classify_supertrend_bar(last_close, prev_close, last_line, bullish),
+        filter_up=last_line > prev_line,
+        close_vs_hband_pct=((last_close - last_line) / last_line * 100.0) if last_line else 0.0,
+        last_filter=last_line,
+        last_hband=last_line,
+        last_lband=last_line,
+        overlays=overlays,
+    )
+
+
+if PANDAS_TA_AVAILABLE:
+    register(LogicSpec(
+        key="ema_cross_v1",
+        label="EMA Cross v1",
+        description="Long when the fast EMA is above the slow EMA; flat when it crosses back below.",
+        param_schema=_EMA_CROSS_SCHEMA,
+        run=_run_ema_cross_v1,
+    ))
+
+    register(LogicSpec(
+        key="supertrend_v1",
+        label="Supertrend v1",
+        description="Long while pandas-ta Supertrend direction stays bullish; flat on bearish flips.",
+        param_schema=_SUPERTREND_SCHEMA,
+        run=_run_supertrend_v1,
+    ))
+
+
 # --- Built-in presets ----------------------------------------------------------
 
 
@@ -314,12 +489,18 @@ def _builtin_strategies() -> list[Strategy]:
     slow = dict(base, period=200)
     donchian = LOGICS["donchian_breakout_v1_0"]
     donchian_base = donchian.defaults()
-    return [
+    builtins = [
         Strategy("GaussianChannel v3.1 (default)", "gaussian_channel_v3_1", base),
         Strategy("GaussianChannel v3.1 — Fast response", "gaussian_channel_v3_1", fast),
         Strategy("GaussianChannel v3.1 — Slow (period 200)", "gaussian_channel_v3_1", slow),
         Strategy("Donchian Breakout v1.0 (20/10)", "donchian_breakout_v1_0", donchian_base),
     ]
+    if PANDAS_TA_AVAILABLE:
+        builtins.extend([
+            Strategy("EMA Cross v1 (21/55)", "ema_cross_v1", LOGICS["ema_cross_v1"].defaults()),
+            Strategy("Supertrend v1 (10, 3.0)", "supertrend_v1", LOGICS["supertrend_v1"].defaults()),
+        ])
+    return builtins
 
 
 DEFAULT_STRATEGY_NAME = "GaussianChannel v3.1 (default)"

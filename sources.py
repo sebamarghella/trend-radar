@@ -128,13 +128,33 @@ class BinanceSource(DataSource):
             data,
             columns=[
                 "openTime", "open", "high", "low", "close", "volume",
-                "closeTime", "qav", "trades", "tbbav", "tbqav", "ignore",
+                "closeTime", "quote_volume", "trades", "taker_buy_base_volume", "taker_buy_quote_volume", "ignore",
             ],
         )
         df["ts"] = pd.to_datetime(df["openTime"].astype("int64"), unit="ms", utc=True)
-        for col in ("open", "high", "low", "close", "volume"):
+        for col in (
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "quote_volume",
+            "taker_buy_base_volume",
+            "taker_buy_quote_volume",
+        ):
             df[col] = pd.to_numeric(df[col])
-        return df.set_index("ts")[["open", "high", "low", "close", "volume"]].sort_index()
+        return df.set_index("ts")[
+            [
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "quote_volume",
+                "taker_buy_base_volume",
+                "taker_buy_quote_volume",
+            ]
+        ].sort_index()
 
 
 # --- Gate.io -------------------------------------------------------------------
