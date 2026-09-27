@@ -297,6 +297,42 @@ def test_fetch_series_staleness_and_renames():
     print("fetch_series staleness + renames: ok")
 
 
+def test_stocks_universe_ranking():
+    """Offline: share classes collapse to one row, preferreds drop, ranks are dense."""
+    from stocks_universe import clean_name, rank_rows
+
+    rows = [
+        {"symbol": "GOOG", "name": "Alphabet Inc. Class C Capital Stock", "marketCap": "3900"},
+        {"symbol": "GOOGL", "name": "Alphabet Inc. Class A Common Stock", "marketCap": "4000"},
+        {"symbol": "BRK/B", "name": "Berkshire Hathaway Inc. Class B", "marketCap": "1000"},
+        {"symbol": "BRK/A", "name": "Berkshire Hathaway Inc. Class A", "marketCap": "999"},
+        {"symbol": "JPM^C", "name": "JPMorgan Chase & Co. Depositary Shares", "marketCap": "5000"},
+        {"symbol": "NVO", "name": "Novo Nordisk A/S American Depositary Shares", "marketCap": "170"},
+        {"symbol": "ZERO", "name": "No Cap Corp", "marketCap": ""},
+    ]
+    out = rank_rows(rows, target=10)
+    assert [r["symbol"] for r in out] == ["GOOGL", "BRK-B", "NVO"], out
+    assert [r["rank"] for r in out] == [1, 2, 3]
+    assert clean_name("Novo Nordisk A/S American Depositary Shares") == "Novo Nordisk A/S"
+    assert len(rank_rows(rows, target=1)) == 1
+    print("stocks universe ranking: ok")
+
+
+def test_run_strategy_cached():
+    import strategies as S
+
+    idx = pd.date_range("2025-01-01", periods=300, freq="1D", tz="UTC")
+    c = pd.Series(np.cumsum(np.random.default_rng(7).normal(0, 1, 300)) + 100, index=idx)
+    df = pd.DataFrame({"open": c, "high": c + 1, "low": c - 1, "close": c, "volume": 1.0})
+    st = S.load_strategies()[S.DEFAULT_STRATEGY_NAME]
+    a = S.run_strategy_cached(st, df)
+    assert S.run_strategy_cached(st, df.copy()) is a          # same data -> cache hit
+    df2 = df.copy(); df2.iloc[-1, df2.columns.get_loc("close")] += 1
+    assert S.run_strategy_cached(st, df2) is not a            # changed bar -> recompute
+    assert a.snapshot.last_close == S.run_strategy(st, df).snapshot.last_close
+    print("run_strategy_cached: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -310,4 +346,6 @@ if __name__ == "__main__":
     test_gc_short_state()
     test_crypto_signal_export_helpers()
     test_fetch_series_staleness_and_renames()
+    test_stocks_universe_ranking()
+    test_run_strategy_cached()
     print("\nAll smoke tests passed.")

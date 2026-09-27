@@ -19,3 +19,4 @@ venv/
 
 # CoinGecko universe snapshot — refreshed daily at runtime
 .cache/universe.json
+.cache/stocks_universe.json

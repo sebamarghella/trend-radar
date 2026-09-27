@@ -352,6 +352,9 @@ def cached_resolver(asset_key: str) -> Resolver:
     raise ValueError(f"unknown asset class {asset_key}")
 
 
+NON_24_7_CACHE_TTL_S = 30 * 60
+
+
 def fetch_one(
     base: str, resolver: Resolver, interval: int,
     force_refresh: bool = False, is_24_7: bool = True,
@@ -364,6 +367,14 @@ def fetch_one(
         if cached_df is not None and ohlc_cache.is_fresh(cached_df, interval_minutes):
             statuses[key] = "cache"
             return cached_df
+        if cached_df is not None and not is_24_7:
+            # Markets that close (stocks/futures): the bar-based rule calls
+            # Friday's bar stale all weekend and overnight, which refetched
+            # ~1,100 stock series on every load. A recent fetch is good enough.
+            age = ohlc_cache.age_seconds(src.name, pair, interval_minutes)
+            if age is not None and age < NON_24_7_CACHE_TTL_S:
+                statuses[key] = "cache"
+                return cached_df
         try:
             df = src.fetch_with_retry(pair, interval_minutes=interval_minutes)
         except SourceError:
@@ -432,7 +443,7 @@ def load_universe_data(
 
 def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
     df = row["df"]
-    result = strat_registry.run_strategy(strategy, df)
+    result = strat_registry.run_strategy_cached(strategy, df)
     snap = result.snapshot
     stats = compute_stats(result.trades, now=df.index[-1], lookback_days=lookback_days_)
     taker_delta_pct = None
@@ -685,7 +696,7 @@ def _add_confluence(
                 if not res.get("ok"):
                     state_by_symbol.setdefault(symbol, {})[minutes] = None
                     continue
-                snap = strat_registry.run_strategy(strategy, res["df"]).snapshot
+                snap = strat_registry.run_strategy_cached(strategy, res["df"]).snapshot
                 state_by_symbol.setdefault(symbol, {})[minutes] = bool(snap.in_position)
 
     for signal in signals:
@@ -1439,8 +1450,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                         key=f"cmp_right_{key}_{selected_sym}",
                     )
 
-                    left_result = strat_registry.run_strategy(compare_strategies[left_name], sel["_df"])
-                    right_result = strat_registry.run_strategy(compare_strategies[right_name], sel["_df"])
+                    left_result = strat_registry.run_strategy_cached(compare_strategies[left_name], sel["_df"])
+                    right_result = strat_registry.run_strategy_cached(compare_strategies[right_name], sel["_df"])
                     latest_ts = sel["_df"].index[-1]
                     latest_close = float(sel["_df"]["close"].iloc[-1])
                     now_ts = latest_ts

@@ -7,6 +7,7 @@ we fall back to the stale copy rather than blanking the coin from the radar.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -46,6 +47,15 @@ def is_fresh(df: pd.DataFrame, interval_minutes: int) -> bool:
     now = pd.Timestamp.now(tz="UTC")
     next_open = last_ts + pd.Timedelta(minutes=interval_minutes)
     return now < next_open
+
+
+def age_seconds(source: str, pair: str, interval_minutes: int) -> float | None:
+    """Seconds since the cached file was last written (None if absent)."""
+    p = _path(source, pair, interval_minutes)
+    try:
+        return max(0.0, time.time() - p.stat().st_mtime)
+    except OSError:
+        return None
 
 
 def clear() -> int:

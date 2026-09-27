@@ -14,6 +14,7 @@ from typing import Callable
 
 from coins import live_universe, tradable_universe as crypto_universe
 from sources import Resolver, default_resolver, yahoo_resolver
+from stocks_universe import live_stocks_universe
 
 
 # --- Stocks (top US megacaps) --------------------------------------------------
@@ -135,8 +136,9 @@ CRYPTO = AssetClass(
 STOCKS = AssetClass(
     key="stocks",
     label="Stocks",
-    description="Top 30 US megacap stocks via Yahoo Finance.",
-    universe=STOCKS_UNIVERSE,
+    description="Top 570 US-listed stocks by market cap (incl. ADRs; live NASDAQ screener ranking) via Yahoo Finance.",
+    universe=STOCKS_UNIVERSE,  # fallback if the screener is unreachable
+    universe_loader=lambda resolver: live_stocks_universe(STOCKS_UNIVERSE),
     resolver_factory=yahoo_resolver,
     interval_options=[("1 day", 1440), ("1 week", 10080)],
     default_interval_idx=0,

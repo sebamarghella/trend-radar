@@ -354,7 +354,10 @@ class YahooSource(DataSource):
         period = self.PERIOD_FOR_INTERVAL[interval]
         df = yf.download(
             symbol, period=period, interval=interval,
-            auto_adjust=True, progress=False, threads=False,
+            # Raw (unadjusted) prices, like TradingView's default chart and
+            # Signum: dividend-adjusting shifts the Gaussian filter 0.1-1% on
+            # payers and moved flip dates by up to ~8 days vs Signum.
+            auto_adjust=False, progress=False, threads=False,
         )
         if df is None or df.empty:
             raise SourceError(f"no data for {symbol}")

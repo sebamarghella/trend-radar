@@ -26,9 +26,13 @@
 - Rebrands (TON → GRAM): Binance flags the old pair as non-trading, but Kraken kept serving the old ticker with the new prices, so the coin showed up under the old name rather than disappearing. Add rebrands to `sources.RENAMES`; the old ticker's history gets stitched in front (1:1 rebrands only).
 - All fetching goes through `sources.fetch_series()`. It skips a source whose last bar is more than 3 intervals old (6 days for markets that close) and falls through to the next exchange.
 - When comparing against Signum, their Green/Red is the direction of the Gaussian filter, not our LONG/FLAT position state.
+- The Stocks universe is live too (`stocks_universe.py`): NASDAQ's public screener (every NYSE/NASDAQ/AMEX listing incl. ADRs, no key), ranked by market cap, preferreds dropped, share classes collapsed (GOOGL/GOOG → one), top 570. Signum's Pro stocks radar is built the same way; ranks match within ~1 place.
+- Yahoo prices are **raw (unadjusted)**, like TradingView and Signum. Dividend-adjusted prices shift the Gaussian filter 0.1–1% on dividend payers and moved stock flip dates by up to ~8 days vs Signum; with raw prices 15/15 sampled Signum stocks match to the day.
 
 ## Local Development
 
+- Streamlit reruns the whole script on every click. At ~1,500 series that was ~20s of Gaussian-filter CPU per interaction; `strategies.run_strategy_cached` (LRU keyed by logic + params + OHLC fingerprint) brings a rerun under 1s. Use it for anything the UI recomputes; treat results as read-only.
+- Bar-based cache freshness (`now < last_bar + interval`) is right for 24/7 crypto but calls Friday's stock bar stale all weekend and overnight. Non-24/7 classes also accept a cache file younger than 30 minutes.
 - Don't run the app from a virtualenv inside Google Drive. Package imports stream through Drive's virtual filesystem (`import requests` alone took 5.6s) and the app never finishes loading. Keep the venv on local disk (e.g. `~/.venvs/trend-radar`, Python 3.13).
 - Running the app locally rewrites `.cache/alerts_state.json` / `alerts_history.json`, which are tracked and owned by the cron job. Discard them (`git checkout -- .cache/alerts_*.json`) before committing.
 - Drive copies use CRLF line endings and the repo uses LF. Diff with `--strip-trailing-cr`, or every file looks 100% changed.

@@ -16,6 +16,9 @@ presets, alerts) works automatically.
 
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict
+
 import json
 import re
 from dataclasses import dataclass
@@ -619,3 +622,38 @@ def run_strategy(strategy: Strategy, df: pd.DataFrame) -> StrategyResult:
     logic = LOGICS[strategy.logic_key]
     params = logic.coerce(strategy.params)
     return logic.run(df, params)
+
+
+# --- Memoised run -----------------------------------------------------------
+# Streamlit reruns the whole script on every widget interaction. With ~570
+# stocks + crypto (+ confluence timeframes) that meant recomputing ~1,500
+# Gaussian filters (~20s CPU) per click. Results are pure functions of
+# (logic, params, OHLC), so cache them. Treat returned results as read-only.
+_RESULT_CACHE: "OrderedDict[tuple, StrategyResult]" = OrderedDict()
+_RESULT_CACHE_MAX = 2000  # ~30-75 KB each -> worst case ~140 MB
+_RESULT_CACHE_LOCK = threading.Lock()
+
+
+def _df_fingerprint(df: pd.DataFrame) -> tuple:
+    if df.empty:
+        return (0,)
+    close = df["close"]
+    return (len(df), df.index[0].value, df.index[-1].value,
+            float(close.iloc[-1]), float(close.sum()), float(df["high"].sum()), float(df["low"].sum()))
+
+
+def run_strategy_cached(strategy: Strategy, df: pd.DataFrame) -> StrategyResult:
+    logic = LOGICS[strategy.logic_key]
+    params = logic.coerce(strategy.params)
+    key = (strategy.logic_key, tuple(sorted((k, repr(v)) for k, v in params.items())), _df_fingerprint(df))
+    with _RESULT_CACHE_LOCK:
+        hit = _RESULT_CACHE.get(key)
+        if hit is not None:
+            _RESULT_CACHE.move_to_end(key)
+            return hit
+    result = logic.run(df, params)
+    with _RESULT_CACHE_LOCK:
+        _RESULT_CACHE[key] = result
+        while len(_RESULT_CACHE) > _RESULT_CACHE_MAX:
+            _RESULT_CACHE.popitem(last=False)
+    return result
