@@ -67,13 +67,18 @@ def split_factors(close_df: pd.DataFrame) -> pd.DataFrame:
     """Per-day multiplier that undoes a detected split (1.0 = none). Forward k:1
     (price / k) gets factor k; reverse 1:k (price x k) gets 1/k."""
     c = close_df.ffill()
-    ratio = c / c.shift(1)
-    fac = pd.DataFrame(1.0, index=close_df.index, columns=close_df.columns)
-    big = (ratio - 1.0).abs() >= SPLIT_MIN_MOVE
-    for k in SPLIT_RATIOS:
-        fac = fac.mask(big & ((ratio * k - 1.0).abs() <= SPLIT_TOL), float(k))
-        fac = fac.mask(big & ((ratio / k - 1.0).abs() <= SPLIT_TOL), 1.0 / k)
-    return fac
+    ratio = (c / c.shift(1)).to_numpy()
+    fac = np.ones(ratio.shape)
+    with np.errstate(invalid="ignore"):
+        big = np.abs(ratio - 1.0) >= SPLIT_MIN_MOVE      # NaN compares False
+    if big.any():                                        # ~0.1% of cells: only test those
+        r = ratio[big]
+        out = np.ones(len(r))
+        for k in SPLIT_RATIOS:
+            out[np.abs(r * k - 1.0) <= SPLIT_TOL] = float(k)
+            out[np.abs(r / k - 1.0) <= SPLIT_TOL] = 1.0 / k
+        fac[big] = out
+    return pd.DataFrame(fac, index=close_df.index, columns=close_df.columns)
 
 
 def _capped_holdings(state_df: pd.DataFrame, cap: int, ranks: dict | None) -> tuple[pd.DataFrame, list]:

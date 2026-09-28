@@ -30,26 +30,43 @@ def _window_start(daily: pd.DataFrame, window: str) -> pd.Timestamp | None:
     return end - pd.DateOffset(years=years)
 
 
-def _headline(stats: dict, *, label_suffix: str = "") -> None:
-    a1, a2, a3, a4, a5, a6 = st.columns(6)
-    a1.metric("Total return", _fmt(stats.get("total_return_pct"), "+.1f", "%"))
-    a2.metric("Max drawdown", _fmt(stats.get("max_dd_pct"), ".1f", "%"))
-    a3.metric("Return / MDD", _fmt(stats.get("return_over_mdd")),
-              help="Total return ÷ |max drawdown| over the window. >1 means the gain outweighs the worst dip.")
-    a4.metric("Profit factor", _fmt(stats.get("profit_factor")),
-              help="Sum of winning trades ÷ sum of losing trades (closed trades, after commission). >1 = net profitable.")
-    a5.metric("Win rate", _fmt(stats.get("win_rate"), ".1f", "%"))
-    a6.metric("CAGR", _fmt(stats.get("cagr_pct"), "+.1f", "%"))
-    b1, b2, b3, b4, b5, b6 = st.columns(6)
-    b1.metric("Closed trades", _fmt(stats.get("closed_trades"), "d"))
-    b2.metric("Open now", _fmt(stats.get("open_trades"), "d"))
-    b3.metric("Calmar", _fmt(stats.get("calmar")), help="CAGR ÷ |max drawdown|.")
-    b4.metric("Expectancy", _fmt(stats.get("expectancy_pct"), "+.2f", "%"), help="Mean net return per closed trade.")
-    b5.metric("Avg win / loss",
-              f"{_fmt(stats.get('avg_win_pct'), '+.1f', '%')} / {_fmt(stats.get('avg_loss_pct'), '+.1f', '%')}")
-    b6.metric("Invested", _fmt(stats.get("avg_open"), ".1f"),
-              delta=f"{_fmt(stats.get('exposure_pct'), '.0f', '%')} of days", delta_color="off",
-              help="Average number of open positions (and share of days with at least one).")
+def _headline(stats: dict, palette: dict) -> None:
+    """All headline numbers in one row (scrolls sideways on narrow screens)."""
+    import html
+    dd = stats.get("max_dd_pct")
+    aw, al = stats.get("avg_win_pct"), stats.get("avg_loss_pct")
+    items = [
+        ("Total return", _fmt(stats.get("total_return_pct"), "+.1f", "%"), "", palette["ACCENT"] if (stats.get("total_return_pct") or 0) >= 0 else palette["BEARISH"]),
+        ("Max drawdown", _fmt(dd, ".1f", "%"), "Deepest peak-to-trough fall of the equity curve.", palette["BEARISH"]),
+        ("Return / MDD", _fmt(stats.get("return_over_mdd")), "Total return ÷ |max drawdown| over the window. >1 means the gain outweighs the worst dip.", None),
+        ("Profit factor", _fmt(stats.get("profit_factor")), "Sum of winning trades ÷ sum of losing trades (closed trades, after commission). >1 = net profitable.", None),
+        ("Win rate", _fmt(stats.get("win_rate"), ".1f", "%"), "Share of closed trades with a positive net return.", None),
+        ("CAGR", _fmt(stats.get("cagr_pct"), "+.1f", "%"), "Annualised return. Blank under ~3 months of data.", None),
+        ("Closed trades", _fmt(stats.get("closed_trades"), "d"), "", None),
+        ("Open now", _fmt(stats.get("open_trades"), "d"), "Positions currently held.", None),
+        ("Calmar", _fmt(stats.get("calmar")), "CAGR ÷ |max drawdown|.", None),
+        ("Expectancy", _fmt(stats.get("expectancy_pct"), "+.2f", "%"), "Mean net return per closed trade.", None),
+        ("Avg win / loss", f"{_fmt(aw, '+.1f')} / {_fmt(al, '.1f')}%", "Average winning and losing trade, net of commission.", None),
+        ("Invested", _fmt(stats.get("avg_open"), ".1f"),
+         f"Average number of open positions; at least one open on {_fmt(stats.get('exposure_pct'), '.0f')}% of days.", None),
+    ]
+    cells = "".join(
+        f'<div class="bp-cell{" bp-wide" if label == "Avg win / loss" else ""}" title="{html.escape(tip)}"><div class="bp-l">{html.escape(label)}</div>'
+        f'<div class="bp-v{" bp-sm" if label == "Avg win / loss" else ""}"'
+        f'{f" style=color:{color}" if color else ""}>{html.escape(value)}</div></div>'
+        for label, value, tip, color in items
+    )
+    st.markdown(
+        f"""<style>
+.bp-strip{{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px 0}}
+.bp-cell{{flex:1 1 0;min-width:92px;padding:4px 6px 2px 0;cursor:default}}
+.bp-cell.bp-wide{{flex:1.5 1 0;min-width:128px}}
+.bp-l{{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:{palette["FG_MUTED"]};white-space:nowrap}}
+.bp-v{{font-family:{palette["FONT_MONO"]};font-variant-numeric:tabular-nums;font-size:19px;font-weight:500;color:{palette["FG_PRIMARY"]};white-space:nowrap}}
+.bp-v.bp-sm{{font-size:14px;line-height:27px}}
+</style><div class="bp-strip">{cells}</div>""",
+        unsafe_allow_html=True,
+    )
 
 
 def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False) -> None:
@@ -112,6 +129,29 @@ def _year_table(daily: pd.DataFrame, trades: pd.DataFrame | None) -> None:
     )
 
 
+def _fingerprint(signals: list[dict]) -> int:
+    """Cheap identity of the data + strategy output, so results are recomputed
+    only when a bar, a price or a strategy state actually changes."""
+    return hash(tuple(
+        (s["symbol"], str(s["_df"].index[-1]), len(s["_df"]), round(float(s["last_close"]), 6),
+         int(s["_state_series"].sum()), len(s["_trades"]))
+        for s in signals
+    ))
+
+
+@st.cache_data(show_spinner=False, max_entries=12)
+def _basket_compute(fp: int, slots: int, _signals: list[dict]):
+    """Backtest matrices + flattened trades. `fp` is the cache key; `_signals`
+    is deliberately not hashed."""
+    entries = [(s["symbol"], s["_df"], s["_state_series"]) for s in _signals]
+    ranks = {s["symbol"]: s["rank"] for s in _signals if s.get("rank") is not None}
+    daily, info = perf.basket_daily(entries, slots=slots, ranks=ranks)
+    trades = perf.trades_frame(
+        [(s["symbol"], s["_trades"], s["last_close"], s["_df"]["close"]) for s in _signals]
+    )
+    return daily, info, trades
+
+
 def _backtest_tab(signals: list[dict], palette: dict) -> None:
     c1, c2, c3 = st.columns([1, 1, 3])
     slots = c1.number_input(
@@ -122,16 +162,13 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
     )
     window = c2.selectbox("Window", WINDOWS, key="bp_window")
 
-    entries = [(s["symbol"], s["_df"], s["_state_series"]) for s in signals]
-    ranks = {s["symbol"]: s["rank"] for s in signals if s.get("rank") is not None}
-    daily_all, info = perf.basket_daily(entries, slots=int(slots), ranks=ranks)
+    daily_all, info, trades = _basket_compute(_fingerprint(signals), int(slots), signals)
     if daily_all.empty:
         st.info("No strategy history to aggregate yet.")
         return
     start = _window_start(daily_all, window)
     daily = perf.rebase(daily_all, start)
 
-    trades = perf.trades_frame([(s["symbol"], s["_trades"], s["last_close"], s["_df"]["close"]) for s in signals])
     if info.get("taken") is not None and not trades.empty:
         taken = {(sym, pd.Timestamp(ts).normalize()) for sym, ts in info["taken"]}
         keys = list(zip(trades["symbol"], pd.to_datetime(trades["entry"], utc=True).dt.normalize()))
@@ -141,7 +178,7 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
         trades = trades[(~trades["closed"]) | (exit_ts >= start)]
     stats = perf.basket_stats(daily, trades)
 
-    _headline(stats)
+    _headline(stats, palette)
     _charts(daily, palette)
     st.caption("By calendar year")
     _year_table(daily, trades)
@@ -191,7 +228,7 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
     if len(strategies_used) > 1:
         st.warning("The strategy changed during tracking: " + " → ".join(strategies_used) +
                    ". Numbers below chain across both.")
-    _headline(stats)
+    _headline(stats, palette)
     _charts(daily, palette)
     st.caption("By calendar year")
     _year_table(daily, trades)
@@ -213,7 +250,7 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
 def render_basket_performance(signals: list[dict], key: str, palette: dict) -> None:
     """Expander with both views. `signals` are compute_signal() rows (need _df,
     _state_series, _trades, last_close)."""
-    with st.expander("📈 Basket performance", expanded=False):
+    with st.expander("📈 Basket performance", expanded=True):
         st.caption(
             "The whole tab treated as one portfolio. **Backtest** replays the strategy over history; "
             "**Live** is the forward record kept by the daily cron, which can't be rewritten by later tweaks."

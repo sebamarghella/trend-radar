@@ -707,7 +707,11 @@ def _add_confluence(
     interval_options: list[tuple[str, int]],
     current_interval_minutes: int,
     force_refetch: bool,
+    only_symbols: set[str] | None = None,
 ) -> None:
+    """Fill signal["confluence"]. With `only_symbols`, the extra-timeframe fetch +
+    strategy run happens just for those symbols (the rows actually shown); the
+    rest get "—". That fetch is the single biggest cost of a cold load."""
     interval_labels: dict[int, str] = {}
     ordered_intervals: list[int] = []
     for label, minutes in interval_options:
@@ -731,6 +735,7 @@ def _add_confluence(
             futures = {
                 ex.submit(fetch_one, row["symbol"], resolver, minutes, force_refetch, is_24_7): (row["symbol"], minutes)
                 for row in ok_rows
+                if only_symbols is None or row["symbol"] in only_symbols
                 for minutes in extra_intervals
             }
             for fut in as_completed(futures):
@@ -747,6 +752,9 @@ def _add_confluence(
                 state_by_symbol.setdefault(symbol, {})[minutes] = bool(snap.in_position)
 
     for signal in signals:
+        if only_symbols is not None and signal["symbol"] not in only_symbols:
+            signal["confluence"] = "—"
+            continue
         flags = [state_by_symbol.get(signal["symbol"], {}).get(minutes) for minutes in ordered_intervals]
         known = [flag for flag in flags if flag is not None]
         if not known:
@@ -1099,7 +1107,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     interval_label = c2.selectbox(
         "Timeframe", options=ac.interval_options,
-        format_func=lambda x: x[0], index=ac.default_interval_idx, key=f"tf_{key}",
+        format_func=lambda x: x[0],
+        index=ac.default_interval_idx if ac.ui_default_interval_idx is None else ac.ui_default_interval_idx,
+        key=f"tf_{key}",
     )
     interval_minutes = interval_label[1]
     sort_options = list(SORT_MAP.keys())
@@ -1157,9 +1167,18 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         return
 
     signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
+    # Stocks default to "Pos: Long" (only ~half the rows are shown), so only those
+    # need the TF✓ lookup. The checkbox value from the previous run is already in
+    # session_state; unticking it reruns and fills in the rest (fetches are cached).
+    _conf_only: set[str] | None = None
+    if key == "stocks" and st.session_state.get(f"long_only_{key}", True):
+        _conf_only = {s["symbol"] for s in signals if s["state"] == "LONG"}
+        if focus_symbol:
+            _conf_only.add(focus_symbol)
     _add_confluence(
         signals,
         ok_rows,
+        only_symbols=_conf_only,
         asset_key=key,
         strategy=strategy,
         interval_options=ac.interval_options,
@@ -1354,7 +1373,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
-        with st.expander(f"Drilldown — {selected_sym}", expanded=True):
+        with st.expander(f"Drilldown — {selected_sym}", expanded=False):
             _spacer, action_col = st.columns([4, 1])
             with action_col:
                 tear_sheet = _compute_tear_sheet(
@@ -1735,10 +1754,13 @@ _jump_class = (_qp.get("tab") or "").strip().lower() if hasattr(_qp, "get") else
 _jump_symbol = (_qp.get("symbol") or "").strip().upper() if hasattr(_qp, "get") else ""
 
 ui_tweaks.install_grid_resize()
-tabs = st.tabs([ac.label for ac in ASSET_CLASSES], default="Stocks")
+# on_change="rerun" makes Streamlit run only the selected tab's code (by default
+# every tab computes on every rerun). Switching tabs reruns and renders the new one.
+tabs = st.tabs([ac.label for ac in ASSET_CLASSES], default="Stocks", on_change="rerun", key="asset_tabs")
 for tab, ac in zip(tabs, ASSET_CLASSES):
     with tab:
-        render_radar(ac, focus_symbol=(_jump_symbol if _jump_class == ac.key else None))
+        if tab.open:
+            render_radar(ac, focus_symbol=(_jump_symbol if _jump_class == ac.key else None))
 
 # Streamlit can't switch tabs from Python; nudge it via a tiny JS snippet that
 # clicks the matching tab button on page load when ?tab= is present.

@@ -103,7 +103,8 @@ class AssetClass:
     universe: list[dict]
     resolver_factory: Callable[[], Resolver]
     interval_options: list[tuple[str, int]]
-    default_interval_idx: int = 0
+    default_interval_idx: int = 0   # used by the headless cron (alerts, live log): keep on daily
+    ui_default_interval_idx: int | None = None  # what the app opens on; None = same as above
     tv_default_prefix: str = ""  # leaves TV to autoresolve when empty
     is_24_7: bool = True  # crypto is 24/7; stocks/futures aren't (affects cache freshness)
     # Optional dynamic universe, given the class's resolver. `universe` stays
@@ -141,7 +142,8 @@ STOCKS = AssetClass(
     universe_loader=lambda resolver: live_stocks_universe(STOCKS_UNIVERSE),
     resolver_factory=yahoo_resolver,
     interval_options=[("1 day", 1440), ("1 week", 10080)],
-    default_interval_idx=0,
+    default_interval_idx=0,       # cron / alerts / live log stay on daily
+    ui_default_interval_idx=1,    # the app opens on 1 week
     tv_default_prefix="",  # TV auto-resolves common tickers
     is_24_7=False,
 )
