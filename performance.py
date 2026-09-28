@@ -77,11 +77,18 @@ def basket_daily(
 
     suspect = int(((rets.abs() > SUSPECT_MOVE) & (held > 0)).to_numpy().sum())
 
+    # HODL benchmark: equal-weight, daily-rebalanced across every symbol that has
+    # a price on both days (no signals, no commission) — the same universe held blindly.
+    raw = close_df.pct_change(fill_method=None)
+    hodl = raw.mean(axis=1, skipna=True).fillna(0.0)
+
     active = state_df.sum(axis=1) > 0
     first = active.idxmax() if active.any() else close_df.index[0]
     net = net.loc[first:]
-    daily = pd.DataFrame({"ret": net, "n_open": n_open.loc[first:].astype(int)})
+    daily = pd.DataFrame({"ret": net, "n_open": n_open.loc[first:].astype(int),
+                          "hodl_ret": hodl.loc[first:]})
     daily["equity"] = (1.0 + daily["ret"]).cumprod()
+    daily["hodl_equity"] = (1.0 + daily["hodl_ret"]).cumprod()
     daily["drawdown"] = (daily["equity"] / daily["equity"].cummax() - 1.0) * 100.0
     return daily, {"suspect_bars": suspect, "universe": close_df.shape[1]}
 
@@ -94,6 +101,8 @@ def rebase(daily: pd.DataFrame, start: pd.Timestamp | None) -> pd.DataFrame:
     if d.empty:
         return d
     d["equity"] = (1.0 + d["ret"]).cumprod()
+    if "hodl_ret" in d:
+        d["hodl_equity"] = (1.0 + d["hodl_ret"]).cumprod()
     d["drawdown"] = (d["equity"] / d["equity"].cummax() - 1.0) * 100.0
     return d
 
@@ -149,6 +158,10 @@ def basket_stats(daily: pd.DataFrame, trades: pd.DataFrame | None = None) -> dic
         avg_open=float(daily["n_open"].mean()),
         current_dd_pct=float(daily["drawdown"].iloc[-1]),
     )
+    if "hodl_equity" in daily:
+        h = daily["hodl_equity"]
+        out.update(hodl_return_pct=float((h.iloc[-1] - 1.0) * 100.0),
+                   hodl_max_dd_pct=float((h / h.cummax() - 1.0).min() * 100.0))
     if trades is not None and not trades.empty:
         closed = trades[trades["closed"]]["ret"].astype(float)
         wins, losses = closed[closed > 0], closed[closed < 0]

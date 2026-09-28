@@ -111,7 +111,7 @@ def update(
     if not days:
         start = daily.index[-1]
         eq["meta"] = {"class": class_key, "start": _d(start), "slots": slots, "commission": commission}
-        days.append({"date": _d(start), "ret": 0.0, "equity": 1.0,
+        days.append({"date": _d(start), "ret": 0.0, "equity": 1.0, "hodl_ret": 0.0,
                      "n_open": int(daily["n_open"].iloc[-1]), "strategy": strategy_name})
         start_ts = start
         appended = 1
@@ -123,7 +123,7 @@ def update(
         for ts, row in daily[daily.index > last].iterrows():
             equity *= 1.0 + float(row["ret"])
             days.append({"date": _d(ts), "ret": float(row["ret"]), "equity": equity,
-                         "n_open": int(row["n_open"]), "strategy": strategy_name})
+                         "hodl_ret": float(row["hodl_ret"]), "n_open": int(row["n_open"]), "strategy": strategy_name})
             appended += 1
     eq["days"] = days
 
@@ -191,4 +191,8 @@ def live_daily_frame(class_key: str) -> pd.DataFrame:
     d = pd.DataFrame(days)
     d.index = pd.DatetimeIndex(pd.to_datetime(d.pop("date")))
     d["drawdown"] = (d["equity"] / d["equity"].cummax() - 1.0) * 100.0
+    if "hodl_ret" not in d:
+        d["hodl_ret"] = 0.0
+    d["hodl_ret"] = d["hodl_ret"].fillna(0.0)          # rows logged before HODL existed
+    d["hodl_equity"] = (1.0 + d["hodl_ret"]).cumprod()
     return d

@@ -60,11 +60,23 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
     axis_kw = dict(labelColor=palette["FG_MUTED"], tickColor=palette["BORDER"],
                    domainColor=palette["BORDER"], titleColor=palette["FG_MUTED"])
     x = alt.X("date:T", axis=alt.Axis(grid=False, title=None, **axis_kw))
+    has_hodl = "hodl_equity" in frame
+    frame["hodl_pct"] = (frame["hodl_equity"] - 1.0) * 100.0 if has_hodl else None
+    long = frame.melt(id_vars=["date", "n_open"], value_vars=["equity_pct"] + (["hodl_pct"] if has_hodl else []),
+                      var_name="series", value_name="pct")
+    long["series"] = long["series"].map({"equity_pct": "Strategy", "hodl_pct": "HODL (equal-weight universe)"})
+    hodl_color = "#9CA3AF" if palette.get("MODE") == "dark" else "#4B5563"   # dark grey, legible on both themes
     eq = (
-        alt.Chart(frame).mark_line(strokeWidth=2, color=palette["ACCENT"])
-        .encode(x=x, y=alt.Y("equity_pct:Q", axis=alt.Axis(title="Return %", gridColor=palette["BORDER"], **axis_kw)),
-                tooltip=[alt.Tooltip("date:T"), alt.Tooltip("equity_pct:Q", title="Return %", format="+.1f"),
-                         alt.Tooltip("n_open:Q", title="Open")])
+        alt.Chart(long).mark_line(strokeWidth=1.8)
+        .encode(
+            x=x,
+            y=alt.Y("pct:Q", axis=alt.Axis(title="Return %", gridColor=palette["BORDER"], **axis_kw)),
+            color=alt.Color("series:N", legend=alt.Legend(title=None, orient="top", labelColor=palette["FG_MUTED"]),
+                            scale=alt.Scale(domain=["Strategy", "HODL (equal-weight universe)"],
+                                            range=[palette["ACCENT"], hodl_color])),
+            tooltip=[alt.Tooltip("date:T"), alt.Tooltip("series:N", title="Series"),
+                     alt.Tooltip("pct:Q", title="Return %", format="+.1f")],
+        )
         .properties(height=230)
     )
     dd = (
@@ -73,6 +85,13 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
                 tooltip=[alt.Tooltip("date:T"), alt.Tooltip("drawdown:Q", title="DD %", format=".1f")])
         .properties(height=120)
     )
+    if "hodl_equity" in daily and len(daily) > 1:
+        st.caption(
+            f"**HODL** (same universe, equal-weight, no signals): "
+            f"{(daily['hodl_equity'].iloc[-1] - 1) * 100:+.1f}% return · "
+            f"{(daily['hodl_equity'] / daily['hodl_equity'].cummax() - 1).min() * 100:.1f}% max drawdown — "
+            f"vs strategy {(daily['equity'].iloc[-1] - 1) * 100:+.1f}% · {daily['drawdown'].min():.1f}%."
+        )
     st.altair_chart(alt.vconcat(eq, dd).properties(background=palette["BG_CARD"]).configure_view(stroke=None), use_container_width=True)
 
 

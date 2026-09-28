@@ -20,6 +20,7 @@ import json
 import alerts
 import live_log
 import performance_ui as perf_ui
+import ui_tweaks
 import breakouts as bo_mod
 import cache as ohlc_cache
 import strategies as strat_registry
@@ -91,6 +92,11 @@ section[data-testid='stSidebar'] {{
 /* AgGrid is explicitly NOT styled by us — let balham/balham-dark drive the
    table's font, row height, and column sizing. The earlier attempts to pin
    --ag-font-size lost to higher-specificity host font-family overrides. */
+/* Tighter top: default main padding is 6rem, sidebar header 60px. */
+[data-testid='stMainBlockContainer'] {{ padding-top: 2.75rem; }}
+[data-testid='stSidebarHeader'] {{ height: 2.25rem; min-height: 0; padding-top: 0.25rem; padding-bottom: 0; }}
+[data-testid='stSidebarUserContent'] {{ padding-top: 0.25rem; }}
+h1 {{ padding-top: 0; }}
 /* Page heading scale */
 h1, h2, h3, h4, h5, h6 {{ color: {PALETTE["FG_PRIMARY"]}; }}
 h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }}
@@ -1226,104 +1232,104 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     ordered = [c for c in COLUMN_FLEX if c in df_display.columns]
     df_display = df_display[ordered + [c for c in df_display.columns if c not in ordered]]
 
-    st.subheader("Radar")
-    st.caption("Click any cell in a row to drill down into that coin's chart.")
-    long_only = False
-    if key == "stocks":
-        help_col, long_col, search_col = st.columns([3, 0.6, 1], vertical_alignment="center")
-        long_only = long_col.checkbox("Pos: Long", value=True, key=f"long_only_{key}",
-                                      help="Show only stocks currently in a LONG position.")
-    else:
-        help_col, search_col = st.columns([3, 1], vertical_alignment="center")
-    search = search_col.text_input(
-        "Search", key=f"search_{key}", type="search", placeholder="Search ticker or name",
-        live="300ms", label_visibility="collapsed",
-    ).strip()
-    help_col.markdown(
-        """
-        <div class="radar-help-row">
-          <span class="radar-help-pill"><b>Fl</b>
-            <span class="radar-help-bubble">
-              Filter slope. Checked means the strategy's core trend filter is rising right now.
-            </span>
-          </span>
-          <span class="radar-help-pill"><b>vs HB</b>
-            <span class="radar-help-bubble">
-              Close versus upper band. Positive means price is above the trigger band; negative means it is still below it.
-            </span>
-          </span>
-          <span class="radar-help-pill"><b>StK</b>
-            <span class="radar-help-bubble">
-              Stochastic RSI K value. A fast momentum gauge: high values mean hot momentum, low values mean washed-out momentum.
-            </span>
-          </span>
-          <span class="radar-help-pill"><b>MaxDD</b>
-            <span class="radar-help-bubble">
-              Maximum drawdown over the selected lookback. It shows the worst peak-to-trough equity drop the strategy suffered.
-            </span>
-          </span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    # Filter rows server-side: AgGrid only renders the rows in view, so the
-    # browser's Ctrl+F misses tickers further down the list.
-    df_base = df_display
-    if long_only:
-        # Keep an alert deep-link's row visible even if it just flipped to FLAT.
-        keep = (df_display["state"] == "LONG") | (df_display["symbol"] == focus_symbol)
-        df_base = df_display[keep].reset_index(drop=True)
-        if df_base.empty:
-            st.info(f"No {ac.label.lower()} are LONG right now. Untick “Pos: Long” to see all rows.")
-            df_base = df_display
-    df_grid = df_base
-    if search:
-        needle = search.lower()
-        hay = [df_base[c].astype(str).str.lower() for c in ("symbol", "name", "pair") if c in df_base.columns]
-        mask = hay[0].str.contains(needle, regex=False)
-        for col in hay[1:]:
-            mask |= col.str.contains(needle, regex=False)
-        # Exact ticker match first, then the current sort order.
-        exact = hay[0] == needle
-        df_grid = pd.concat([df_base[mask & exact], df_base[mask & ~exact]]).reset_index(drop=True)
-        scope = "LONG " if df_base is not df_display else ""
-        if df_grid.empty:
-            hint = " or untick “Pos: Long”" if scope else ""
-            st.info(f"No {scope}{ac.label.lower()} match “{search}”. Clear the search{hint} to see more rows.")
-            df_grid = df_base
+    with st.expander("Radar", expanded=True):
+        st.caption("Click any cell in a row to drill down into that coin's chart.")
+        long_only = False
+        if key == "stocks":
+            help_col, long_col, search_col = st.columns([3, 0.6, 1], vertical_alignment="center")
+            long_only = long_col.checkbox("Pos: Long", value=True, key=f"long_only_{key}",
+                                          help="Show only stocks currently in a LONG position.")
         else:
-            st.caption(f"{len(df_grid)} of {len(df_base)} {scope}rows match “{search}”.")
-    grid_opts = build_grid_options(df_grid, PALETTE)
-    # If we arrived via an alert deep-link, mark that row as pre-selected so
-    # AgGrid highlights + ensures it's visible on first render.
-    if focus_symbol and focus_symbol in set(df_grid["symbol"]):
-        for row in grid_opts.get("rowData", []) or []:
-            if row.get("symbol") == focus_symbol:
-                row["__pre_selected__"] = True
-        grid_opts["onFirstDataRendered"] = JsCode("""
-        function(p) {
-            let node = null;
-            p.api.forEachNode(n => { if (n.data && n.data.__pre_selected__) node = n; });
-            if (node) {
-                node.setSelected(true);
-                p.api.ensureNodeVisible(node, 'middle');
+            help_col, search_col = st.columns([3, 1], vertical_alignment="center")
+        search = search_col.text_input(
+            "Search", key=f"search_{key}", type="search", placeholder="Search ticker or name",
+            live="300ms", label_visibility="collapsed",
+        ).strip()
+        help_col.markdown(
+            """
+            <div class="radar-help-row">
+              <span class="radar-help-pill"><b>Fl</b>
+                <span class="radar-help-bubble">
+                  Filter slope. Checked means the strategy's core trend filter is rising right now.
+                </span>
+              </span>
+              <span class="radar-help-pill"><b>vs HB</b>
+                <span class="radar-help-bubble">
+                  Close versus upper band. Positive means price is above the trigger band; negative means it is still below it.
+                </span>
+              </span>
+              <span class="radar-help-pill"><b>StK</b>
+                <span class="radar-help-bubble">
+                  Stochastic RSI K value. A fast momentum gauge: high values mean hot momentum, low values mean washed-out momentum.
+                </span>
+              </span>
+              <span class="radar-help-pill"><b>MaxDD</b>
+                <span class="radar-help-bubble">
+                  Maximum drawdown over the selected lookback. It shows the worst peak-to-trough equity drop the strategy suffered.
+                </span>
+              </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        # Filter rows server-side: AgGrid only renders the rows in view, so the
+        # browser's Ctrl+F misses tickers further down the list.
+        df_base = df_display
+        if long_only:
+            # Keep an alert deep-link's row visible even if it just flipped to FLAT.
+            keep = (df_display["state"] == "LONG") | (df_display["symbol"] == focus_symbol)
+            df_base = df_display[keep].reset_index(drop=True)
+            if df_base.empty:
+                st.info(f"No {ac.label.lower()} are LONG right now. Untick “Pos: Long” to see all rows.")
+                df_base = df_display
+        df_grid = df_base
+        if search:
+            needle = search.lower()
+            hay = [df_base[c].astype(str).str.lower() for c in ("symbol", "name", "pair") if c in df_base.columns]
+            mask = hay[0].str.contains(needle, regex=False)
+            for col in hay[1:]:
+                mask |= col.str.contains(needle, regex=False)
+            # Exact ticker match first, then the current sort order.
+            exact = hay[0] == needle
+            df_grid = pd.concat([df_base[mask & exact], df_base[mask & ~exact]]).reset_index(drop=True)
+            scope = "LONG " if df_base is not df_display else ""
+            if df_grid.empty:
+                hint = " or untick “Pos: Long”" if scope else ""
+                st.info(f"No {scope}{ac.label.lower()} match “{search}”. Clear the search{hint} to see more rows.")
+                df_grid = df_base
+            else:
+                st.caption(f"{len(df_grid)} of {len(df_base)} {scope}rows match “{search}”.")
+        grid_opts = build_grid_options(df_grid, PALETTE)
+        # If we arrived via an alert deep-link, mark that row as pre-selected so
+        # AgGrid highlights + ensures it's visible on first render.
+        if focus_symbol and focus_symbol in set(df_grid["symbol"]):
+            for row in grid_opts.get("rowData", []) or []:
+                if row.get("symbol") == focus_symbol:
+                    row["__pre_selected__"] = True
+            grid_opts["onFirstDataRendered"] = JsCode("""
+            function(p) {
+                let node = null;
+                p.api.forEachNode(n => { if (n.data && n.data.__pre_selected__) node = n; });
+                if (node) {
+                    node.setSelected(true);
+                    p.api.ensureNodeVisible(node, 'middle');
+                }
             }
-        }
-        """)
-    # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
-    grid_response = AgGrid(
-        df_grid,
-        gridOptions=grid_opts,
-        height=grid_height,
-        update_mode=GridUpdateMode.SELECTION_CHANGED,
-        allow_unsafe_jscode=True,
-        # Flex weights + per-column minWidth size the columns. fit_columns_on_grid_load
-        # squeezed all ~22 columns into the viewport below their minWidth, truncating
-        # every value; without it the grid scrolls horizontally on narrow windows.
-        fit_columns_on_grid_load=False,
-        theme=PALETTE["AGGRID_THEME"],
-        key=f"grid_{key}_{sort_by}_{focus_symbol or ''}_{search.lower()}_{int(long_only)}",
-    )
+            """)
+        # Bust the AgGrid widget key when a focus changes so the renderer hook re-fires.
+        grid_response = AgGrid(
+            df_grid,
+            gridOptions=grid_opts,
+            height=grid_height,
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            allow_unsafe_jscode=True,
+            # Flex weights + per-column minWidth size the columns. fit_columns_on_grid_load
+            # squeezed all ~22 columns into the viewport below their minWidth, truncating
+            # every value; without it the grid scrolls horizontally on narrow windows.
+            fit_columns_on_grid_load=False,
+            theme=PALETTE["AGGRID_THEME"],
+            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}_{search.lower()}_{int(long_only)}",
+        )
 
     if True:
         selected = grid_response.get("selected_rows")
@@ -1340,10 +1346,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
-        with st.container():
-            title_col, action_col = st.columns([4, 1])
-            with title_col:
-                st.subheader(f"Drilldown — {selected_sym}")
+        with st.expander(f"Drilldown — {selected_sym}", expanded=True):
+            _spacer, action_col = st.columns([4, 1])
             with action_col:
                 tear_sheet = _compute_tear_sheet(
                     sel.get("_trades", []),
@@ -1722,6 +1726,7 @@ _qp = st.query_params
 _jump_class = (_qp.get("tab") or "").strip().lower() if hasattr(_qp, "get") else ""
 _jump_symbol = (_qp.get("symbol") or "").strip().upper() if hasattr(_qp, "get") else ""
 
+ui_tweaks.install_grid_resize()
 tabs = st.tabs([ac.label for ac in ASSET_CLASSES])
 for tab, ac in zip(tabs, ASSET_CLASSES):
     with tab:
