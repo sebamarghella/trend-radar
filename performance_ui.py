@@ -109,7 +109,7 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
             f"{(daily['hodl_equity'] / daily['hodl_equity'].cummax() - 1).min() * 100:.1f}% max drawdown — "
             f"vs strategy {(daily['equity'].iloc[-1] - 1) * 100:+.1f}% · {daily['drawdown'].min():.1f}%."
         )
-    st.altair_chart(alt.vconcat(eq, dd).properties(background=palette["BG_CARD"]).configure_view(stroke=None), use_container_width=True)
+    st.altair_chart(alt.vconcat(eq, dd).properties(background=palette["BG_CARD"]).configure_view(stroke=None), width="stretch")
 
 
 def _year_table(daily: pd.DataFrame, trades: pd.DataFrame | None) -> None:
@@ -117,7 +117,7 @@ def _year_table(daily: pd.DataFrame, trades: pd.DataFrame | None) -> None:
     if yt.empty:
         return
     st.dataframe(
-        yt, hide_index=True, use_container_width=True,
+        yt, hide_index=True, width="stretch",
         column_config={
             "Year": st.column_config.NumberColumn(format="%d"),
             "Return %": st.column_config.NumberColumn(format="%+.1f"),
@@ -242,7 +242,7 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
         st.dataframe(
             show[["symbol", "entry", "exit", "Status", "Return %", "carried"]].rename(
                 columns={"symbol": "Symbol", "entry": "Entry", "exit": "Exit", "carried": "Carried"}),
-            hide_index=True, use_container_width=True,
+            hide_index=True, width="stretch",
             column_config={"Return %": st.column_config.NumberColumn(format="%+.2f")},
         )
 

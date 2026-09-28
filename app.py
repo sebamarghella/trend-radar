@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import altair as alt
 import pandas as pd
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.shared import JsCode
 
 import json
@@ -1348,7 +1348,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             df_grid,
             gridOptions=grid_opts,
             height=grid_height,
-            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            # Rerun only when the selected row changes (sorting/filtering stay client-side).
+        update_on=["selectionChanged"],
             allow_unsafe_jscode=True,
             # Flex weights + per-column minWidth size the columns. fit_columns_on_grid_load
             # squeezed all ~22 columns into the viewport below their minWidth, truncating
@@ -1383,7 +1384,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     latest_ts=sel["_df"].index[-1],
                     latest_close=float(sel["_df"]["close"].iloc[-1]),
                 )
-                with st.popover("Tear sheet", use_container_width=True):
+                with st.popover("Tear sheet", width="stretch"):
                     st.caption(f"{selected_sym} · {lookback_days}d strategy report")
                     ts1, ts2 = st.columns(2)
                     ts1.metric("Sharpe", _fmt_number(tear_sheet["sharpe"]))
@@ -1402,7 +1403,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     ts10.metric("Win rate", _fmt_number(tear_sheet["win_rate"], pct=True))
                     if not tear_sheet["recent_trades"].empty:
                         st.caption("Recent trades")
-                        st.dataframe(tear_sheet["recent_trades"], use_container_width=True, hide_index=True)
+                        st.dataframe(tear_sheet["recent_trades"], width="stretch", hide_index=True)
             st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
 
             chart_df = sel["_df"].copy()
@@ -1542,7 +1543,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                 background=PALETTE["BG_CARD"],
             ).configure_view(stroke=None).interactive(bind_y=False)
             with st.container():
-                st.altair_chart(chart, use_container_width=True)
+                st.altair_chart(chart, width="stretch")
 
                 equity_df = _build_equity_curve(
                     sel.get("_trades", []),
@@ -1577,7 +1578,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                         .properties(height=170, background=PALETTE["BG_CARD"])
                         .configure_view(stroke=None)
                     )
-                    st.altair_chart(equity_chart, use_container_width=True)
+                    st.altair_chart(equity_chart, width="stretch")
 
                 with dd_col:
                     st.caption("Underwater")
@@ -1594,7 +1595,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                         .properties(height=170, background=PALETTE["BG_CARD"])
                         .configure_view(stroke=None)
                     )
-                    st.altair_chart(underwater_chart, use_container_width=True)
+                    st.altair_chart(underwater_chart, width="stretch")
 
                 mc1, mc2, mc3, mc4, mc5 = st.columns(5)
                 mc1.metric("State", sel["state"])
@@ -1706,7 +1707,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                         .properties(height=220, background=PALETTE["BG_CARD"])
                         .configure_view(stroke=None)
                     )
-                    st.altair_chart(cmp_chart, use_container_width=True)
+                    st.altair_chart(cmp_chart, width="stretch")
 
                     ca1, ca2, ca3 = st.columns(3)
                     with ca1:
@@ -1736,7 +1737,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     if skipped_rows:
         with st.expander(f"Skipped ({len(skipped_rows)})"):
-            st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]], use_container_width=True)
+            st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]], width="stretch")
 
 
 # --- Page header + tabs --------------------------------------------------------
@@ -1834,7 +1835,7 @@ with _alerts_slot:
                 price = e.get("price")
                 price_str = f" @ {price:.6g}" if isinstance(price, (int, float)) else ""
                 label = f"{arrow} {sym} {verb} · {ac_label} · {_fmt_ago(e.get('ts', ''))}"
-                if st.button(label, key=f"alert_jump_{i}", use_container_width=True,
+                if st.button(label, key=f"alert_jump_{i}", width="stretch",
                              help=f"Open {sym} in the {ac_label} tab{price_str}"):
                     st.query_params["tab"] = ac_key
                     st.query_params["symbol"] = sym
