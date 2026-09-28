@@ -3848,5 +3848,35 @@
     "price": 3.1875,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T05:12:03+00:00",
+    "asset_class": "crypto",
+    "symbol": "PUMP",
+    "pair": "PUMPUSDT",
+    "direction": "ENTRY",
+    "price": 0.005182,
+    "interval_minutes": 1440,
+    "exchange": "Binance"
+  },
+  {
+    "ts": "2026-09-28T05:12:35+00:00",
+    "asset_class": "metals",
+    "symbol": "PL=F",
+    "pair": "PL=F",
+    "direction": "EXIT",
+    "price": 1749.300048828125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T05:12:36+00:00",
+    "asset_class": "commodities",
+    "symbol": "ZW=F",
+    "pair": "ZW=F",
+    "direction": "EXIT",
+    "price": 698.0,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
