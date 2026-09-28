@@ -3878,5 +3878,95 @@
     "price": 698.0,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:09+00:00",
+    "asset_class": "crypto",
+    "symbol": "UB",
+    "pair": "UB_USDT",
+    "direction": "EXIT",
+    "price": 0.14356,
+    "interval_minutes": 1440,
+    "exchange": "Gate.io"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "AMD",
+    "pair": "AMD",
+    "direction": "ENTRY",
+    "price": 607.8699951171875,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "PH",
+    "pair": "PH",
+    "direction": "EXIT",
+    "price": 969.5499877929688,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "LMT",
+    "pair": "LMT",
+    "direction": "EXIT",
+    "price": 518.0999755859375,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "CSX",
+    "pair": "CSX",
+    "direction": "EXIT",
+    "price": 46.7599983215332,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "DLR",
+    "pair": "DLR",
+    "direction": "EXIT",
+    "price": 177.17999267578125,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "AME",
+    "pair": "AME",
+    "direction": "EXIT",
+    "price": 251.6699981689453,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:50+00:00",
+    "asset_class": "stocks",
+    "symbol": "KHC",
+    "pair": "KHC",
+    "direction": "EXIT",
+    "price": 23.559999465942383,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-28T20:30:54+00:00",
+    "asset_class": "metals",
+    "symbol": "CPER",
+    "pair": "CPER",
+    "direction": "EXIT",
+    "price": 39.68000030517578,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

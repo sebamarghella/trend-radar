@@ -1,0 +1,17 @@
+{
+ "meta": {
+  "class": "stocks",
+  "start": "2026-09-25",
+  "slots": 20,
+  "commission": 0.001
+ },
+ "days": [
+  {
+   "date": "2026-09-25",
+   "ret": 0.0,
+   "equity": 1.0,
+   "n_open": 314,
+   "strategy": "Gaussian Channel Stocks Trend Radar"
+  }
+ ]
+}
