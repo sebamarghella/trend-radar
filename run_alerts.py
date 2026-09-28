@@ -25,6 +25,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import alerts
+import live_log
 import strategies as strat_registry
 from asset_classes import ASSET_CLASSES, AssetClass
 from sources import Resolver, SourceError, fetch_series
@@ -87,9 +88,11 @@ def scan_class(
     print(f"  Fetched: {len(rows)}/{len(universe)} ({breakdown})")
 
     signals: list[dict] = []
+    live_items: list[tuple] = []
     for r in rows:
         df = r["df"]
         result = strat_registry.run_strategy(strategy, df)
+        live_items.append((r["symbol"], df, result))
         snap = result.snapshot
         signals.append({
             "symbol": r["symbol"],
@@ -104,6 +107,17 @@ def scan_class(
 
     long_count = sum(1 for s in signals if s["state"] == "LONG")
     print(f"  State: {long_count} LONG / {len(signals) - long_count} FLAT")
+
+    if ac.key in live_log.LIVE_CLASSES and interval == 1440:
+        # Forward track record; must never block the alerts below.
+        try:
+            summary = live_log.update(
+                ac.key, assigned_name, live_items,
+                rerun=lambda d: strat_registry.run_strategy(strategy, d),
+            )
+            print(f"  Live log: {summary}")
+        except Exception as e:  # noqa: BLE001
+            print(f"  [warn] live log failed: {e!r}", file=sys.stderr)
 
     prev_state = alerts.reseed_on_strategy_change(
         prev_state, ac.key, assigned_name, strat_registry.DEFAULT_STRATEGY_NAME,

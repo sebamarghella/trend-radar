@@ -18,6 +18,8 @@ from st_aggrid.shared import JsCode
 import json
 
 import alerts
+import live_log
+import performance_ui as perf_ui
 import breakouts as bo_mod
 import cache as ohlc_cache
 import strategies as strat_registry
@@ -1697,6 +1699,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                             st.metric("DD edge", _fmt_number(left_stats.max_drawdown_pct - right_stats.max_drawdown_pct, pct=True))
                         else:
                             st.metric("DD edge", "—")
+
+    if key in live_log.LIVE_CLASSES:
+        perf_ui.render_basket_performance(signals, key, PALETTE)
 
     if skipped_rows:
         with st.expander(f"Skipped ({len(skipped_rows)})"):

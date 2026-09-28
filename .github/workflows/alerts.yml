@@ -45,6 +45,10 @@ jobs:
           changed=0
           [[ -f .cache/alerts_state.json ]]  && git add .cache/alerts_state.json  && changed=1
           [[ -f .cache/alerts_history.json ]] && git add .cache/alerts_history.json && changed=1
+          # Forward track record (equity curve + trade log) — see live_log.py
+          for f in .cache/live_*_equity.json .cache/live_*_trades.json; do
+            [[ -f "$f" ]] && git add "$f" && changed=1
+          done
           if [[ $changed -eq 1 ]] && ! git diff --staged --quiet; then
             git commit -m "chore: update alert state + history [skip ci]"
             git push
