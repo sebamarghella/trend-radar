@@ -6,13 +6,14 @@ iframe with a fixed pixel height. We make the iframe's wrapper CSS-resizable
 wrapper's height, and remember the dragged height in localStorage. The Table
 height slider still sets the starting height; changing it resets the drag.
 
-The script is injected into the *parent* document (not the throw-away
-components.html iframe) so its timer survives Streamlit reruns.
+The script runs directly in the app page via `st.html(..., unsafe_allow_javascript=True)`
+(the old `st.components.v1.html` iframe loader is deprecated). A window flag makes it
+install once; its timer then survives Streamlit reruns.
 """
 
 from __future__ import annotations
 
-import streamlit.components.v1 as components
+import streamlit as st
 
 _PARENT_JS = r"""
 (function () {
@@ -62,20 +63,11 @@ _PARENT_JS = r"""
 })();
 """
 
-_LOADER = f"""
-<script>
-(function () {{
-  const p = window.parent;
-  if (p.document.getElementById('tr-grid-resize-v3')) return;
-  const s = p.document.createElement('script');
-  s.id = 'tr-grid-resize-v3';
-  s.textContent = {_PARENT_JS!r};
-  p.document.head.appendChild(s);
-}})();
-</script>
-"""
-
 
 def install_grid_resize() -> None:
-    """Call once per page run; a no-op after the first successful injection."""
-    components.html(_LOADER, height=0)
+    """Call once per page run; cheap and idempotent. Never breaks the page: if
+    Streamlit's API changes, the grid simply loses its drag handle."""
+    try:
+        st.html(f"<script>{_PARENT_JS}</script>", unsafe_allow_javascript=True)
+    except Exception:  # noqa: BLE001 - cosmetic feature
+        pass
