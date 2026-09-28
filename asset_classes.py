@@ -105,6 +105,9 @@ class AssetClass:
     interval_options: list[tuple[str, int]]
     default_interval_idx: int = 0   # used by the headless cron (alerts, live log): keep on daily
     ui_default_interval_idx: int | None = None  # what the app opens on; None = same as above
+    # False = never send Telegram alerts for this class (cron and in-app). The cron still
+    # keeps its baseline current silently, so turning this back on doesn't fire a burst.
+    alerts_enabled: bool = True
     tv_default_prefix: str = ""  # leaves TV to autoresolve when empty
     is_24_7: bool = True  # crypto is 24/7; stocks/futures aren't (affects cache freshness)
     # Optional dynamic universe, given the class's resolver. `universe` stays
@@ -132,6 +135,7 @@ CRYPTO = AssetClass(
     default_interval_idx=0,
     tv_default_prefix="BINANCE",
     is_24_7=True,
+    alerts_enabled=False,   # crypto alerts turned off (2026-09-29)
 )
 
 STOCKS = AssetClass(

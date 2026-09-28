@@ -1186,40 +1186,52 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         force_refetch=force_refetch,
     )
 
-    # Alert detection — per-asset-class state key prevents cross-contamination
-    prev_alert_state = alerts.reseed_on_strategy_change(
-        alerts.load_state(), key, strategy.name, strat_registry.DEFAULT_STRATEGY_NAME,
-    )
-    class_prefix = f"{key}|"
-    interval_suffix = f"|{interval_minutes}"
-    had_baseline = any(
-        k.startswith(class_prefix) and k.endswith(interval_suffix)
-        for k in prev_alert_state
-    )
-    flips, new_alert_state = alerts.detect_flips(
-        signals, interval_minutes, prev_alert_state, asset_class=key,
-    )
-    alerts.save_state(new_alert_state)
-
-    if not had_baseline:
-        st.info(
-            f"Seeded alert baseline for {len(signals)} {ac.label.lower()} symbols on this timeframe. "
-            "Future flips will diff against this."
+    # In-app alerts run only on the timeframe the cron uses (daily). Other views
+    # (e.g. 1 week, 4 hour) neither seed a baseline nor send anything, so browsing
+    # them can never fire extra Telegram messages.
+    _alert_interval = ac.interval_options[ac.default_interval_idx]
+    if not ac.alerts_enabled:
+        st.caption(f"🔕 Alerts are turned off for {ac.label}.")
+    elif interval_minutes == _alert_interval[1]:
+        # Alert detection — per-asset-class state key prevents cross-contamination
+        prev_alert_state = alerts.reseed_on_strategy_change(
+            alerts.load_state(), key, strategy.name, strat_registry.DEFAULT_STRATEGY_NAME,
         )
-    elif flips:
-        # Record every real flip into the history feed (drives the sidebar list).
-        alerts.record_flips(flips, asset_class=key)
-        if alerts_enabled and bot_token and chat_id:
-            sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
-            if sent:
-                st.toast(f"📨 Sent {sent} Telegram alert(s) for {ac.label}", icon="📨")
-            for e in errs:
-                st.warning(f"Alert failed for {e}")
-        else:
-            flip_summary = ", ".join(
-                f"{f.symbol} {'↗' if f.direction == 'ENTRY' else '↘'}" for f in flips
+        class_prefix = f"{key}|"
+        interval_suffix = f"|{interval_minutes}"
+        had_baseline = any(
+            k.startswith(class_prefix) and k.endswith(interval_suffix)
+            for k in prev_alert_state
+        )
+        flips, new_alert_state = alerts.detect_flips(
+            signals, interval_minutes, prev_alert_state, asset_class=key,
+        )
+        alerts.save_state(new_alert_state)
+
+        if not had_baseline:
+            st.info(
+                f"Seeded alert baseline for {len(signals)} {ac.label.lower()} symbols on this timeframe. "
+                "Future flips will diff against this."
             )
-            st.info(f"State flips detected (alerts disabled): {flip_summary}")
+        elif flips:
+            # Record every real flip into the history feed (drives the sidebar list).
+            alerts.record_flips(flips, asset_class=key)
+            if alerts_enabled and bot_token and chat_id:
+                sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
+                if sent:
+                    st.toast(f"📨 Sent {sent} Telegram alert(s) for {ac.label}", icon="📨")
+                for e in errs:
+                    st.warning(f"Alert failed for {e}")
+            else:
+                flip_summary = ", ".join(
+                    f"{f.symbol} {'↗' if f.direction == 'ENTRY' else '↘'}" for f in flips
+                )
+                st.info(f"State flips detected (alerts disabled): {flip_summary}")
+    else:
+        st.caption(
+            f"🔕 Alerts are evaluated on the {_alert_interval[0]} timeframe only (matching the scheduled job); "
+            f"this {interval_label[0]} view doesn't send any."
+        )
 
     # Headline strip
     long_count = sum(1 for s in signals if s["state"] == "LONG")

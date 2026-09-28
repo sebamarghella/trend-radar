@@ -129,6 +129,11 @@ def scan_class(
     )
     flips, new_state = alerts.detect_flips(signals, interval, prev_state, asset_class=ac.key)
 
+    if not ac.alerts_enabled:
+        # Keep the baseline current so re-enabling later doesn't fire a burst of stale flips.
+        print(f"  Alerts are turned off for {ac.label}: {len(flips)} flip(s) not sent or recorded; baseline updated silently.")
+        return new_state
+
     if not had_baseline:
         print(f"  Seeded baseline ({len(signals)} symbols); no alerts sent.")
         return new_state
