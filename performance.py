@@ -22,9 +22,19 @@ import pandas as pd
 
 DEFAULT_SLOTS = 20
 DEFAULT_COMMISSION = 0.001
-# A single-day move this big while held is almost certainly a split / bad tick
-# in raw (unadjusted) prices rather than a real return.
+# A single-day move this big while held is suspicious even after split
+# adjustment (bad tick, spin-off, delisting artefact).
 SUSPECT_MOVE = 0.35
+
+# Prices are raw (unadjusted, to match TradingView/Signum), so every split shows
+# up as a fake crash (or, for reverse splits, a fake spike). Without split data we
+# detect them: a one-day move that lands within SPLIT_TOL of an exact split ratio.
+# A real move that happens to land on one is mis-zeroed, costing at most one
+# stock's day out of hundreds — far cheaper than leaving ~100 fake -50..-95% days
+# in an 8-year equal-weight book.
+SPLIT_RATIOS = (1.5, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50, 100)
+SPLIT_TOL = 0.03
+SPLIT_MIN_MOVE = 0.30
 
 
 def _utc_index(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -49,6 +59,19 @@ def _daily_frame(entries: Iterable[tuple[str, pd.DataFrame, pd.Series]]) -> tupl
     return close_df, state_df
 
 
+def split_factors(close_df: pd.DataFrame) -> pd.DataFrame:
+    """Per-day multiplier that undoes a detected split (1.0 = none). Forward k:1
+    (price / k) gets factor k; reverse 1:k (price x k) gets 1/k."""
+    c = close_df.ffill()
+    ratio = c / c.shift(1)
+    fac = pd.DataFrame(1.0, index=close_df.index, columns=close_df.columns)
+    big = (ratio - 1.0).abs() >= SPLIT_MIN_MOVE
+    for k in SPLIT_RATIOS:
+        fac = fac.mask(big & ((ratio * k - 1.0).abs() <= SPLIT_TOL), float(k))
+        fac = fac.mask(big & ((ratio / k - 1.0).abs() <= SPLIT_TOL), 1.0 / k)
+    return fac
+
+
 def basket_daily(
     entries: Iterable[tuple[str, pd.DataFrame, pd.Series]],
     *,
@@ -63,9 +86,12 @@ def basket_daily(
     """
     close_df, state_df = _daily_frame(entries)
     if close_df.empty:
-        return pd.DataFrame(columns=["ret", "equity", "n_open", "drawdown"]), {"suspect_bars": 0}
+        return pd.DataFrame(columns=["ret", "equity", "n_open", "drawdown"]), {"suspect_bars": 0, "splits_adjusted": 0}
 
-    rets = close_df.ffill().pct_change().fillna(0.0)
+    close_ff = close_df.ffill()
+    fac = split_factors(close_df)
+    rets = ((close_ff / close_ff.shift(1)) * fac - 1.0).fillna(0.0)
+    n_splits = int((fac != 1.0).to_numpy().sum())
     held = state_df.shift(1).fillna(0).astype(float)      # LONG at prior close → held today
     n_open = held.sum(axis=1)
     denom = np.maximum(float(slots) if slots > 0 else 1.0, n_open).replace(0, 1.0)
@@ -79,7 +105,7 @@ def basket_daily(
 
     # HODL benchmark: equal-weight, daily-rebalanced across every symbol that has
     # a price on both days (no signals, no commission) — the same universe held blindly.
-    raw = close_df.pct_change(fill_method=None)
+    raw = (close_df / close_df.shift(1)) * fac - 1.0
     hodl = raw.mean(axis=1, skipna=True).fillna(0.0)
 
     active = state_df.sum(axis=1) > 0
@@ -90,7 +116,8 @@ def basket_daily(
     daily["equity"] = (1.0 + daily["ret"]).cumprod()
     daily["hodl_equity"] = (1.0 + daily["hodl_ret"]).cumprod()
     daily["drawdown"] = (daily["equity"] / daily["equity"].cummax() - 1.0) * 100.0
-    return daily, {"suspect_bars": suspect, "universe": close_df.shape[1]}
+    return daily, {"suspect_bars": suspect, "splits_adjusted": n_splits,
+                    "universe": close_df.shape[1], "first_date": daily.index[0], "last_date": daily.index[-1]}
 
 
 def rebase(daily: pd.DataFrame, start: pd.Timestamp | None) -> pd.DataFrame:
@@ -107,21 +134,43 @@ def rebase(daily: pd.DataFrame, start: pd.Timestamp | None) -> pd.DataFrame:
     return d
 
 
+def _split_multiplier(fac: pd.Series | None, start, end) -> float:
+    """Product of split factors strictly after `start`, up to and including `end`."""
+    if fac is None:
+        return 1.0
+    seg = fac[(fac.index > start) & ((fac.index <= end) if end is not None else True)]
+    return float(seg.prod()) if len(seg) else 1.0
+
+
 def trades_frame(
-    entries: Iterable[tuple[str, list, float]],
+    entries: Iterable[tuple],
     commission: float = DEFAULT_COMMISSION,
 ) -> pd.DataFrame:
-    """Flatten per-symbol TradeRecords to rows. `entries` = (symbol, trades, last_close).
-    Open trades carry a mark-to-market return and closed=False."""
+    """Flatten per-symbol TradeRecords to rows. `entries` = (symbol, trades,
+    last_close[, close_series]). With `close_series`, trade returns are corrected
+    for detected splits (see `split_factors`). Open trades carry a mark-to-market
+    return and closed=False."""
     rows = []
-    for sym, trades, last_close in entries:
+    for item in entries:
+        sym, trades, last_close = item[:3]
+        fac = None
+        if len(item) > 3 and item[3] is not None:
+            c = item[3].astype(float).copy()
+            c.index = _utc_index(c.index).normalize()
+            f = split_factors(c.to_frame("x"))["x"]
+            fac = f[f != 1.0]
         for t in trades:
             if t.entry_price in (None, 0):
                 continue
+            entry_ts = _utc_index([t.entry_ts])[0].normalize()
             if t.closed and t.exit_ts is not None:
-                ret, exit_ts, closed = t.net_return(commission), t.exit_ts, True
+                exit_norm = _utc_index([t.exit_ts])[0].normalize()
+                mult = _split_multiplier(fac, entry_ts, exit_norm)
+                ret = (t.exit_price * mult / t.entry_price) * (1.0 - commission) ** 2 - 1.0
+                exit_ts, closed = t.exit_ts, True
             else:
-                ret = last_close / t.entry_price * (1.0 - commission) ** 2 - 1.0
+                mult = _split_multiplier(fac, entry_ts, None)
+                ret = last_close * mult / t.entry_price * (1.0 - commission) ** 2 - 1.0
                 exit_ts, closed = None, False
             rows.append({"symbol": sym, "entry": t.entry_ts, "exit": exit_ts,
                          "entry_price": t.entry_price, "exit_price": t.exit_price,

@@ -157,6 +157,20 @@ def update(
                 rec["exit_date"] = _d(exit_)
                 rec["exit_price"] = float(tr.exit_price)
 
+    # Raw prices: keep a running split multiplier on every logged trade so its
+    # return is comparable with the (split-adjusted) equity curve.
+    facs: dict[str, pd.Series] = {}
+    for sym, df, _ in resolved:
+        c = df["close"].astype(float).copy()
+        c.index = pd.DatetimeIndex([_norm(t) for t in c.index])
+        f = perf.split_factors(c.to_frame("x"))["x"]
+        facs[sym] = f[f != 1.0]
+    for rec in by_key.values():
+        rec["split_mult"] = perf._split_multiplier(
+            facs.get(rec["symbol"]), _norm(rec["entry_date"]),
+            _norm(rec["exit_date"]) if rec["exit_date"] else None,
+        )
+
     _write(eq_path, eq)
     _write(tr_path, sorted(by_key.values(), key=lambda t: (t["entry_date"], t["symbol"])))
     return {"appended": appended, "days": len(days), "trades": len(by_key),
@@ -170,10 +184,11 @@ def live_trades_frame(class_key: str, last_close: dict[str, float] | None = None
     rows = []
     for t in load_trades(class_key):
         closed = t["exit_price"] is not None
+        mult = t.get("split_mult", 1.0)
         if closed:
-            ret = t["exit_price"] / t["entry_price"] * (1.0 - commission) ** 2 - 1.0
+            ret = t["exit_price"] * mult / t["entry_price"] * (1.0 - commission) ** 2 - 1.0
         elif last_close and t["symbol"] in last_close:
-            ret = last_close[t["symbol"]] / t["entry_price"] * (1.0 - commission) ** 2 - 1.0
+            ret = last_close[t["symbol"]] * mult / t["entry_price"] * (1.0 - commission) ** 2 - 1.0
         else:
             ret = None
         rows.append({"symbol": t["symbol"], "entry": pd.Timestamp(t["entry_date"]),

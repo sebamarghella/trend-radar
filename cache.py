@@ -18,7 +18,7 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 def _path(source: str, pair: str, interval_minutes: int) -> Path:
     safe = f"{source}_{pair}".replace("/", "_").replace(":", "_")
-    return CACHE_DIR / f"{safe}__{interval_minutes}m.pkl"
+    return CACHE_DIR / f"{safe}__{interval_minutes}m.v2.pkl"  # v2: Yahoo daily now 10y (was 5y)
 
 
 def load(source: str, pair: str, interval_minutes: int) -> pd.DataFrame | None:

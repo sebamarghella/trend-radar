@@ -329,7 +329,7 @@ class YahooSource(DataSource):
         60: "1h", 1440: "1d", 10080: "1wk", 43200: "1mo",
     }
     PERIOD_FOR_INTERVAL: dict[str, str] = {
-        "1h": "60d", "1d": "5y", "1wk": "10y", "1mo": "max",
+        "1h": "60d", "1d": "10y", "1wk": "10y", "1mo": "max",
     }
 
     def __init__(self) -> None:

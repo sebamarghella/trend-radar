@@ -59,7 +59,7 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
     frame["equity_pct"] = (frame["equity"] - 1.0) * 100.0
     axis_kw = dict(labelColor=palette["FG_MUTED"], tickColor=palette["BORDER"],
                    domainColor=palette["BORDER"], titleColor=palette["FG_MUTED"])
-    x = alt.X("date:T", axis=alt.Axis(grid=False, title=None, **axis_kw))
+    x = alt.X("date:T", axis=alt.Axis(grid=False, title=None, format="%b %Y", tickCount=8, labelOverlap=True, **axis_kw))
     has_hodl = "hodl_equity" in frame
     frame["hodl_pct"] = (frame["hodl_equity"] - 1.0) * 100.0 if has_hodl else None
     long = frame.melt(id_vars=["date", "n_open"], value_vars=["equity_pct"] + (["hodl_pct"] if has_hodl else []),
@@ -129,7 +129,7 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
     start = _window_start(daily_all, window)
     daily = perf.rebase(daily_all, start)
 
-    trades = perf.trades_frame([(s["symbol"], s["_trades"], s["last_close"]) for s in signals])
+    trades = perf.trades_frame([(s["symbol"], s["_trades"], s["last_close"], s["_df"]["close"]) for s in signals])
     if start is not None and not trades.empty:
         exit_ts = pd.to_datetime(trades["exit"], utc=True)
         trades = trades[(~trades["closed"]) | (exit_ts >= start)]
@@ -141,15 +141,22 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
     _year_table(daily, trades)
 
     notes = [
+        f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** "
+        "(the strategy only enters from 1 Jan 2018).",
         f"Equal-weight book, **{'fully invested' if slots == 0 else f'{int(slots)} slots'}**, 0.1% commission per side, "
         "entries/exits at the signal-bar close. Window stats count trades that closed inside the window.",
         f"**Survivorship bias:** the universe is *today's* top {info.get('universe', '?')} — names that later fell out "
         "or delisted are absent, so history reads better than a live book would have.",
     ]
+    if info.get("splits_adjusted"):
+        notes.append(
+            f"Prices are raw (unadjusted), so **{info['splits_adjusted']} split-like one-day moves** "
+            "(price landing on an exact split ratio) were neutralised in both lines and in trade returns."
+        )
     if info.get("suspect_bars"):
         notes.append(
-            f"⚠ {info['suspect_bars']} held-position day(s) moved more than {perf.SUSPECT_MOVE:.0%}; with raw "
-            "(unadjusted) prices some of these are splits, which distort returns."
+            f"⚠ {info['suspect_bars']} held-position day(s) still moved more than {perf.SUSPECT_MOVE:.0%} "
+            "after that adjustment — real crashes, spin-offs or bad ticks."
         )
     for n in notes:
         st.caption(n)
