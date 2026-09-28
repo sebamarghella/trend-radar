@@ -21,6 +21,14 @@ import alerts
 import live_log
 import performance_ui as perf_ui
 import ui_tweaks
+
+# Streamlit Cloud can keep an old copy of an imported module in memory after a
+# push (partial reload → stale UI or AttributeError). These modules are small,
+# so re-import them on every run; dependency order matters.
+import importlib
+import performance as _performance
+for _m in (_performance, live_log, perf_ui, ui_tweaks):
+    importlib.reload(_m)
 import breakouts as bo_mod
 import cache as ohlc_cache
 import strategies as strat_registry
@@ -1727,7 +1735,7 @@ _jump_class = (_qp.get("tab") or "").strip().lower() if hasattr(_qp, "get") else
 _jump_symbol = (_qp.get("symbol") or "").strip().upper() if hasattr(_qp, "get") else ""
 
 ui_tweaks.install_grid_resize()
-tabs = st.tabs([ac.label for ac in ASSET_CLASSES])
+tabs = st.tabs([ac.label for ac in ASSET_CLASSES], default="Stocks")
 for tab, ac in zip(tabs, ASSET_CLASSES):
     with tab:
         render_radar(ac, focus_symbol=(_jump_symbol if _jump_class == ac.key else None))
