@@ -1,10 +1,14 @@
 """Basket-level performance: pool every symbol's strategy state into one portfolio.
 
-Sizing model (deliberately simple and explicit): the portfolio has `slots`
-equal-weight positions. Each open position gets 1/max(slots, n_open) of equity,
-so the book is never levered and idle slots sit in cash. `slots=0` means fully
-invested equal weight across whatever is open. Commission is charged per side
-on turnover, matching `TradeRecord.net_return` (0.1%).
+Sizing model (deliberately simple and explicit):
+- `slots=0`: no cap. Every open position gets 1/n_open of equity (fully invested,
+  equal weight across whatever is open).
+- `slots=N>0`: a hard cap of N positions, each 1/N of equity, idle slots in cash.
+  A new signal (flat -> long flip) is skipped when the book is full, and when
+  several arrive the same day the largest market cap (lowest rank) wins. A
+  skipped signal is not entered later; the next flip is the next chance.
+Commission is charged per side on turnover, matching `TradeRecord.net_return`
+(0.1%).
 
 A position is held on day t when the strategy state at the close of day t-1 was
 LONG (enter at the flip-bar close, exit at the exit-bar close — same fills as
@@ -20,7 +24,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
-DEFAULT_SLOTS = 20
+DEFAULT_SLOTS = 0   # 0 = no cap, equal weight across all open positions
 DEFAULT_COMMISSION = 0.001
 # A single-day move this big while held is suspicious even after split
 # adjustment (bad tick, spin-off, delisting artefact).
@@ -72,11 +76,37 @@ def split_factors(close_df: pd.DataFrame) -> pd.DataFrame:
     return fac
 
 
+def _capped_holdings(state_df: pd.DataFrame, cap: int, ranks: dict | None) -> tuple[pd.DataFrame, list]:
+    """Positions actually held at each close under a hard cap, plus the entries
+    taken as (symbol, date). See the module docstring for the selection rule."""
+    cols = list(state_df.columns)
+    prio = np.array([ranks.get(c, np.inf) if ranks else i for i, c in enumerate(cols)], dtype=float)
+    order = np.argsort(prio, kind="stable")
+    S = state_df.to_numpy().astype(bool)
+    T, N = S.shape
+    held = np.zeros(N, dtype=bool)
+    out = np.zeros((T, N), dtype=bool)
+    taken: list[tuple[str, pd.Timestamp]] = []
+    for t in range(T):
+        prev = S[t - 1] if t else np.zeros(N, dtype=bool)
+        held &= S[t]                                        # exits: state went FLAT
+        if held.sum() < cap:
+            for j in order:
+                if S[t, j] and not prev[j] and not held[j]:  # fresh flip to LONG
+                    held[j] = True
+                    taken.append((cols[j], state_df.index[t]))
+                    if held.sum() >= cap:
+                        break
+        out[t] = held
+    return pd.DataFrame(out, index=state_df.index, columns=cols), taken
+
+
 def basket_daily(
     entries: Iterable[tuple[str, pd.DataFrame, pd.Series]],
     *,
     slots: int = DEFAULT_SLOTS,
     commission: float = DEFAULT_COMMISSION,
+    ranks: dict | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Daily portfolio returns from (symbol, ohlc_df, state_series) triples.
 
@@ -92,10 +122,16 @@ def basket_daily(
     fac = split_factors(close_df)
     rets = ((close_ff / close_ff.shift(1)) * fac - 1.0).fillna(0.0)
     n_splits = int((fac != 1.0).to_numpy().sum())
-    held = state_df.shift(1).fillna(0).astype(float)      # LONG at prior close → held today
-    n_open = held.sum(axis=1)
-    denom = np.maximum(float(slots) if slots > 0 else 1.0, n_open).replace(0, 1.0)
-    weights = held.div(denom, axis=0)
+    taken = None
+    if slots > 0:
+        book, taken = _capped_holdings(state_df, int(slots), ranks)
+        held = book.shift(1).fillna(False).astype(float)   # held at prior close → earns today
+        n_open = held.sum(axis=1)
+        weights = held / float(slots)
+    else:
+        held = state_df.shift(1).fillna(0).astype(float)   # LONG at prior close → held today
+        n_open = held.sum(axis=1)
+        weights = held.div(n_open.replace(0, 1.0), axis=0)
     gross = (weights * rets).sum(axis=1)
     turnover = weights.diff().abs().sum(axis=1)
     turnover.iloc[0] = weights.iloc[0].abs().sum()
@@ -117,7 +153,7 @@ def basket_daily(
     daily["hodl_equity"] = (1.0 + daily["hodl_ret"]).cumprod()
     daily["drawdown"] = (daily["equity"] / daily["equity"].cummax() - 1.0) * 100.0
     return daily, {"suspect_bars": suspect, "splits_adjusted": n_splits,
-                    "universe": close_df.shape[1], "first_date": daily.index[0], "last_date": daily.index[-1]}
+                    "universe": close_df.shape[1], "taken": taken, "first_date": daily.index[0], "last_date": daily.index[-1]}
 
 
 def rebase(daily: pd.DataFrame, start: pd.Timestamp | None) -> pd.DataFrame:

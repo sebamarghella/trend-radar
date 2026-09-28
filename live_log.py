@@ -74,7 +74,7 @@ def update(
     items: Iterable[tuple[str, pd.DataFrame, object]],
     rerun: Callable[[pd.DataFrame], object],
     *,
-    slots: int = perf.DEFAULT_SLOTS,
+    slots: int = 0,                       # the live book is uncapped equal weight
     commission: float = perf.DEFAULT_COMMISSION,
     today: pd.Timestamp | None = None,
 ) -> dict:

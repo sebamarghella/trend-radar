@@ -115,14 +115,16 @@ def _year_table(daily: pd.DataFrame, trades: pd.DataFrame | None) -> None:
 def _backtest_tab(signals: list[dict], palette: dict) -> None:
     c1, c2, c3 = st.columns([1, 1, 3])
     slots = c1.number_input(
-        "Max positions", min_value=0, max_value=200, value=perf.DEFAULT_SLOTS, step=5, key="bp_slots",
-        help="Each open position gets 1/max(this, open count) of equity; unused slots stay in cash. "
-             "0 = fully invested, equal weight across whatever is open.",
+        "Max positions", min_value=0, max_value=200, value=perf.DEFAULT_SLOTS, step=1, key="bp_slots",
+        help="Hard cap: at most this many positions at once, each 1/N of equity (idle slots = cash). New "
+             "signals are skipped while full; ties go to the largest market cap. "
+             "0 = no cap, equal weight across everything open.",
     )
     window = c2.selectbox("Window", WINDOWS, key="bp_window")
 
     entries = [(s["symbol"], s["_df"], s["_state_series"]) for s in signals]
-    daily_all, info = perf.basket_daily(entries, slots=int(slots))
+    ranks = {s["symbol"]: s["rank"] for s in signals if s.get("rank") is not None}
+    daily_all, info = perf.basket_daily(entries, slots=int(slots), ranks=ranks)
     if daily_all.empty:
         st.info("No strategy history to aggregate yet.")
         return
@@ -130,6 +132,10 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
     daily = perf.rebase(daily_all, start)
 
     trades = perf.trades_frame([(s["symbol"], s["_trades"], s["last_close"], s["_df"]["close"]) for s in signals])
+    if info.get("taken") is not None and not trades.empty:
+        taken = {(sym, pd.Timestamp(ts).normalize()) for sym, ts in info["taken"]}
+        keys = list(zip(trades["symbol"], pd.to_datetime(trades["entry"], utc=True).dt.normalize()))
+        trades = trades[[k in taken for k in keys]]
     if start is not None and not trades.empty:
         exit_ts = pd.to_datetime(trades["exit"], utc=True)
         trades = trades[(~trades["closed"]) | (exit_ts >= start)]
@@ -143,7 +149,7 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
     notes = [
         f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** "
         "(the strategy only enters from 1 Jan 2018).",
-        f"Equal-weight book, **{'fully invested' if slots == 0 else f'{int(slots)} slots'}**, 0.1% commission per side, "
+        f"Equal-weight book, **{'no cap, equal weight across all open' if slots == 0 else f'hard cap of {int(slots)} position(s), largest market cap first'}**, 0.1% commission per side, "
         "entries/exits at the signal-bar close. Window stats count trades that closed inside the window.",
         f"**Survivorship bias:** the universe is *today's* top {info.get('universe', '?')} — names that later fell out "
         "or delisted are absent, so history reads better than a live book would have.",
