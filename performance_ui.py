@@ -69,7 +69,13 @@ def _headline(stats: dict, palette: dict) -> None:
     )
 
 
-def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False) -> None:
+def _charts(
+    daily: pd.DataFrame,
+    palette: dict,
+    *,
+    benchmark_label: str = "HODL (equal-weight universe)",
+    benchmark_caption: str = "HODL (same universe, equal-weight, no signals)",
+) -> None:
     if daily.empty:
         return
     frame = daily.reset_index(names="date")
@@ -81,7 +87,7 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
     frame["hodl_pct"] = (frame["hodl_equity"] - 1.0) * 100.0 if has_hodl else None
     long = frame.melt(id_vars=["date", "n_open"], value_vars=["equity_pct"] + (["hodl_pct"] if has_hodl else []),
                       var_name="series", value_name="pct")
-    long["series"] = long["series"].map({"equity_pct": "Strategy", "hodl_pct": "HODL (equal-weight universe)"})
+    long["series"] = long["series"].map({"equity_pct": "Strategy", "hodl_pct": benchmark_label})
     hodl_color = "#9CA3AF" if palette.get("MODE") == "dark" else "#4B5563"   # dark grey, legible on both themes
     eq = (
         alt.Chart(long).mark_line(strokeWidth=1.8)
@@ -89,7 +95,7 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
             x=x,
             y=alt.Y("pct:Q", axis=alt.Axis(title="Return %", gridColor=palette["BORDER"], **axis_kw)),
             color=alt.Color("series:N", legend=alt.Legend(title=None, orient="top", labelColor=palette["FG_MUTED"]),
-                            scale=alt.Scale(domain=["Strategy", "HODL (equal-weight universe)"],
+                            scale=alt.Scale(domain=["Strategy", benchmark_label],
                                             range=[palette["ACCENT"], hodl_color])),
             tooltip=[alt.Tooltip("date:T"), alt.Tooltip("series:N", title="Series"),
                      alt.Tooltip("pct:Q", title="Return %", format="+.1f")],
@@ -104,7 +110,7 @@ def _charts(daily: pd.DataFrame, palette: dict, *, strategy_marks: bool = False)
     )
     if "hodl_equity" in daily and len(daily) > 1:
         st.caption(
-            f"**HODL** (same universe, equal-weight, no signals): "
+            f"**{benchmark_caption}**: "
             f"{(daily['hodl_equity'].iloc[-1] - 1) * 100:+.1f}% return · "
             f"{(daily['hodl_equity'] / daily['hodl_equity'].cummax() - 1).min() * 100:.1f}% max drawdown — "
             f"vs strategy {(daily['equity'].iloc[-1] - 1) * 100:+.1f}% · {daily['drawdown'].min():.1f}%."
@@ -247,10 +253,55 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
         )
 
 
+def render_symbol_performance(
+    signal: dict, asset_key: str, strategy_name: str, timeframe: str, palette: dict,
+) -> None:
+    """Backtest the selected symbol on the active strategy and bar timeframe."""
+    symbol = signal["symbol"]
+    with st.expander(f"📈 {symbol} performance", expanded=True, key=f"symbol_performance_{asset_key}"):
+        st.caption(f"{signal['name']} · {strategy_name} · {timeframe} · historical backtest")
+        window = st.selectbox("Window", WINDOWS, key=f"symbol_perf_window_{asset_key}")
+        daily_all, _ = perf.basket_daily(
+            [(symbol, signal["_df"], signal["_state_series"])], slots=0,
+        )
+        if daily_all.empty:
+            st.info("No strategy history is available for this symbol yet.")
+            return
+        trades = perf.trades_frame([
+            (symbol, signal["_trades"], signal["last_close"], signal["_df"]["close"]),
+        ])
+        start = _window_start(daily_all, window)
+        daily = perf.rebase(daily_all, start)
+        if start is not None and not trades.empty:
+            exit_ts = pd.to_datetime(trades["exit"], utc=True)
+            trades = trades[(~trades["closed"]) | (exit_ts >= start)]
+        stats = perf.basket_stats(daily, trades)
+
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("Strategy return", _fmt(stats.get("total_return_pct"), "+.1f", "%"))
+        m2.metric("Max drawdown", _fmt(stats.get("max_dd_pct"), ".1f", "%"))
+        m3.metric("Closed trades", stats.get("closed_trades", 0))
+        m4.metric("Win rate", _fmt(stats.get("win_rate"), ".1f", "%"))
+        m5.metric("Time invested", _fmt(stats.get("exposure_pct"), ".0f", "%"))
+
+        _charts(
+            daily, palette,
+            benchmark_label=f"{symbol} buy & hold",
+            benchmark_caption=f"Buy & hold {symbol} (no signals, no commission)",
+        )
+        st.caption("By calendar year")
+        _year_table(daily, trades)
+        st.caption(
+            f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** · "
+            "strategy holds this symbol after a LONG close and otherwise stays in cash; "
+            "0.1% commission per side."
+        )
+
+
 def render_basket_performance(signals: list[dict], key: str, palette: dict) -> None:
     """Expander with both views. `signals` are compute_signal() rows (need _df,
     _state_series, _trades, last_close)."""
-    with st.expander("📈 Basket performance", expanded=True):
+    with st.expander("📈 Overall account performance", expanded=True):
         st.caption(
             "The whole tab treated as one portfolio. **Backtest** replays the strategy over history; "
             "**Live** is the forward record kept by the daily cron, which can't be rewritten by later tweaks."
