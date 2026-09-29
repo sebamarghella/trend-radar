@@ -147,7 +147,7 @@ STOCKS = AssetClass(
     resolver_factory=yahoo_resolver,
     interval_options=[("1 day", 1440), ("1 week", 10080)],
     default_interval_idx=0,       # cron / alerts / live log stay on daily
-    ui_default_interval_idx=1,    # the app opens on 1 week
+    ui_default_interval_idx=0,    # open Stocks on 1 day to match daily signals
     tv_default_prefix="",  # TV auto-resolves common tickers
     is_24_7=False,
 )
