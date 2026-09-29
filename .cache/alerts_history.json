@@ -3968,5 +3968,75 @@
     "price": 39.68000030517578,
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "AMD",
+    "pair": "AMD",
+    "direction": "ENTRY",
+    "price": 616.9600219726562,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "PH",
+    "pair": "PH",
+    "direction": "EXIT",
+    "price": 972.4299926757812,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "LMT",
+    "pair": "LMT",
+    "direction": "EXIT",
+    "price": 514.989990234375,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "CSX",
+    "pair": "CSX",
+    "direction": "EXIT",
+    "price": 46.459999084472656,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "DLR",
+    "pair": "DLR",
+    "direction": "EXIT",
+    "price": 176.4199981689453,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "AME",
+    "pair": "AME",
+    "direction": "EXIT",
+    "price": 251.94000244140625,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-09-29T19:33:54+00:00",
+    "asset_class": "stocks",
+    "symbol": "KHC",
+    "pair": "KHC",
+    "direction": "EXIT",
+    "price": 23.270000457763672,
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

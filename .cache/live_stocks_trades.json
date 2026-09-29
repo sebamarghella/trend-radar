@@ -330,6 +330,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "AXON|carried",
+  "symbol": "AXON",
+  "entry_date": "2026-09-25",
+  "entry_price": 430.1099853515625,
+  "exit_date": "2026-09-28",
+  "exit_price": 423.8500061035156,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "B|carried",
   "symbol": "B",
   "entry_date": "2026-09-25",
@@ -517,6 +529,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "BRK-B|carried",
+  "symbol": "BRK-B",
+  "entry_date": "2026-09-25",
+  "entry_price": 505.4800109863281,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "BRKRP|carried",
   "symbol": "BRKRP",
   "entry_date": "2026-09-25",
@@ -605,6 +629,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "CCZ|carried",
+  "symbol": "CCZ",
+  "entry_date": "2026-09-25",
+  "entry_price": 64.66999816894531,
+  "exit_date": "2026-09-28",
+  "exit_price": 64.66999816894531,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "CEG|carried",
   "symbol": "CEG",
   "entry_date": "2026-09-25",
@@ -679,6 +715,18 @@
   "exit_price": null,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
+  "split_mult": 1.0
+ },
+ {
+  "key": "CNI|carried",
+  "symbol": "CNI",
+  "entry_date": "2026-09-25",
+  "entry_price": 120.93000030517578,
+  "exit_date": "2026-09-28",
+  "exit_price": 120.69999694824219,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
   "split_mult": 1.0
  },
  {
@@ -1243,6 +1291,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "FDX|carried",
+  "symbol": "FDX",
+  "entry_date": "2026-09-25",
+  "entry_price": 285.8500061035156,
+  "exit_date": "2026-09-28",
+  "exit_price": 285.8500061035156,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "FFIV|carried",
   "symbol": "FFIV",
   "entry_date": "2026-09-25",
@@ -1419,6 +1479,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "HLN|carried",
+  "symbol": "HLN",
+  "entry_date": "2026-09-25",
+  "entry_price": 9.260000228881836,
+  "exit_date": "2026-09-28",
+  "exit_price": 9.130000114440918,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "HMC|carried",
   "symbol": "HMC",
   "entry_date": "2026-09-25",
@@ -1518,6 +1590,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "IFF|carried",
+  "symbol": "IFF",
+  "entry_date": "2026-09-25",
+  "entry_price": 85.69000244140625,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "ILMN|carried",
   "symbol": "ILMN",
   "entry_date": "2026-09-25",
@@ -1603,6 +1687,18 @@
   "exit_price": null,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
+  "split_mult": 1.0
+ },
+ {
+  "key": "ITW|carried",
+  "symbol": "ITW",
+  "entry_date": "2026-09-25",
+  "entry_price": 274.32000732421875,
+  "exit_date": "2026-09-28",
+  "exit_price": 273.3399963378906,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
   "split_mult": 1.0
  },
  {
@@ -2684,6 +2780,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "SHW|carried",
+  "symbol": "SHW",
+  "entry_date": "2026-09-25",
+  "entry_price": 329.1000061035156,
+  "exit_date": "2026-09-28",
+  "exit_price": 325.7300109863281,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "SLB|carried",
   "symbol": "SLB",
   "entry_date": "2026-09-25",
@@ -2868,6 +2976,18 @@
   "exit_price": null,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
+  "split_mult": 1.0
+ },
+ {
+  "key": "SYY|carried",
+  "symbol": "SYY",
+  "entry_date": "2026-09-25",
+  "entry_price": 78.45999908447266,
+  "exit_date": "2026-09-28",
+  "exit_price": 78.29000091552734,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
   "split_mult": 1.0
  },
  {
@@ -3407,6 +3527,42 @@
   "exit_price": null,
   "carried": false,
   "strategy": "Gaussian Channel Stocks Trend Radar",
+  "split_mult": 1.0
+ },
+ {
+  "key": "BE|2026-09-25",
+  "symbol": "BE",
+  "entry_date": "2026-09-28",
+  "entry_price": 282.510009765625,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "BRKRP|2026-09-25",
+  "symbol": "BRKRP",
+  "entry_date": "2026-09-28",
+  "entry_price": 467.4700012207031,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "UMC|2026-09-25",
+  "symbol": "UMC",
+  "entry_date": "2026-09-28",
+  "entry_price": 24.079999923706055,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
   "split_mult": 1.0
  }
 ]
