@@ -121,6 +121,14 @@ section[data-testid='stSidebar'] {{
         z-index: 5;
         background: {PALETTE["BG_BASE"]};
     }}
+    /* The radar iframe reports its expanded content height to Streamlit. Keep
+       that intrinsic height out of the row calculation: the drilldown and
+       symbol performance on the left define the row, and the radar scrolls
+       inside the resulting height. */
+    [data-testid='stHorizontalBlock']:has([class*='st-key-radar_panel_']) > [data-testid='stColumn']:nth-child(2) {{
+        contain: size;
+        min-height: 0;
+    }}
     /* The right watchlist grows with the chart and basket on the left. */
     [data-testid='stHorizontalBlock']:has([class*='st-key-radar_panel_']) > [data-testid='stColumn']:nth-child(2) > [data-testid='stVerticalBlock'] {{
         display: flex;
