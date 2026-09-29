@@ -4,7 +4,12 @@ on:
   schedule:
     # 23:15 UTC Monday-Friday, after the US stock market close in both DST seasons.
     - cron: '15 23 * * 1-5'
-  workflow_dispatch:  # also runnable from the Actions tab
+  workflow_dispatch:
+    inputs:
+      send_todays_fills:
+        description: "Send today's already filled Stocks flips now (weekdays after 09:45 New York)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # so the job can commit alerts_state.json back
@@ -34,6 +39,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TR_SEND_TODAYS_FILLS: ${{ inputs.send_todays_fills }}
         run: python run_alerts.py
 
       - name: Commit updated state & history

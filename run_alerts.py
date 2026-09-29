@@ -69,9 +69,21 @@ def stock_fill(result, df) -> tuple[str, float | None, float | None, bool]:
     return "FLAT", float(trade.entry_price), float(trade.exit_price), True
 
 
-def should_scan(now_ny: datetime) -> bool:
-    """Keep manual dispatches and delayed scheduled runs within US weekdays."""
-    return now_ny.weekday() < 5 and now_ny.time() >= time(17, 30)
+def should_scan(now_ny: datetime, send_todays_fills: bool = False) -> bool:
+    """Manual previews can use known open fills; routine scans wait for the close."""
+    cutoff = time(9, 45) if send_todays_fills else time(17, 30)
+    return now_ny.weekday() < 5 and now_ny.time() >= cutoff
+
+
+def seed_prior_filled_states(signals: list[dict], previous: dict[str, str],
+                             class_key: str, interval: int) -> dict[str, str]:
+    """For an explicit first-run dispatch, alert today's fills only."""
+    seeded = dict(previous)
+    for signal in signals:
+        if signal["alertable"]:
+            key = f"{class_key}|{signal['symbol']}|{interval}"
+            seeded[key] = "FLAT" if signal["state"] == "LONG" else "LONG"
+    return seeded
 
 
 def scan_class(
@@ -81,6 +93,7 @@ def scan_class(
     bot_token: str,
     chat_id: str,
     today_ny: date,
+    send_todays_fills: bool = False,
 ) -> dict[str, str]:
     """Scan one asset class with its assigned strategy, send alerts, return state."""
     interval = ac.interval_options[ac.default_interval_idx][1]
@@ -161,6 +174,8 @@ def scan_class(
         prev_state, ac.key, f"{assigned_name}|next-open-fills-v1",
         strat_registry.DEFAULT_STRATEGY_NAME,
     )
+    if send_todays_fills and not any(k.startswith(f"{ac.key}|") for k in prev_state):
+        prev_state = seed_prior_filled_states(signals, prev_state, ac.key, interval)
     class_prefix = f"{ac.key}|"
     interval_suffix = f"|{interval}"
     had_baseline = any(
@@ -196,8 +211,10 @@ def scan_class(
 
 def main() -> int:
     now_ny = datetime.now(ZoneInfo("America/New_York"))
-    if not should_scan(now_ny):
-        print("No alert scan: Stocks alerts run Monday-Friday after 17:30 New York time.")
+    send_todays_fills = _env("TR_SEND_TODAYS_FILLS", "").lower() in {"true", "1", "yes"}
+    if not should_scan(now_ny, send_todays_fills):
+        print("No alert scan: Stocks alerts run Monday-Friday after 17:30 New York time "
+              "(or after 09:45 for an explicit send-today dispatch).")
         return 0
 
     bot_token = _env("TELEGRAM_BOT_TOKEN", "")
@@ -213,7 +230,8 @@ def main() -> int:
     print(f"strategy assignments: {strat_registry.load_assignments()}")
 
     state = alerts.load_state()
-    state = scan_class(STOCKS, max_workers, state, bot_token, chat_id, now_ny.date())
+    state = scan_class(STOCKS, max_workers, state, bot_token, chat_id,
+                       now_ny.date(), send_todays_fills)
     alerts.save_state(state)
 
     return 0

@@ -232,7 +232,11 @@ def test_stock_alerts_use_next_open_fills():
     ny = ZoneInfo("America/New_York")
     assert run_alerts.should_scan(datetime(2026, 9, 21, 18, tzinfo=ny))
     assert not run_alerts.should_scan(datetime(2026, 9, 21, 16, tzinfo=ny))
+    assert run_alerts.should_scan(datetime(2026, 9, 21, 16, tzinfo=ny), True)
     assert not run_alerts.should_scan(datetime(2026, 9, 26, 18, tzinfo=ny))
+    assert not run_alerts.should_scan(datetime(2026, 9, 26, 18, tzinfo=ny), True)
+    seeded = run_alerts.seed_prior_filled_states([entry], {}, "stocks", 1440)
+    assert seeded == {"stocks|AAPL|1440": "FLAT"}
     print("Stocks alert fills, prices, and weekday gate: ok")
 
 

@@ -131,6 +131,7 @@ You don't need to keep the Streamlit app open to receive Telegram alerts. `run_a
    - `TELEGRAM_CHAT_ID` — your numeric chat id (e.g. from @userinfobot)
 3. The workflow at `.github/workflows/alerts.yml` runs **Monday-Friday at 23:15 UTC**, after the US stock close. Triggering it manually before 17:30 New York time or on a weekend does nothing.
 4. The first run after an alert-logic change silently seeds the filled-position baseline. Future filled flips generate Telegram messages. If the latest Yahoo daily bar is not for the current New York trading day, it cannot generate an alert.
+   For a one-time check of fills that already occurred today, dispatch the workflow with `send_todays_fills=true` after 09:45 New York time. That first dispatch sends only today's filled flips and establishes the new baseline; the routine evening run will not repeat them.
 
 **Tweaking the cadence or timeframe:**
 
