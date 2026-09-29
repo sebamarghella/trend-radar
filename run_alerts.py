@@ -26,6 +26,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import alerts
 import live_log
+import performance as perf
 import strategies as strat_registry
 from asset_classes import ASSET_CLASSES, AssetClass
 from sources import Resolver, SourceError, fetch_series
@@ -114,6 +115,8 @@ def scan_class(
             summary = live_log.update(
                 ac.key, assigned_name, live_items,
                 rerun=lambda d: strat_registry.run_strategy(strategy, d),
+                position_fraction=(perf.GC_STOCKS_POSITION_FRACTION
+                                   if strategy.logic_key == "gaussian_channel_stocks_v1" else 1.0),
             )
             print(f"  Live log: {summary}")
         except Exception as e:  # noqa: BLE001

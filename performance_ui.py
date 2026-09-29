@@ -146,29 +146,31 @@ def _fingerprint(signals: list[dict]) -> int:
 
 
 @st.cache_data(show_spinner=False, max_entries=12)
-def _basket_compute(fp: int, slots: int, _signals: list[dict]):
+def _basket_compute(fp: int, slots: int, position_fraction: float, _signals: list[dict]):
     """Backtest matrices + flattened trades. `fp` is the cache key; `_signals`
     is deliberately not hashed."""
     entries = [(s["symbol"], s["_df"], s["_state_series"]) for s in _signals]
     ranks = {s["symbol"]: s["rank"] for s in _signals if s.get("rank") is not None}
-    daily, info = perf.basket_daily(entries, slots=slots, ranks=ranks)
+    daily, info = perf.basket_daily(entries, slots=slots, ranks=ranks,
+                                    position_fraction=position_fraction)
     trades = perf.trades_frame(
         [(s["symbol"], s["_trades"], s["last_close"], s["_df"]["close"]) for s in _signals]
     )
     return daily, info, trades
 
 
-def _backtest_tab(signals: list[dict], palette: dict) -> None:
+def _backtest_tab(signals: list[dict], palette: dict, position_fraction: float) -> None:
     c1, c2, c3 = st.columns([1, 1, 3])
     slots = c1.number_input(
         "Max positions", min_value=0, max_value=200, value=perf.DEFAULT_SLOTS, step=1, key="bp_slots",
-        help="Hard cap: at most this many positions at once, each 1/N of equity (idle slots = cash). New "
+        help="Hard cap: at most this many positions at once, each an equal share of the active allocation (idle slots = cash). New "
              "signals are skipped while full; ties go to the largest market cap. "
              "0 = no cap, equal weight across everything open.",
     )
     window = c2.selectbox("Window", WINDOWS, key="bp_window")
 
-    daily_all, info, trades = _basket_compute(_fingerprint(signals), int(slots), signals)
+    daily_all, info, trades = _basket_compute(_fingerprint(signals), int(slots),
+                                               position_fraction, signals)
     if daily_all.empty:
         st.info("No strategy history to aggregate yet.")
         return
@@ -192,7 +194,8 @@ def _backtest_tab(signals: list[dict], palette: dict) -> None:
     notes = [
         f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** "
         "(the strategy only enters from 1 Jan 2018).",
-        f"Equal-weight book, **{'no cap, equal weight across all open' if slots == 0 else f'hard cap of {int(slots)} position(s), largest market cap first'}**, 0.1% commission per side, "
+        f"Equal-weight book, **{'no cap, equal weight across all open' if slots == 0 else f'hard cap of {int(slots)} position(s), largest market cap first'}**, "
+        f"{position_fraction:.0%} of equity allocated when all slots are filled, 0.1% commission per side, "
         "entries/exits at the signal-bar close. Window stats count trades that closed inside the window.",
         f"**Survivorship bias:** the universe is *today's* top {info.get('universe', '?')} — names that later fell out "
         "or delisted are absent, so history reads better than a live book would have.",
@@ -234,6 +237,12 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
     if len(strategies_used) > 1:
         st.warning("The strategy changed during tracking: " + " → ".join(strategies_used) +
                    ". Numbers below chain across both.")
+    if "position_fraction" in daily:
+        fractions = sorted(set(daily["position_fraction"].fillna(1.0)))
+        if len(fractions) > 1:
+            st.warning("Position sizing changed during tracking: " +
+                       " → ".join(f"{fraction:.0%}" for fraction in fractions) +
+                       ". The forward curve chains both sizing settings.")
     _headline(stats, palette)
     _charts(daily, palette)
     st.caption("By calendar year")
@@ -262,8 +271,11 @@ def render_symbol_performance(
     with st.expander(f"📈 {symbol} performance", expanded=True, key=f"symbol_performance_{asset_key}"):
         st.caption(f"{signal['name']} · {strategy_name} · {timeframe} · historical backtest")
         window = st.selectbox("Window", WINDOWS, key=f"symbol_perf_window_{asset_key}")
+        position_fraction = (perf.GC_STOCKS_POSITION_FRACTION
+                             if strategy_logic_key == "gaussian_channel_stocks_v1" else 1.0)
         daily_all, _ = perf.basket_daily(
             [(symbol, signal["_df"], signal["_state_series"])], slots=0,
+            position_fraction=position_fraction,
         )
         if daily_all.empty:
             st.info("No strategy history is available for this symbol yet.")
@@ -295,7 +307,7 @@ def render_symbol_performance(
         st.caption(
             f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** · "
             "strategy holds this symbol after a LONG close and otherwise stays in cash; "
-            "0.1% commission per side."
+            f"{position_fraction:.0%} position sizing with the rest in cash; 0.1% commission per side."
         )
         if strategy_logic_key == "gaussian_channel_stocks_v1":
             st.caption(
@@ -305,7 +317,8 @@ def render_symbol_performance(
             )
 
 
-def render_basket_performance(signals: list[dict], key: str, palette: dict) -> None:
+def render_basket_performance(signals: list[dict], key: str, palette: dict,
+                              strategy_logic_key: str) -> None:
     """Expander with both views. `signals` are compute_signal() rows (need _df,
     _state_series, _trades, last_close)."""
     with st.expander("📈 Overall account performance", expanded=True):
@@ -315,6 +328,8 @@ def render_basket_performance(signals: list[dict], key: str, palette: dict) -> N
         )
         bt, live = st.tabs(["Backtest (history)", "Live (forward log)"])
         with bt:
-            _backtest_tab(signals, palette)
+            position_fraction = (perf.GC_STOCKS_POSITION_FRACTION
+                                 if strategy_logic_key == "gaussian_channel_stocks_v1" else 1.0)
+            _backtest_tab(signals, palette, position_fraction)
         with live:
             _live_tab(signals, key, palette)

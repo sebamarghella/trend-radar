@@ -76,6 +76,7 @@ def update(
     *,
     slots: int = 0,                       # the live book is uncapped equal weight
     commission: float = perf.DEFAULT_COMMISSION,
+    position_fraction: float = 1.0,
     today: pd.Timestamp | None = None,
 ) -> dict:
     """Append newly completed sessions + trade changes. Returns a small summary.
@@ -99,6 +100,7 @@ def update(
 
     daily, info = perf.basket_daily(
         [(s, df, r.state_series) for s, df, r in resolved], slots=slots, commission=commission,
+        position_fraction=position_fraction,
     )
     if daily.empty:
         return {"appended": 0, "reason": "no positions ever"}
@@ -110,9 +112,11 @@ def update(
 
     if not days:
         start = daily.index[-1]
-        eq["meta"] = {"class": class_key, "start": _d(start), "slots": slots, "commission": commission}
+        eq["meta"] = {"class": class_key, "start": _d(start), "slots": slots,
+                       "commission": commission, "position_fraction": position_fraction}
         days.append({"date": _d(start), "ret": 0.0, "equity": 1.0, "hodl_ret": 0.0,
-                     "n_open": int(daily["n_open"].iloc[-1]), "strategy": strategy_name})
+                     "n_open": int(daily["n_open"].iloc[-1]), "strategy": strategy_name,
+                     "position_fraction": position_fraction})
         start_ts = start
         appended = 1
     else:
@@ -123,7 +127,8 @@ def update(
         for ts, row in daily[daily.index > last].iterrows():
             equity *= 1.0 + float(row["ret"])
             days.append({"date": _d(ts), "ret": float(row["ret"]), "equity": equity,
-                         "hodl_ret": float(row["hodl_ret"]), "n_open": int(row["n_open"]), "strategy": strategy_name})
+                         "hodl_ret": float(row["hodl_ret"]), "n_open": int(row["n_open"]),
+                         "strategy": strategy_name, "position_fraction": position_fraction})
             appended += 1
     eq["days"] = days
 

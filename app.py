@@ -1784,7 +1784,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         )
 
     if key in live_log.LIVE_CLASSES:
-        perf_ui.render_basket_performance(signals, key, PALETTE)
+        perf_ui.render_basket_performance(signals, key, PALETTE, strategy.logic_key)
 
 # --- Page header + tabs --------------------------------------------------------
 

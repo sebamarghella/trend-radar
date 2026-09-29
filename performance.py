@@ -1,9 +1,10 @@
 """Basket-level performance: pool every symbol's strategy state into one portfolio.
 
 Sizing model (deliberately simple and explicit):
-- `slots=0`: no cap. Every open position gets 1/n_open of equity (fully invested,
-  equal weight across whatever is open).
-- `slots=N>0`: a hard cap of N positions, each 1/N of equity, idle slots in cash.
+- `slots=0`: no cap. Every open position gets position_fraction/n_open of
+  equity; the remainder stays in cash.
+- `slots=N>0`: a hard cap of N positions, each position_fraction/N of equity,
+  with unfilled slots and the remaining fraction in cash.
   A new signal (flat -> long flip) is skipped when the book is full, and when
   several arrive the same day the largest market cap (lowest rank) wins. A
   skipped signal is not entered later; the next flip is the next chance.
@@ -26,6 +27,7 @@ import pandas as pd
 
 DEFAULT_SLOTS = 0   # 0 = no cap, equal weight across all open positions
 DEFAULT_COMMISSION = 0.001
+GC_STOCKS_POSITION_FRACTION = 0.95  # Pine default_qty_value=95, margin_long=100
 # A single-day move this big while held is suspicious even after split
 # adjustment (bad tick, spin-off, delisting artefact).
 SUSPECT_MOVE = 0.35
@@ -112,6 +114,7 @@ def basket_daily(
     slots: int = DEFAULT_SLOTS,
     commission: float = DEFAULT_COMMISSION,
     ranks: dict | None = None,
+    position_fraction: float = 1.0,
 ) -> tuple[pd.DataFrame, dict]:
     """Daily portfolio returns from (symbol, ohlc_df, state_series) triples.
 
@@ -119,6 +122,8 @@ def basket_daily(
     ret (net of commission), equity (starts at 1.0 on the first date with any
     state), n_open (positions held that day), drawdown (% below running peak).
     """
+    if not 0.0 < position_fraction <= 1.0:
+        raise ValueError("position_fraction must be in (0, 1]")
     close_df, state_df = _daily_frame(entries)
     if close_df.empty:
         return pd.DataFrame(columns=["ret", "equity", "n_open", "drawdown"]), {"suspect_bars": 0, "splits_adjusted": 0}
@@ -132,14 +137,14 @@ def basket_daily(
         book, taken = _capped_holdings(state_df, int(slots), ranks)
         held = book.shift(1).fillna(False).astype(float)   # held at prior close → earns today
         n_open = held.sum(axis=1)
-        weights = held / float(slots)
-        close_weights = book.astype(float) / float(slots)
+        weights = held * position_fraction / float(slots)
+        close_weights = book.astype(float) * position_fraction / float(slots)
     else:
         held = state_df.shift(1).fillna(0).astype(float)   # LONG at prior close → held today
         n_open = held.sum(axis=1)
-        weights = held.div(n_open.replace(0, 1.0), axis=0)
+        weights = held.div(n_open.replace(0, 1.0), axis=0) * position_fraction
         close_held = state_df.astype(float)
-        close_weights = close_held.div(close_held.sum(axis=1).replace(0, 1.0), axis=0)
+        close_weights = close_held.div(close_held.sum(axis=1).replace(0, 1.0), axis=0) * position_fraction
     gross = (weights * rets).sum(axis=1)
     # Fill at the signal bar's close: charge its entry/exit fee now, while the
     # price return still belongs to positions held at the previous close.

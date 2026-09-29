@@ -377,6 +377,16 @@ def test_performance_entry_exit_alignment():
     assert daily["n_open"].tolist() == [0, 1, 1]
     capped, _ = perf.basket_daily([("TEST", frame, state)], slots=1)
     assert np.allclose(capped["ret"], daily["ret"])
+    sized, _ = perf.basket_daily(
+        [("TEST", frame, state)], position_fraction=perf.GC_STOCKS_POSITION_FRACTION,
+    )
+    assert np.allclose(sized["ret"], [-0.00095, 0.095, 0.09405])
+    assert np.allclose(sized["hodl_ret"], daily["hodl_ret"])
+    sized_capped, _ = perf.basket_daily(
+        [("TEST", frame, state)], slots=1,
+        position_fraction=perf.GC_STOCKS_POSITION_FRACTION,
+    )
+    assert np.allclose(sized_capped["ret"], sized["ret"])
 
     late_state = pd.Series([0, 0, 0, 1], index=idx)
     late, _ = perf.basket_daily([("TEST", frame, late_state)])
