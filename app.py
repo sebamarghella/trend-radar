@@ -50,7 +50,9 @@ st.set_page_config(
 if "ui_mode" not in st.session_state:
     st.session_state.ui_mode = "Light"  # default per request
 
-# Compact segmented radio at the very top of the sidebar.
+# The native Streamlit sidebar toggle lets the settings dock collapse.
+st.sidebar.header("Settings")
+# Compact segmented radio at the top of the settings dock.
 _ui_mode = st.sidebar.radio(
     "Theme", ["Light", "Dark"],
     index=0 if st.session_state.ui_mode == "Light" else 1,
@@ -100,10 +102,30 @@ section[data-testid='stSidebar'] {{
 /* AgGrid is explicitly NOT styled by us — let balham/balham-dark drive the
    table's font, row height, and column sizing. The earlier attempts to pin
    --ag-font-size lost to higher-specificity host font-family overrides. */
-/* Tighter top: default main padding is 6rem, sidebar header 60px. */
-[data-testid='stMainBlockContainer'] {{ padding-top: 2.75rem; }}
+/* Keep the dashboard close to the top toolbar. */
+[data-testid='stMainBlockContainer'] {{ padding-top: 2.25rem; }}
 [data-testid='stSidebarHeader'] {{ height: 2.25rem; min-height: 0; padding-top: 0.25rem; padding-bottom: 0; }}
 [data-testid='stSidebarUserContent'] {{ padding-top: 0.25rem; }}
+/* Keep the native settings collapse affordance visible without a hover. */
+[data-testid='stSidebarCollapseButton'] {{ visibility: visible !important; }}
+@media (max-width: 900px) {{
+    /* Let the chart use the full width before the watchlist on smaller screens. */
+    [data-testid='stHorizontalBlock']:has([class*='st-key-drilldown_pane_']) {{
+        flex-direction: column !important;
+    }}
+    [data-testid='stHorizontalBlock']:has([class*='st-key-drilldown_pane_']) > [data-testid='stColumn'] {{
+        width: 100% !important;
+        flex: 1 1 auto !important;
+    }}
+    /* The six existing toolbar controls wrap into usable rows. */
+    [data-testid='stHorizontalBlock']:has(> [data-testid='stColumn']:nth-child(6)) {{
+        flex-wrap: wrap !important;
+    }}
+    [data-testid='stHorizontalBlock']:has(> [data-testid='stColumn']:nth-child(6)) > [data-testid='stColumn'] {{
+        flex: 1 1 28% !important;
+        min-width: 150px !important;
+    }}
+}}
 h1 {{ padding-top: 0; }}
 /* Page heading scale */
 h1, h2, h3, h4, h5, h6 {{ color: {PALETTE["FG_PRIMARY"]}; }}
@@ -1089,7 +1111,10 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     logic_keys = [k for k, _ in logics]
     logic_labels = dict(logics)
 
-    c0, c1, c2, c3 = st.columns([3, 3, 2, 2])
+    # TradingView-style toolbar: the existing selectors and actions share one row.
+    c0, c1, c2, c3, r1, r2 = st.columns(
+        [2.4, 2.4, 1.5, 2.3, 1, 1], gap="small", vertical_alignment="bottom"
+    )
     logic_idx = logic_keys.index(assigned_logic) if assigned_logic in logic_keys else 0
     chosen_logic = c0.selectbox(
         "Strategy", logic_keys, index=logic_idx,
@@ -1117,7 +1142,6 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     default_sort = "Bars in state (newest first)" if key == "stocks" else sort_options[0]
     sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
 
-    r1, r2, _sp = st.columns([1, 1, 8])
     soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
     hard_refresh = r2.button("Force", key=f"force_{key}", help="Ignore disk cache")
 
@@ -1271,20 +1295,20 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     ordered = [c for c in COLUMN_FLEX if c in df_display.columns]
     df_display = df_display[ordered + [c for c in df_display.columns if c not in ordered]]
 
-    with st.expander("Radar", expanded=True):
+    # Chart and watchlist sit side by side; the grid keeps its horizontal scroll
+    # so every original data column remains available in the narrower dock.
+    chart_col, radar_col = st.columns([2.5, 1], gap="small", vertical_alignment="top")
+    with radar_col.expander("Radar", expanded=True):
         st.caption("Click any cell in a row to drill down into that coin's chart.")
         long_only = False
         if key == "stocks":
-            help_col, long_col, search_col = st.columns([3, 0.6, 1], vertical_alignment="center")
-            long_only = long_col.checkbox("Pos: Long", value=True, key=f"long_only_{key}",
-                                          help="Show only stocks currently in a LONG position.")
-        else:
-            help_col, search_col = st.columns([3, 1], vertical_alignment="center")
-        search = search_col.text_input(
+            long_only = st.checkbox("Pos: Long", value=True, key=f"long_only_{key}",
+                                    help="Show only stocks currently in a LONG position.")
+        search = st.text_input(
             "Search", key=f"search_{key}", type="search", placeholder="Search ticker or name",
             live="300ms", label_visibility="collapsed",
         ).strip()
-        help_col.markdown(
+        st.markdown(
             """
             <div class="radar-help-row">
               <span class="radar-help-pill"><b>Fl</b>
@@ -1371,7 +1395,13 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             key=f"grid_{key}_{sort_by}_{focus_symbol or ''}_{search.lower()}_{int(long_only)}",
         )
 
-    if True:
+    if skipped_rows:
+        with radar_col.expander(f"Skipped ({len(skipped_rows)})"):
+            st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]], width="stretch")
+
+    # A fixed-height chart dock aligns with the watchlist. Its existing detail
+    # sections remain accessible by scrolling inside the dock.
+    with chart_col.container(height=grid_height + 160, border=False, key=f"drilldown_pane_{key}"):
         selected = grid_response.get("selected_rows")
         selected_sym: str | None = None
         if isinstance(selected, pd.DataFrame) and not selected.empty:
@@ -1386,7 +1416,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
-        with st.expander(f"Drilldown — {selected_sym}", expanded=False):
+        with st.expander(f"Drilldown — {selected_sym}", expanded=True):
             _spacer, action_col = st.columns([4, 1])
             with action_col:
                 tear_sheet = _compute_tear_sheet(
@@ -1746,11 +1776,6 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     if key in live_log.LIVE_CLASSES:
         perf_ui.render_basket_performance(signals, key, PALETTE)
-
-    if skipped_rows:
-        with st.expander(f"Skipped ({len(skipped_rows)})"):
-            st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]], width="stretch")
-
 
 # --- Page header + tabs --------------------------------------------------------
 
