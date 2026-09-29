@@ -363,6 +363,49 @@ def test_breakouts():
     print("breakouts: ok")
 
 
+def test_performance_entry_exit_alignment():
+    """A signal-close fill pays its fee now and the benchmark starts there."""
+    import performance as perf
+
+    idx = pd.date_range("2024-01-01", periods=4, freq="D", tz="UTC")
+    close = pd.Series([100.0, 110.0, 121.0, 133.1], index=idx)
+    frame = pd.DataFrame({"close": close})
+    state = pd.Series([0, 1, 1, 0], index=idx)
+    daily, _ = perf.basket_daily([("TEST", frame, state)])
+    assert np.allclose(daily["ret"], [-0.001, 0.1, 0.099])
+    assert np.allclose(daily["hodl_ret"], [0.0, 0.1, 0.1])
+    assert daily["n_open"].tolist() == [0, 1, 1]
+    capped, _ = perf.basket_daily([("TEST", frame, state)], slots=1)
+    assert np.allclose(capped["ret"], daily["ret"])
+
+    late_state = pd.Series([0, 0, 0, 1], index=idx)
+    late, _ = perf.basket_daily([("TEST", frame, late_state)])
+    assert np.isclose(late["ret"].iloc[0], -0.001)
+    assert np.isclose(late["hodl_ret"].iloc[0], 0.0)
+    print("performance entry/exit alignment: ok")
+
+
+def test_gc_stocks_green_red_flips():
+    """The stock strategy trades only a red→green or green→red filter flip."""
+    from unittest.mock import patch
+    import strategies
+
+    idx = pd.date_range("2024-01-01", periods=8, freq="W-MON", tz="UTC")
+    frame = pd.DataFrame({"close": np.arange(100.0, 108.0)}, index=idx)
+    filt = np.array([10.0, 9.0, 8.0, 9.0, 10.0, 9.0, 8.0, 9.0])
+    channel = pd.DataFrame({"src": frame["close"], "filt": filt,
+                            "hband": filt + 1, "lband": filt - 1}, index=idx)
+    with patch.object(strategies, "gaussian_channel", return_value=channel):
+        result = strategies.LOGICS["gaussian_channel_stocks_v1"].run(
+            frame, strategies.LOGICS["gaussian_channel_stocks_v1"].defaults(),
+        )
+    assert result.state_series.tolist() == [0, 0, 0, 1, 1, 0, 0, 1]
+    assert [(t.entry_ts, t.exit_ts) for t in result.trades] == [
+        (idx[3], idx[5]), (idx[7], None),
+    ]
+    print("GC stocks green/red flips: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -379,4 +422,6 @@ if __name__ == "__main__":
     test_stocks_universe_ranking()
     test_run_strategy_cached()
     test_breakouts()
+    test_performance_entry_exit_alignment()
+    test_gc_stocks_green_red_flips()
     print("\nAll smoke tests passed.")

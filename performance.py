@@ -133,13 +133,18 @@ def basket_daily(
         held = book.shift(1).fillna(False).astype(float)   # held at prior close → earns today
         n_open = held.sum(axis=1)
         weights = held / float(slots)
+        close_weights = book.astype(float) / float(slots)
     else:
         held = state_df.shift(1).fillna(0).astype(float)   # LONG at prior close → held today
         n_open = held.sum(axis=1)
         weights = held.div(n_open.replace(0, 1.0), axis=0)
+        close_held = state_df.astype(float)
+        close_weights = close_held.div(close_held.sum(axis=1).replace(0, 1.0), axis=0)
     gross = (weights * rets).sum(axis=1)
-    turnover = weights.diff().abs().sum(axis=1)
-    turnover.iloc[0] = weights.iloc[0].abs().sum()
+    # Fill at the signal bar's close: charge its entry/exit fee now, while the
+    # price return still belongs to positions held at the previous close.
+    turnover = close_weights.diff().abs().sum(axis=1)
+    turnover.iloc[0] = close_weights.iloc[0].abs().sum()
     net = gross - commission * turnover
 
     suspect = int(((rets.abs() > SUSPECT_MOVE) & (held > 0)).to_numpy().sum())
@@ -152,8 +157,12 @@ def basket_daily(
     active = state_df.sum(axis=1) > 0
     first = active.idxmax() if active.any() else close_df.index[0]
     net = net.loc[first:]
+    # The benchmark buys at the first entry close, so exclude the price move
+    # leading into that bar from its displayed return.
+    hodl = hodl.loc[first:].copy()
+    hodl.iloc[0] = 0.0
     daily = pd.DataFrame({"ret": net, "n_open": n_open.loc[first:].astype(int),
-                          "hodl_ret": hodl.loc[first:]})
+                          "hodl_ret": hodl})
     daily["equity"] = (1.0 + daily["ret"]).cumprod()
     daily["hodl_equity"] = (1.0 + daily["hodl_ret"]).cumprod()
     daily["drawdown"] = (daily["equity"] / daily["equity"].cummax() - 1.0) * 100.0

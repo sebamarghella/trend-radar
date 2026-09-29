@@ -254,7 +254,8 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
 
 
 def render_symbol_performance(
-    signal: dict, asset_key: str, strategy_name: str, timeframe: str, palette: dict,
+    signal: dict, asset_key: str, strategy_name: str, strategy_logic_key: str,
+    timeframe: str, palette: dict,
 ) -> None:
     """Backtest the selected symbol on the active strategy and bar timeframe."""
     symbol = signal["symbol"]
@@ -287,7 +288,7 @@ def render_symbol_performance(
         _charts(
             daily, palette,
             benchmark_label=f"{symbol} buy & hold",
-            benchmark_caption=f"Buy & hold {symbol} (no signals, no commission)",
+            benchmark_caption=f"Buy & hold {symbol} from first entry close (no signals, no commission)",
         )
         st.caption("By calendar year")
         _year_table(daily, trades)
@@ -296,6 +297,12 @@ def render_symbol_performance(
             "strategy holds this symbol after a LONG close and otherwise stays in cash; "
             "0.1% commission per side."
         )
+        if strategy_logic_key == "gaussian_channel_stocks_v1":
+            st.caption(
+                "The supplied Pine strategy fills at the next bar's open and uses 3 ticks of "
+                "slippage. This dashboard replays signal-bar close fills, so its return is "
+                "not an exact TradingView Strategy Tester result."
+            )
 
 
 def render_basket_performance(signals: list[dict], key: str, palette: dict) -> None:

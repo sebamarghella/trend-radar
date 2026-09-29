@@ -1771,7 +1771,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                         st.metric("DD edge", "—")
 
     with chart_col:
-        perf_ui.render_symbol_performance(sel, key, strategy.name, interval_label[0], PALETTE)
+        perf_ui.render_symbol_performance(
+            sel, key, strategy.name, strategy.logic_key, interval_label[0], PALETTE,
+        )
 
     if key in live_log.LIVE_CLASSES:
         perf_ui.render_basket_performance(signals, key, PALETTE)
