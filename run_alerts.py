@@ -178,11 +178,13 @@ def scan_class(
         current_result = strat_registry.run_strategy(strategy, df)
         live_items.append((r["symbol"], df, current_result))
         result = current_result
+        signal_strategy_name = assigned_name
         if r["symbol"] in open_positions and "strategy" in open_positions[r["symbol"]]:
             try:
                 opened_strategy = strat_registry.parse_strategy_dict(
                     open_positions[r["symbol"]]["strategy"]
                 )
+                signal_strategy_name = opened_strategy.name
                 if opened_strategy.to_dict() != strategy.to_dict():
                     result = strat_registry.run_strategy(opened_strategy, df)
             except (KeyError, TypeError, ValueError) as exc:
@@ -221,6 +223,7 @@ def scan_class(
             "alertable": alertable,
             "fill_date": fill_date,
             "late": bool(fill_date and fill_date != today_ny.isoformat()),
+            "strategy_name": signal_strategy_name,
             "stoch_k": snap.stoch_k,
             "filter_up": snap.filter_up,
             "close_vs_hband_pct": snap.close_vs_hband_pct,

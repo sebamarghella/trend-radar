@@ -3977,7 +3977,12 @@
     "direction": "ENTRY",
     "price": 616.9600219726562,
     "interval_minutes": 1440,
-    "exchange": "Yahoo"
+    "exchange": "Yahoo",
+    "fill_date": "2026-09-29",
+    "entry_price": 616.96,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar"
   },
   {
     "ts": "2026-09-29T19:33:54+00:00",

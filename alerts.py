@@ -20,7 +20,8 @@ OPEN_POSITIONS_FILE = Path(__file__).parent / ".cache" / "stocks_alert_positions
 STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 TELEGRAM_API = "https://api.telegram.org"
-HISTORY_MAX = 500  # ring-buffer cap so the file doesn't grow unbounded
+# The Saturday report needs every delivered Stocks event from its start date.
+# Keep the complete history; the dashboard may limit how many rows it displays.
 
 
 @dataclass
@@ -39,6 +40,7 @@ class Flip:
     exit_price: float | None = None
     fill_date: str | None = None
     late: bool = False
+    strategy_name: str | None = None
 
     def format(self) -> str:
         if self.asset_class == "stocks":
@@ -178,6 +180,7 @@ def detect_flips(
             exit_price=s.get("exit_price"),
             fill_date=s.get("fill_date"),
             late=bool(s.get("late", False)),
+            strategy_name=s.get("strategy_name"),
         ))
     return flips, new_state
 
@@ -231,10 +234,7 @@ def load_history() -> list[dict]:
 
 
 def save_history(entries: list[dict]) -> None:
-    try:
-        HISTORY_FILE.write_text(json.dumps(entries[-HISTORY_MAX:], indent=2), encoding="utf-8")
-    except OSError:
-        pass
+    HISTORY_FILE.write_text(json.dumps(entries, indent=2), encoding="utf-8")
 
 
 def record_flips(flips: list[Flip], asset_class: str, ts_iso: str | None = None) -> list[dict]:
@@ -252,6 +252,11 @@ def record_flips(flips: list[Flip], asset_class: str, ts_iso: str | None = None)
             "pair": f.pair,
             "direction": f.direction,   # ENTRY / EXIT
             "price": f.price,
+            "fill_date": f.fill_date,
+            "entry_price": f.entry_price,
+            "exit_price": f.exit_price,
+            "late": f.late,
+            "strategy_name": f.strategy_name,
             "interval_minutes": f.interval_minutes,
             "exchange": f.exchange,
         })

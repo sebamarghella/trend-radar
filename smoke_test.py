@@ -725,6 +725,31 @@ def test_open_stock_kept_after_leaving_ranked_universe():
     print("open stock remains tracked after ranking exit: ok")
 
 
+def test_alert_history_keeps_reporting_fields():
+    """The cumulative report must retain fills even beyond the old 500-row cap."""
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from unittest.mock import patch
+
+    import alerts
+
+    flip = alerts.Flip(
+        symbol="AMD", pair="AMD", direction="ENTRY", price=616.96,
+        stoch_k=None, filter_up=True, close_vs_hband_pct=0.,
+        interval_minutes=1440, asset_class="stocks", entry_price=616.96,
+        fill_date="2026-09-29", strategy_name="GC stocks",
+    )
+    with TemporaryDirectory() as folder:
+        with patch.object(alerts, "HISTORY_FILE", Path(folder) / "history.json"):
+            alerts.save_history([{"n": n} for n in range(500)])
+            history = alerts.record_flips([flip], "stocks", "2026-09-29T19:33:54Z")
+            assert len(history) == len(alerts.load_history()) == 501
+            assert history[-1]["fill_date"] == "2026-09-29"
+            assert history[-1]["entry_price"] == 616.96
+            assert history[-1]["strategy_name"] == "GC stocks"
+    print("uncapped Stocks alert history with fill dates: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -747,4 +772,5 @@ if __name__ == "__main__":
     test_next_open_forward_log()
     test_gc_stocks_green_red_flips()
     test_open_stock_kept_after_leaving_ranked_universe()
+    test_alert_history_keeps_reporting_fields()
     print("\nAll smoke tests passed.")
