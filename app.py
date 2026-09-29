@@ -132,6 +132,18 @@ section[data-testid='stSidebar'] {{
         flex: 1 1 auto;
         min-height: 0;
     }}
+    /* Cloud places the container key on the inner block instead of its wrapper. */
+    [data-testid='stHorizontalBlock']:has([class*='st-key-radar_panel_']) > [data-testid='stColumn']:nth-child(2) > [data-testid='stVerticalBlock'] > [data-testid='stLayoutWrapper']:has(> [class*='st-key-radar_panel_']) {{
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+    }}
+    [class*='st-key-radar_panel_'][data-testid='stVerticalBlock'] {{
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+    }}
     [class*='st-key-radar_panel_'] > [data-testid='stVerticalBlock'] {{
         display: flex;
         flex-direction: column;
