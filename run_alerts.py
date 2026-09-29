@@ -117,6 +117,8 @@ def scan_class(
                 rerun=lambda d: strat_registry.run_strategy(strategy, d),
                 position_fraction=(perf.GC_STOCKS_POSITION_FRACTION
                                    if strategy.logic_key == "gaussian_channel_stocks_v1" else 1.0),
+                fill_mode=("next_open" if strategy.logic_key == "gaussian_channel_stocks_v1"
+                           else "signal_close"),
             )
             print(f"  Live log: {summary}")
         except Exception as e:  # noqa: BLE001

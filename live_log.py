@@ -77,6 +77,7 @@ def update(
     slots: int = 0,                       # the live book is uncapped equal weight
     commission: float = perf.DEFAULT_COMMISSION,
     position_fraction: float = 1.0,
+    fill_mode: str = "signal_close",
     today: pd.Timestamp | None = None,
 ) -> dict:
     """Append newly completed sessions + trade changes. Returns a small summary.
@@ -100,7 +101,7 @@ def update(
 
     daily, info = perf.basket_daily(
         [(s, df, r.state_series) for s, df, r in resolved], slots=slots, commission=commission,
-        position_fraction=position_fraction,
+        position_fraction=position_fraction, fill_mode=fill_mode,
     )
     if daily.empty:
         return {"appended": 0, "reason": "no positions ever"}
@@ -113,10 +114,11 @@ def update(
     if not days:
         start = daily.index[-1]
         eq["meta"] = {"class": class_key, "start": _d(start), "slots": slots,
-                       "commission": commission, "position_fraction": position_fraction}
+                       "commission": commission, "position_fraction": position_fraction,
+                       "fill_mode": fill_mode}
         days.append({"date": _d(start), "ret": 0.0, "equity": 1.0, "hodl_ret": 0.0,
                      "n_open": int(daily["n_open"].iloc[-1]), "strategy": strategy_name,
-                     "position_fraction": position_fraction})
+                     "position_fraction": position_fraction, "fill_mode": fill_mode})
         start_ts = start
         appended = 1
     else:
@@ -128,7 +130,8 @@ def update(
             equity *= 1.0 + float(row["ret"])
             days.append({"date": _d(ts), "ret": float(row["ret"]), "equity": equity,
                          "hodl_ret": float(row["hodl_ret"]), "n_open": int(row["n_open"]),
-                         "strategy": strategy_name, "position_fraction": position_fraction})
+                         "strategy": strategy_name, "position_fraction": position_fraction,
+                         "fill_mode": fill_mode})
             appended += 1
     eq["days"] = days
 
@@ -136,7 +139,14 @@ def update(
     for sym, df, result in resolved:
         closes = df["close"].astype(float)
         closes.index = [_norm(t) for t in closes.index]
-        for tr in result.trades:
+        for signal_trade in result.trades:
+            if fill_mode == "next_open":
+                fills = perf.filled_trades([signal_trade], df)
+                if not fills:
+                    continue                 # latest signal has no executable bar yet
+                tr = fills[0]
+            else:
+                tr = signal_trade
             entry = _norm(tr.entry_ts)
             exit_ = _norm(tr.exit_ts) if tr.exit_ts is not None else None
             if entry <= start_ts:
@@ -149,14 +159,18 @@ def update(
                     by_key[key] = {"key": key, "symbol": sym, "entry_date": _d(start_ts),
                                    "entry_price": float(closes.loc[start_ts]),
                                    "exit_date": None, "exit_price": None,
-                                   "carried": True, "strategy": strategy_name}
+                                   "carried": True, "strategy": strategy_name,
+                                   "fill_mode": fill_mode}
             else:
-                key = f"{sym}|{_d(entry)}"
+                # Signal-date identity also matches records created before this
+                # execution-timing change; historical entries are not rewritten.
+                key = f"{sym}|{_d(_norm(signal_trade.entry_ts))}"
                 if key not in by_key:
                     by_key[key] = {"key": key, "symbol": sym, "entry_date": _d(entry),
                                    "entry_price": float(tr.entry_price),
                                    "exit_date": None, "exit_price": None,
-                                   "carried": False, "strategy": strategy_name}
+                                   "carried": False, "strategy": strategy_name,
+                                   "fill_mode": fill_mode}
             rec = by_key[key]
             if exit_ is not None and rec["exit_date"] is None:
                 rec["exit_date"] = _d(exit_)

@@ -11,15 +11,16 @@ Sizing model (deliberately simple and explicit):
 Commission is charged per side on turnover, matching `TradeRecord.net_return`
 (0.1%).
 
-A position is held on day t when the strategy state at the close of day t-1 was
-LONG (enter at the flip-bar close, exit at the exit-bar close — same fills as
-the per-symbol tear sheet).
+Signal-close mode retains the original close-to-close replay. Next-open mode
+executes a bar-close signal at the following local bar's open: the old book
+earns the overnight gap, and the new book earns the open-to-close move.
 
 No Streamlit imports: the headless cron uses this module too.
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Iterable
 
 import numpy as np
@@ -63,6 +64,54 @@ def _daily_frame(entries: Iterable[tuple[str, pd.DataFrame, pd.Series]]) -> tupl
     close_df = pd.DataFrame(closes).sort_index()
     state_df = pd.DataFrame(states).reindex(close_df.index).fillna(0).astype("int8")
     return close_df, state_df
+
+
+def _next_open_frame(entries: Iterable[tuple[str, pd.DataFrame, pd.Series]]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Open, close, and executed holdings; each signal fills at the next local bar's open."""
+    opens: dict[str, pd.Series] = {}
+    closes: dict[str, pd.Series] = {}
+    executed: dict[str, pd.Series] = {}
+    for sym, df, state in entries:
+        idx = _utc_index(df.index).normalize()
+        frame = pd.DataFrame({"open": df["open"].to_numpy(dtype=float),
+                              "close": df["close"].to_numpy(dtype=float)}, index=idx)
+        frame = frame[~frame.index.duplicated(keep="last")]
+        signal = pd.Series(state.to_numpy(), index=_utc_index(state.index).normalize())
+        signal = signal[~signal.index.duplicated(keep="last")].reindex(frame.index).fillna(0)
+        opens[sym] = frame["open"]
+        closes[sym] = frame["close"]
+        executed[sym] = signal.shift(1).fillna(0).astype("int8")
+    open_df = pd.DataFrame(opens).sort_index()
+    close_df = pd.DataFrame(closes).reindex(open_df.index)
+    # A symbol with no bar on a date keeps its prior position until its next bar.
+    state_df = pd.DataFrame(executed).reindex(open_df.index).ffill().fillna(0).astype("int8")
+    return open_df, close_df, state_df
+
+
+def filled_trades(trades: Iterable, df: pd.DataFrame) -> list:
+    """Translate signal-close TradeRecords into actual next-open fills.
+
+    A signal on the newest bar has no fill yet. An exit signal on the newest
+    bar leaves the trade open until the following bar exists.
+    """
+    dates = _utc_index(df.index).normalize()
+    opens = df["open"].to_numpy(dtype=float)
+    out = []
+    for trade in trades:
+        entry_signal = _utc_index([trade.entry_ts])[0].normalize()
+        entry_i = dates.searchsorted(entry_signal, side="right")
+        if entry_i >= len(dates) or not np.isfinite(opens[entry_i]) or opens[entry_i] <= 0:
+            continue
+        exit_i = None
+        if trade.exit_ts is not None:
+            exit_signal = _utc_index([trade.exit_ts])[0].normalize()
+            candidate = dates.searchsorted(exit_signal, side="right")
+            if candidate < len(dates) and np.isfinite(opens[candidate]) and opens[candidate] > 0:
+                exit_i = candidate
+        out.append(replace(trade, entry_ts=df.index[entry_i], entry_price=float(opens[entry_i]),
+                           exit_ts=df.index[exit_i] if exit_i is not None else None,
+                           exit_price=float(opens[exit_i]) if exit_i is not None else None))
+    return out
 
 
 def split_factors(close_df: pd.DataFrame) -> pd.DataFrame:
@@ -115,6 +164,7 @@ def basket_daily(
     commission: float = DEFAULT_COMMISSION,
     ranks: dict | None = None,
     position_fraction: float = 1.0,
+    fill_mode: str = "signal_close",
 ) -> tuple[pd.DataFrame, dict]:
     """Daily portfolio returns from (symbol, ohlc_df, state_series) triples.
 
@@ -124,7 +174,12 @@ def basket_daily(
     """
     if not 0.0 < position_fraction <= 1.0:
         raise ValueError("position_fraction must be in (0, 1]")
-    close_df, state_df = _daily_frame(entries)
+    if fill_mode not in ("signal_close", "next_open"):
+        raise ValueError("fill_mode must be 'signal_close' or 'next_open'")
+    if fill_mode == "next_open":
+        open_df, close_df, state_df = _next_open_frame(entries)
+    else:
+        close_df, state_df = _daily_frame(entries)
     if close_df.empty:
         return pd.DataFrame(columns=["ret", "equity", "n_open", "drawdown"]), {"suspect_bars": 0, "splits_adjusted": 0}
 
@@ -135,22 +190,34 @@ def basket_daily(
     taken = None
     if slots > 0:
         book, taken = _capped_holdings(state_df, int(slots), ranks)
-        held = book.shift(1).fillna(False).astype(float)   # held at prior close → earns today
+        held = (book if fill_mode == "next_open" else book.shift(1).fillna(False)).astype(float)
         n_open = held.sum(axis=1)
         weights = held * position_fraction / float(slots)
         close_weights = book.astype(float) * position_fraction / float(slots)
     else:
-        held = state_df.shift(1).fillna(0).astype(float)   # LONG at prior close → held today
+        held = (state_df if fill_mode == "next_open" else state_df.shift(1).fillna(0)).astype(float)
         n_open = held.sum(axis=1)
         weights = held.div(n_open.replace(0, 1.0), axis=0) * position_fraction
         close_held = state_df.astype(float)
         close_weights = close_held.div(close_held.sum(axis=1).replace(0, 1.0), axis=0) * position_fraction
-    gross = (weights * rets).sum(axis=1)
-    # Fill at the signal bar's close: charge its entry/exit fee now, while the
-    # price return still belongs to positions held at the previous close.
-    turnover = close_weights.diff().abs().sum(axis=1)
-    turnover.iloc[0] = close_weights.iloc[0].abs().sum()
-    net = gross - commission * turnover
+    if fill_mode == "next_open":
+        # From the prior close to today's open, the old book is still held.
+        # At the open, yesterday's signals fill; that book earns open-to-close.
+        prior_weights = weights.shift(1).fillna(0.0)
+        open_eff = open_df.combine_first(close_ff.shift(1))
+        overnight = ((open_eff / close_ff.shift(1)) * fac - 1.0).fillna(0.0)
+        intraday = (close_ff / open_eff - 1.0).fillna(0.0)
+        gap_ret = (prior_weights * overnight).sum(axis=1)
+        day_ret = (weights * intraday).sum(axis=1)
+        turnover = weights.diff().abs().sum(axis=1)
+        turnover.iloc[0] = weights.iloc[0].abs().sum()
+        net = gap_ret + day_ret + gap_ret * day_ret - commission * turnover * (1.0 + gap_ret)
+    else:
+        gross = (weights * rets).sum(axis=1)
+        # Signal-close orders change the book after today's close-to-close return.
+        turnover = close_weights.diff().abs().sum(axis=1)
+        turnover.iloc[0] = close_weights.iloc[0].abs().sum()
+        net = gross - commission * turnover
 
     suspect = int(((rets.abs() > SUSPECT_MOVE) & (held > 0)).to_numpy().sum())
 
@@ -162,10 +229,13 @@ def basket_daily(
     active = state_df.sum(axis=1) > 0
     first = active.idxmax() if active.any() else close_df.index[0]
     net = net.loc[first:]
-    # The benchmark buys at the first entry close, so exclude the price move
-    # leading into that bar from its displayed return.
     hodl = hodl.loc[first:].copy()
-    hodl.iloc[0] = 0.0
+    if fill_mode == "next_open":
+        # Compare both books from the first executable open.
+        hodl.iloc[0] = float((close_df.loc[first] / open_df.loc[first] - 1.0).mean(skipna=True))
+    else:
+        # Signal-close benchmark starts at the first entry close.
+        hodl.iloc[0] = 0.0
     daily = pd.DataFrame({"ret": net, "n_open": n_open.loc[first:].astype(int),
                           "hodl_ret": hodl})
     daily["equity"] = (1.0 + daily["ret"]).cumprod()

@@ -537,7 +537,22 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         trend_up = filt > filt.shift()
     bo_state = bo_mod.detect_cached(df, trend_up, strat_registry._df_fingerprint(df))
     bo_last = bo_state.last
-    stats = compute_stats(result.trades, now=df.index[-1], lookback_days=lookback_days_)
+    trades = (_performance.filled_trades(result.trades, df)
+              if strategy.logic_key == "gaussian_channel_stocks_v1" else result.trades)
+    stats = compute_stats(trades, now=df.index[-1], lookback_days=lookback_days_)
+    pending_order = None
+    position_state = "LONG" if snap.in_position else "FLAT"
+    bars_in_state = snap.bars_in_state
+    if strategy.logic_key == "gaussian_channel_stocks_v1":
+        executed = result.state_series.shift(1).fillna(0).astype(int)
+        position_state = "LONG" if int(executed.iloc[-1]) else "FLAT"
+        if int(result.state_series.iloc[-1]) != int(executed.iloc[-1]):
+            pending_order = "BUY" if snap.in_position else "SELL"
+        bars_in_state = 0
+        for value in reversed(executed.to_numpy()[:-1]):
+            if int(value) != int(executed.iloc[-1]):
+                break
+            bars_in_state += 1
     taker_delta_pct = None
     taker_buy_base = None
     if {"volume", "taker_buy_base_volume"}.issubset(df.columns):
@@ -553,10 +568,10 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "exchange": row["exchange"],
         "exchange_short": row["exchange_short"],
         "tv_prefix": row["tv_prefix"],
-        "state": "LONG" if snap.in_position else "FLAT",
+        "state": position_state,
         "bar_color": snap.bar_color,
         "filter_up": snap.filter_up,
-        "bars_in_state": snap.bars_in_state,
+        "bars_in_state": bars_in_state,
         "close_vs_hband_pct": snap.close_vs_hband_pct,
         "stoch_k": snap.stoch_k,
         "last_close": snap.last_close,
@@ -574,7 +589,8 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "_df": df,
         "_overlays": result.overlays,
         "_state_series": result.state_series,
-        "_trades": result.trades,
+        "_trades": trades,
+        "_pending_order": pending_order,
     }
 
 
@@ -730,7 +746,7 @@ def _fmt_number(value: float | None, *, pct: bool = False) -> str:
 
 def _comparison_curve_frame(
     name: str,
-    strategy_result,
+    trades: list,
     *,
     now: pd.Timestamp,
     lookback_days_: int,
@@ -738,7 +754,7 @@ def _comparison_curve_frame(
     latest_close: float,
 ) -> pd.DataFrame:
     curve = _build_equity_curve(
-        strategy_result.trades,
+        trades,
         now=now,
         lookback_days_=lookback_days_,
         latest_ts=latest_ts,
@@ -1325,7 +1341,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
     # Grid + drilldown
     df = pd.DataFrame(signals)
-    df_display = df.drop(columns=["_df", "_overlays", "_state_series", "_trades", "_bo", "bo_date"]).copy()
+    df_display = df.drop(columns=["_df", "_overlays", "_state_series", "_trades", "_pending_order", "_bo", "bo_date"]).copy()
     if "flow_delta_pct" in df_display.columns:
         df_display["flow_delta"] = df_display.pop("flow_delta_pct")
     sort_col, ascending = SORT_MAP[sort_by]
@@ -1473,6 +1489,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
         st.subheader(f"Drilldown — {selected_sym}")
+        if sel.get("_pending_order"):
+            st.caption(f"{sel['_pending_order']} signal is pending the next bar's open; Pos shows the filled position.")
         _spacer, action_col = st.columns([4, 1])
         with action_col:
             tear_sheet = _compute_tear_sheet(
@@ -1512,14 +1530,19 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                 if col in overlays.columns:
                     chart_df[col] = overlays[col]
                     overlay_cols.append(col)
-        # Transitions in the state series = trade signals.
-        #   0 -> 1 : BUY (entry)
-        #   1 -> 0 : SELL (exit)
-        _state = sel["_state_series"].astype(int)
-        _shift = _state.shift(1).fillna(0).astype(int)
         chart_df["signal"] = ""
-        chart_df.loc[(_state == 1) & (_shift == 0), "signal"] = "BUY"
-        chart_df.loc[(_state == 0) & (_shift == 1), "signal"] = "SELL"
+        chart_df["fill_price"] = chart_df["close"]
+        if strategy.logic_key == "gaussian_channel_stocks_v1":
+            for trade in sel["_trades"]:
+                if trade.entry_ts in chart_df.index:
+                    chart_df.loc[trade.entry_ts, ["signal", "fill_price"]] = ["BUY", trade.entry_price]
+                if trade.exit_ts is not None and trade.exit_ts in chart_df.index:
+                    chart_df.loc[trade.exit_ts, ["signal", "fill_price"]] = ["SELL", trade.exit_price]
+        else:
+            _state = sel["_state_series"].astype(int)
+            _shift = _state.shift(1).fillna(0).astype(int)
+            chart_df.loc[(_state == 1) & (_shift == 0), "signal"] = "BUY"
+            chart_df.loc[(_state == 0) & (_shift == 1), "signal"] = "SELL"
         chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
 
         # Chart height tracks the grid height so the two panes stay aligned.
@@ -1602,9 +1625,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     shape="triangle-up", color=PALETTE["BULLISH"], filled=True,
                     size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
                 ).encode(
-                    x=alt.X("time:T", axis=x_axis), y="close:Q",
+                    x=alt.X("time:T", axis=x_axis), y="fill_price:Q",
                     tooltip=[alt.Tooltip("time:T", title="Buy"),
-                             alt.Tooltip("close:Q", title="Price", format=".6g")],
+                             alt.Tooltip("fill_price:Q", title="Price", format=".6g")],
                 )
             )
         if not sells.empty:
@@ -1613,9 +1636,9 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     shape="triangle-down", color=PALETTE["BEARISH"], filled=True,
                     size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
                 ).encode(
-                    x=alt.X("time:T", axis=x_axis), y="close:Q",
+                    x=alt.X("time:T", axis=x_axis), y="fill_price:Q",
                     tooltip=[alt.Tooltip("time:T", title="Sell"),
-                             alt.Tooltip("close:Q", title="Price", format=".6g")],
+                             alt.Tooltip("fill_price:Q", title="Price", format=".6g")],
                 )
             )
 
@@ -1701,17 +1724,23 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
                 left_result = strat_registry.run_strategy_cached(compare_strategies[left_name], sel["_df"])
                 right_result = strat_registry.run_strategy_cached(compare_strategies[right_name], sel["_df"])
+                left_trades = (_performance.filled_trades(left_result.trades, sel["_df"])
+                               if compare_strategies[left_name].logic_key == "gaussian_channel_stocks_v1"
+                               else left_result.trades)
+                right_trades = (_performance.filled_trades(right_result.trades, sel["_df"])
+                                if compare_strategies[right_name].logic_key == "gaussian_channel_stocks_v1"
+                                else right_result.trades)
                 latest_ts = sel["_df"].index[-1]
                 latest_close = float(sel["_df"]["close"].iloc[-1])
                 now_ts = latest_ts
-                left_stats = compute_stats(left_result.trades, now=now_ts, lookback_days=lookback_days)
-                right_stats = compute_stats(right_result.trades, now=now_ts, lookback_days=lookback_days)
+                left_stats = compute_stats(left_trades, now=now_ts, lookback_days=lookback_days)
+                right_stats = compute_stats(right_trades, now=now_ts, lookback_days=lookback_days)
 
                 cmp_curves = pd.concat(
                     [
                         _comparison_curve_frame(
                             left_name,
-                            left_result,
+                            left_trades,
                             now=now_ts,
                             lookback_days_=lookback_days,
                             latest_ts=latest_ts,
@@ -1719,7 +1748,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                         ),
                         _comparison_curve_frame(
                             right_name,
-                            right_result,
+                            right_trades,
                             now=now_ts,
                             lookback_days_=lookback_days,
                             latest_ts=latest_ts,

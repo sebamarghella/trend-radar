@@ -146,20 +146,22 @@ def _fingerprint(signals: list[dict]) -> int:
 
 
 @st.cache_data(show_spinner=False, max_entries=12)
-def _basket_compute(fp: int, slots: int, position_fraction: float, _signals: list[dict]):
+def _basket_compute(fp: int, slots: int, position_fraction: float,
+                    fill_mode: str, _signals: list[dict]):
     """Backtest matrices + flattened trades. `fp` is the cache key; `_signals`
     is deliberately not hashed."""
     entries = [(s["symbol"], s["_df"], s["_state_series"]) for s in _signals]
     ranks = {s["symbol"]: s["rank"] for s in _signals if s.get("rank") is not None}
     daily, info = perf.basket_daily(entries, slots=slots, ranks=ranks,
-                                    position_fraction=position_fraction)
+                                    position_fraction=position_fraction, fill_mode=fill_mode)
     trades = perf.trades_frame(
         [(s["symbol"], s["_trades"], s["last_close"], s["_df"]["close"]) for s in _signals]
     )
     return daily, info, trades
 
 
-def _backtest_tab(signals: list[dict], palette: dict, position_fraction: float) -> None:
+def _backtest_tab(signals: list[dict], palette: dict,
+                  position_fraction: float, fill_mode: str) -> None:
     c1, c2, c3 = st.columns([1, 1, 3])
     slots = c1.number_input(
         "Max positions", min_value=0, max_value=200, value=perf.DEFAULT_SLOTS, step=1, key="bp_slots",
@@ -170,7 +172,7 @@ def _backtest_tab(signals: list[dict], palette: dict, position_fraction: float) 
     window = c2.selectbox("Window", WINDOWS, key="bp_window")
 
     daily_all, info, trades = _basket_compute(_fingerprint(signals), int(slots),
-                                               position_fraction, signals)
+                                               position_fraction, fill_mode, signals)
     if daily_all.empty:
         st.info("No strategy history to aggregate yet.")
         return
@@ -196,7 +198,8 @@ def _backtest_tab(signals: list[dict], palette: dict, position_fraction: float) 
         "(the strategy only enters from 1 Jan 2018).",
         f"Daily-rebalanced equal-weight book, **{'no cap, equal weight across all open' if slots == 0 else f'hard cap of {int(slots)} position(s), largest market cap first'}**, "
         f"{position_fraction:.0%} of equity allocated when all slots are filled, 0.1% commission per side, "
-        "entries/exits at the signal-bar close. Window stats count trades that closed inside the window.",
+        f"entries/exits at the {'next bar open' if fill_mode == 'next_open' else 'signal-bar close'}. "
+        "Window stats count trades that closed inside the window.",
         f"**Survivorship bias:** the universe is *today's* top {info.get('universe', '?')} — names that later fell out "
         "or delisted are absent, so history reads better than a live book would have.",
     ]
@@ -243,6 +246,11 @@ def _live_tab(signals: list[dict], key: str, palette: dict) -> None:
             st.warning("Position sizing changed during tracking: " +
                        " → ".join(f"{fraction:.0%}" for fraction in fractions) +
                        ". The forward curve chains both sizing settings.")
+    if "fill_mode" in daily:
+        modes = sorted(set(daily["fill_mode"].fillna("signal_close")))
+        if len(modes) > 1:
+            st.warning("Order timing changed during tracking; the forward curve chains "
+                       "signal-close and next-open records.")
     _headline(stats, palette)
     _charts(daily, palette)
     st.caption("By calendar year")
@@ -273,9 +281,11 @@ def render_symbol_performance(
         window = st.selectbox("Window", WINDOWS, key=f"symbol_perf_window_{asset_key}")
         position_fraction = (perf.GC_STOCKS_POSITION_FRACTION
                              if strategy_logic_key == "gaussian_channel_stocks_v1" else 1.0)
+        fill_mode = ("next_open" if strategy_logic_key == "gaussian_channel_stocks_v1"
+                     else "signal_close")
         daily_all, _ = perf.basket_daily(
             [(symbol, signal["_df"], signal["_state_series"])], slots=0,
-            position_fraction=position_fraction,
+            position_fraction=position_fraction, fill_mode=fill_mode,
         )
         if daily_all.empty:
             st.info("No strategy history is available for this symbol yet.")
@@ -300,21 +310,24 @@ def render_symbol_performance(
         _charts(
             daily, palette,
             benchmark_label=f"{symbol} buy & hold",
-            benchmark_caption=f"Buy & hold {symbol} from first entry close (no signals, no commission)",
+            benchmark_caption=(f"Buy & hold {symbol} from first entry "
+                               f"{'open' if fill_mode == 'next_open' else 'close'} "
+                               "(no signals, no commission)"),
         )
         st.caption("By calendar year")
         _year_table(daily, trades)
         st.caption(
             f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** · "
-            "strategy holds this symbol after a LONG close and otherwise stays in cash; "
+            f"the strategy enters and exits at the {'next bar open' if fill_mode == 'next_open' else 'signal-bar close'} "
+            "after a flip, and stays in cash while flat; "
             f"{position_fraction:.0%} position sizing with the rest in cash; 0.1% commission per side."
         )
         if strategy_logic_key == "gaussian_channel_stocks_v1":
             st.caption(
                 "The supplied Pine strategy sizes each entry at 95% of then-current equity, "
                 "fills at the next bar's open and uses 3 ticks of slippage. This dashboard "
-                "rebalances a 95% allocation at signal-bar closes, so its return is "
-                "not an exact TradingView Strategy Tester result."
+                "now uses next-bar opens but still rebalances its 95% allocation and does "
+                "not model the 3 ticks of slippage, so it is not an exact TradingView result."
             )
 
 
@@ -331,6 +344,8 @@ def render_basket_performance(signals: list[dict], key: str, palette: dict,
         with bt:
             position_fraction = (perf.GC_STOCKS_POSITION_FRACTION
                                  if strategy_logic_key == "gaussian_channel_stocks_v1" else 1.0)
-            _backtest_tab(signals, palette, position_fraction)
+            fill_mode = ("next_open" if strategy_logic_key == "gaussian_channel_stocks_v1"
+                         else "signal_close")
+            _backtest_tab(signals, palette, position_fraction, fill_mode)
         with live:
             _live_tab(signals, key, palette)

@@ -395,6 +395,88 @@ def test_performance_entry_exit_alignment():
     print("performance entry/exit alignment: ok")
 
 
+def test_next_open_fills():
+    """A signal waits for the next open; exits retain the overnight gap."""
+    import performance as perf
+    from gaussian_channel import TradeRecord
+
+    idx = pd.date_range("2024-01-01", periods=5, freq="D", tz="UTC")
+    frame = pd.DataFrame({"open": [100., 105., 120., 140., 150.],
+                          "close": [100., 110., 132., 154., 165.]}, index=idx)
+    state = pd.Series([0, 1, 1, 0, 0], index=idx)
+    signal_trade = TradeRecord(idx[1], 110., idx[3], 154.)
+    fills = perf.filled_trades([signal_trade], frame)
+    assert len(fills) == 1
+    assert (fills[0].entry_ts, fills[0].entry_price) == (idx[2], 120.)
+    assert (fills[0].exit_ts, fills[0].exit_price) == (idx[4], 150.)
+    daily, _ = perf.basket_daily([("TEST", frame, state)],
+                                 position_fraction=.95, fill_mode="next_open")
+    assert daily.index[0] == idx[2]
+    assert daily["n_open"].tolist() == [1, 1, 0]
+    assert np.isclose(daily["ret"].iloc[0], .95 * .10 - .001 * .95)
+    assert np.isclose(daily["ret"].iloc[1],
+                      (1 + .95 * (140 / 132 - 1)) * (1 + .95 * .10) - 1)
+    gap = .95 * (150 / 154 - 1)
+    assert np.isclose(daily["ret"].iloc[2], gap - .001 * .95 * (1 + gap))
+    assert np.isclose(daily["hodl_ret"].iloc[0], .10)
+
+    pending = TradeRecord(idx[1], 110., idx[4], 165.)
+    assert perf.filled_trades([pending], frame)[0].exit_ts is None
+    latest_signal = TradeRecord(idx[4], 165., None, None)
+    assert perf.filled_trades([latest_signal], frame) == []
+
+    # A missing bar for one symbol must not fill its order on another
+    # symbol's next date.
+    other = frame.iloc[[0, 2, 4]]
+    other_state = pd.Series([1, 1, 1], index=other.index)
+    _, _, executed = perf._next_open_frame([
+        ("TEST", frame, state), ("OTHER", other, other_state),
+    ])
+    assert executed.loc[idx[1], "OTHER"] == 0
+    assert executed.loc[idx[2], "OTHER"] == 1
+    print("next-open fills: ok")
+
+
+def test_next_open_forward_log():
+    """A pending signal does not enter the forward trade log before its open."""
+    import tempfile
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    import live_log
+    from gaussian_channel import TradeRecord
+
+    idx = pd.date_range("2024-01-01", periods=4, freq="D", tz="UTC")
+    frame = pd.DataFrame({"open": [100., 100., 100., 110.],
+                          "close": [100., 100., 110., 121.]}, index=idx)
+    trade = TradeRecord(idx[2], 110., None, None)
+    original_cache = live_log.CACHE_DIR
+    with tempfile.TemporaryDirectory() as tmp:
+        live_log.CACHE_DIR = Path(tmp)
+        try:
+            first = SimpleNamespace(state_series=pd.Series([0, 0, 1], index=idx[:3]),
+                                    trades=[trade])
+            live_log.update("stocks", "GC stocks", [("TEST", frame.iloc[:3], first)],
+                            rerun=lambda _: first, position_fraction=.95,
+                            fill_mode="next_open", today=idx[3])
+            assert live_log.load_trades("stocks") == []
+            second = SimpleNamespace(state_series=pd.Series([0, 0, 1, 1], index=idx),
+                                     trades=[trade])
+            live_log.update("stocks", "GC stocks", [("TEST", frame, second)],
+                            rerun=lambda _: second, position_fraction=.95,
+                            fill_mode="next_open", today=idx[3] + pd.Timedelta(days=1))
+            logged = live_log.load_trades("stocks")
+            assert len(logged) == 1
+            assert logged[0]["entry_date"] == "2024-01-04"
+            assert logged[0]["entry_price"] == 110.
+            assert logged[0]["fill_mode"] == "next_open"
+            days = live_log.live_daily_frame("stocks")
+            assert days["n_open"].tolist() == [0, 1]
+        finally:
+            live_log.CACHE_DIR = original_cache
+    print("next-open forward log: ok")
+
+
 def test_gc_stocks_green_red_flips():
     """The stock strategy trades only a red→green or green→red filter flip."""
     from unittest.mock import patch
@@ -433,5 +515,7 @@ if __name__ == "__main__":
     test_run_strategy_cached()
     test_breakouts()
     test_performance_entry_exit_alignment()
+    test_next_open_fills()
+    test_next_open_forward_log()
     test_gc_stocks_green_red_flips()
     print("\nAll smoke tests passed.")
