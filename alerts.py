@@ -1,9 +1,8 @@
 """Telegram alerts on strategy state flips.
 
 State is persisted in `.cache/alerts_state.json` keyed by `(symbol, interval)`.
-On each refresh, we diff the saved state vs. the current state per coin and fire
-a Telegram message only on FLAT→LONG or LONG→FLAT transitions. First-ever run
-seeds the state file silently — no spam.
+The scheduled Stocks job diffs filled positions and sends a message only on
+FLAT→LONG or LONG→FLAT transitions. First-ever run seeds silently.
 """
 
 from __future__ import annotations
@@ -34,8 +33,21 @@ class Flip:
     close_vs_hband_pct: float
     interval_minutes: int
     exchange: str = ""
+    asset_class: str = "crypto"
+    entry_price: float | None = None
+    exit_price: float | None = None
 
     def format(self) -> str:
+        if self.asset_class == "stocks":
+            opening = self.entry_price if self.entry_price is not None else self.price
+            if self.direction == "ENTRY":
+                return (f"🟢 FlipGreen · OPEN LONG · {self.symbol}\n"
+                        f"Open price: ${opening:,.2f}\n"
+                        "Close price: pending")
+            closing = self.exit_price if self.exit_price is not None else self.price
+            return (f"🔴 FlipRed · CLOSE LONG · {self.symbol}\n"
+                    f"Open price: ${opening:,.2f}\n"
+                    f"Close price: ${closing:,.2f}")
         tf = _tf_label(self.interval_minutes)
         emoji = "🟢" if self.direction == "ENTRY" else "🔴"
         verb = "LONG" if self.direction == "ENTRY" else "EXIT"
@@ -124,18 +136,30 @@ def detect_flips(
         prev = prev_state.get(k)
         if prev is None or prev == current:
             continue
+        if not s.get("alertable", True):
+            # A missed run must not turn an older fill into a new alert.
+            continue
         # We have a flip — record it.
         direction = "ENTRY" if current == "LONG" else "EXIT"
+        if asset_class == "stocks" and (
+            s.get("entry_price") is None
+            or (direction == "EXIT" and s.get("exit_price") is None)
+        ):
+            continue  # Do not send a trade alert without its actual fill price.
         flips.append(Flip(
             symbol=s["symbol"],
             pair=s["pair"],
             direction=direction,
-            price=s["last_close"],
+            price=(s.get("entry_price") if direction == "ENTRY" else s.get("exit_price"))
+                  or s["last_close"],
             stoch_k=s.get("stoch_k"),
             filter_up=bool(s.get("filter_up", False)),
             close_vs_hband_pct=float(s.get("close_vs_hband_pct", 0.0)),
             interval_minutes=interval_minutes,
             exchange=s.get("exchange", ""),
+            asset_class=asset_class,
+            entry_price=s.get("entry_price"),
+            exit_price=s.get("exit_price"),
         ))
     return flips, new_state
 

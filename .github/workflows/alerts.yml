@@ -2,9 +2,8 @@ name: Trend Radar Alerts
 
 on:
   schedule:
-    # 00:05 UTC daily — 5 min after the daily Binance bar closes.
-    # GitHub cron jitter is ~5-15 min during peak load, fine for daily TF.
-    - cron: '5 0 * * *'
+    # 23:15 UTC Monday-Friday, after the US stock market close in both DST seasons.
+    - cron: '15 23 * * 1-5'
   workflow_dispatch:  # also runnable from the Actions tab
 
 permissions:
@@ -35,7 +34,6 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TR_INTERVAL_MINUTES: '1440'
         run: python run_alerts.py
 
       - name: Commit updated state & history

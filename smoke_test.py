@@ -182,6 +182,60 @@ def test_alerts_flip_detection():
     print(f"alerts: ok, sample message:\n  {preview.replace(chr(10), chr(10)+'  ')}")
 
 
+def test_stock_alerts_use_next_open_fills():
+    """No entry on the signal bar; fills and Telegram prices match the next open."""
+    from datetime import datetime
+    from types import SimpleNamespace
+    from zoneinfo import ZoneInfo
+
+    import alerts
+    import run_alerts
+    from gaussian_channel import TradeRecord
+
+    dates = pd.date_range("2026-09-21", periods=5, freq="B", tz="UTC")
+    df = pd.DataFrame({"open": [95., 97., 101., 105., 112.],
+                       "close": [96., 98., 103., 106., 111.]}, index=dates)
+    trade = TradeRecord(entry_ts=dates[1], entry_price=98.,
+                        exit_ts=dates[3], exit_price=106.)
+    states = pd.Series([0, 1, 1, 0, 0], index=dates)
+
+    def filled_at(n):
+        result = SimpleNamespace(state_series=states.iloc[:n], trades=[trade])
+        return run_alerts.stock_fill(result, df.iloc[:n])
+
+    assert filled_at(2) == ("FLAT", None, None, False)
+    assert filled_at(3) == ("LONG", 101., None, True)
+    assert filled_at(4) == ("LONG", None, None, False)
+    assert filled_at(5) == ("FLAT", 101., 112., True)
+
+    baseline = {"stocks|AAPL|1440": "FLAT"}
+    entry = {"symbol": "AAPL", "pair": "AAPL", "state": "LONG",
+             "entry_price": 101., "exit_price": None, "last_close": 103., "alertable": True}
+    flips, opened = alerts.detect_flips([entry], 1440, baseline, asset_class="stocks")
+    assert len(flips) == 1
+    assert "FlipGreen · OPEN LONG · AAPL" in flips[0].format()
+    assert "Open price: $101.00" in flips[0].format()
+    assert "Close price: pending" in flips[0].format()
+
+    exit_ = {**entry, "state": "FLAT", "entry_price": 101.,
+             "exit_price": 112., "last_close": 111.}
+    flips, _ = alerts.detect_flips([exit_], 1440, opened, asset_class="stocks")
+    assert len(flips) == 1
+    assert "FlipRed · CLOSE LONG · AAPL" in flips[0].format()
+    assert "Open price: $101.00" in flips[0].format()
+    assert "Close price: $112.00" in flips[0].format()
+
+    flips, _ = alerts.detect_flips([{**exit_, "alertable": False}], 1440,
+                                    opened, asset_class="stocks")
+    assert flips == []
+
+    ny = ZoneInfo("America/New_York")
+    assert run_alerts.should_scan(datetime(2026, 9, 21, 18, tzinfo=ny))
+    assert not run_alerts.should_scan(datetime(2026, 9, 21, 16, tzinfo=ny))
+    assert not run_alerts.should_scan(datetime(2026, 9, 26, 18, tzinfo=ny))
+    print("Stocks alert fills, prices, and weekday gate: ok")
+
+
 def test_gc_short_state():
     """The SHORT mirror engages on a steep crash and stays flat on a flat tape."""
     import export_crypto_signals as exporter
@@ -508,6 +562,7 @@ if __name__ == "__main__":
     test_replay()
     test_backtest_stats()
     test_alerts_flip_detection()
+    test_stock_alerts_use_next_open_fills()
     test_gc_short_state()
     test_crypto_signal_export_helpers()
     test_fetch_series_staleness_and_renames()

@@ -135,7 +135,7 @@ CRYPTO = AssetClass(
     default_interval_idx=0,
     tv_default_prefix="BINANCE",
     is_24_7=True,
-    alerts_enabled=False,   # crypto alerts turned off (2026-09-29)
+    alerts_enabled=False,   # Telegram is reserved for Stocks
 )
 
 STOCKS = AssetClass(
@@ -162,6 +162,7 @@ METALS = AssetClass(
     default_interval_idx=0,
     tv_default_prefix="",
     is_24_7=False,
+    alerts_enabled=False,
 )
 
 COMMODITIES = AssetClass(
@@ -174,6 +175,7 @@ COMMODITIES = AssetClass(
     default_interval_idx=0,
     tv_default_prefix="",
     is_24_7=False,
+    alerts_enabled=False,
 )
 
 

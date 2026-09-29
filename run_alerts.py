@@ -1,20 +1,16 @@
-"""Headless alert engine — for cron / GitHub Actions / any scheduler.
+"""Weekday Stocks Telegram alerts, sent after the US market close.
 
-Scans all asset classes (Crypto / Stocks / Metals / Commodities) in one run.
-For each class, fetches → replays strategy → diffs state vs the saved baseline
-→ sends a Telegram message per FLAT↔LONG flip.
+Replays the assigned daily Stocks strategy, compares filled positions against
+the saved baseline, and sends OPEN/CLOSE messages for today's next-open fills.
 
 Required env vars:
     TELEGRAM_BOT_TOKEN
     TELEGRAM_CHAT_ID
 
-Each asset class uses the strategy assigned to it in strategy_assignments.json
-(falling back to the default GaussianChannel v3.1). Strategy params come from the
-preset; there are no per-param env vars anymore — edit the preset JSON instead.
+The Stocks strategy and preset come from strategy_assignments.json and the
+strategy registry. There are no per-param env vars.
 
 Optional:
-    TR_ASSET_CLASSES       comma-separated keys to scan; default: all
-                           (e.g. "crypto,stocks")
     TR_MAX_WORKERS         default 20
 """
 
@@ -23,12 +19,14 @@ from __future__ import annotations
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 import alerts
 import live_log
 import performance as perf
 import strategies as strat_registry
-from asset_classes import ASSET_CLASSES, AssetClass
+from asset_classes import STOCKS, AssetClass
 from sources import Resolver, SourceError, fetch_series
 
 
@@ -47,12 +45,42 @@ def fetch_one(base: str, resolver: Resolver, interval_minutes: int, is_24_7: boo
     return {"symbol": base, "pair": res.pair, "exchange": res.source.name, "df": res.df}
 
 
+def stock_fill(result, df) -> tuple[str, float | None, float | None, bool]:
+    """Position and trade prices after the latest bar's open fill.
+
+    The signal on the newest bar remains pending until the next trading bar.
+    """
+    state = result.state_series
+    if len(state) < 3:
+        return "FLAT", None, None, False
+    position = bool(state.iloc[-2])
+    prior_position = bool(state.iloc[-3])
+    if position == prior_position:
+        return ("LONG" if position else "FLAT"), None, None, False
+
+    last_bar = df.index[-1]
+    fills = perf.filled_trades(result.trades, df)
+    if position:
+        trade = next((t for t in fills if t.entry_ts == last_bar), None)
+        return "LONG", float(trade.entry_price) if trade else None, None, trade is not None
+    trade = next((t for t in fills if t.exit_ts == last_bar), None)
+    if trade is None:
+        return "FLAT", None, None, False
+    return "FLAT", float(trade.entry_price), float(trade.exit_price), True
+
+
+def should_scan(now_ny: datetime) -> bool:
+    """Keep manual dispatches and delayed scheduled runs within US weekdays."""
+    return now_ny.weekday() < 5 and now_ny.time() >= time(17, 30)
+
+
 def scan_class(
     ac: AssetClass,
     max_workers: int,
     prev_state: dict[str, str],
     bot_token: str,
     chat_id: str,
+    today_ny: date,
 ) -> dict[str, str]:
     """Scan one asset class with its assigned strategy, send alerts, return state."""
     interval = ac.interval_options[ac.default_interval_idx][1]
@@ -95,12 +123,17 @@ def scan_class(
         result = strat_registry.run_strategy(strategy, df)
         live_items.append((r["symbol"], df, result))
         snap = result.snapshot
+        state, entry_price, exit_price, filled_today = stock_fill(result, df)
+        bar_today = df.index[-1].date() == today_ny
         signals.append({
             "symbol": r["symbol"],
             "pair": r["pair"],
             "exchange": r["exchange"],
-            "state": "LONG" if snap.in_position else "FLAT",
+            "state": state,
             "last_close": snap.last_close,
+            "entry_price": entry_price,
+            "exit_price": exit_price,
+            "alertable": filled_today and bar_today,
             "stoch_k": snap.stoch_k,
             "filter_up": snap.filter_up,
             "close_vs_hband_pct": snap.close_vs_hband_pct,
@@ -125,7 +158,8 @@ def scan_class(
             print(f"  [warn] live log failed: {e!r}", file=sys.stderr)
 
     prev_state = alerts.reseed_on_strategy_change(
-        prev_state, ac.key, assigned_name, strat_registry.DEFAULT_STRATEGY_NAME,
+        prev_state, ac.key, f"{assigned_name}|next-open-fills-v1",
+        strat_registry.DEFAULT_STRATEGY_NAME,
     )
     class_prefix = f"{ac.key}|"
     interval_suffix = f"|{interval}"
@@ -161,6 +195,11 @@ def scan_class(
 
 
 def main() -> int:
+    now_ny = datetime.now(ZoneInfo("America/New_York"))
+    if not should_scan(now_ny):
+        print("No alert scan: Stocks alerts run Monday-Friday after 17:30 New York time.")
+        return 0
+
     bot_token = _env("TELEGRAM_BOT_TOKEN", "")
     chat_id = _env("TELEGRAM_CHAT_ID", "")
     if not bot_token or not chat_id:
@@ -169,24 +208,13 @@ def main() -> int:
 
     max_workers = int(_env("TR_MAX_WORKERS", "20"))
 
-    requested = _env("TR_ASSET_CLASSES", "").strip()
-    if requested:
-        keys = {k.strip() for k in requested.split(",")}
-        classes = [ac for ac in ASSET_CLASSES if ac.key in keys]
-        if not classes:
-            print(f"No asset classes match TR_ASSET_CLASSES={requested}", file=sys.stderr)
-            return 2
-    else:
-        classes = list(ASSET_CLASSES)
-
     print("== Trend Radar alerts ==")
-    print(f"asset classes: {[ac.label for ac in classes]}")
+    print("asset class: Stocks")
     print(f"strategy assignments: {strat_registry.load_assignments()}")
 
     state = alerts.load_state()
-    for ac in classes:
-        state = scan_class(ac, max_workers, state, bot_token, chat_id)
-        alerts.save_state(state)
+    state = scan_class(STOCKS, max_workers, state, bot_token, chat_id, now_ny.date())
+    alerts.save_state(state)
 
     return 0
 
