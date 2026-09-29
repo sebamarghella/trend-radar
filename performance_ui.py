@@ -194,7 +194,7 @@ def _backtest_tab(signals: list[dict], palette: dict, position_fraction: float) 
     notes = [
         f"Period: **{daily.index[0]:%d %b %Y} → {daily.index[-1]:%d %b %Y}** "
         "(the strategy only enters from 1 Jan 2018).",
-        f"Equal-weight book, **{'no cap, equal weight across all open' if slots == 0 else f'hard cap of {int(slots)} position(s), largest market cap first'}**, "
+        f"Daily-rebalanced equal-weight book, **{'no cap, equal weight across all open' if slots == 0 else f'hard cap of {int(slots)} position(s), largest market cap first'}**, "
         f"{position_fraction:.0%} of equity allocated when all slots are filled, 0.1% commission per side, "
         "entries/exits at the signal-bar close. Window stats count trades that closed inside the window.",
         f"**Survivorship bias:** the universe is *today's* top {info.get('universe', '?')} — names that later fell out "
@@ -311,8 +311,9 @@ def render_symbol_performance(
         )
         if strategy_logic_key == "gaussian_channel_stocks_v1":
             st.caption(
-                "The supplied Pine strategy fills at the next bar's open and uses 3 ticks of "
-                "slippage. This dashboard replays signal-bar close fills, so its return is "
+                "The supplied Pine strategy sizes each entry at 95% of then-current equity, "
+                "fills at the next bar's open and uses 3 ticks of slippage. This dashboard "
+                "rebalances a 95% allocation at signal-bar closes, so its return is "
                 "not an exact TradingView Strategy Tester result."
             )
 
