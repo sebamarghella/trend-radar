@@ -73,6 +73,9 @@ st.markdown(f"""
 <style>
 :root {{
     color-scheme: {PALETTE["MODE"]};
+    --tr-pane-border: {PALETTE["BORDER"]};
+    --tr-pane-accent: {PALETTE["ACCENT"]};
+    --tr-pane-surface: {PALETTE["BG_CARD"]};
 }}
 /* Page-level color + bg only — NO global font-family override (the previous
    `[class*='css']` rule cascaded into the AgGrid table and inflated cell
@@ -1830,6 +1833,7 @@ _jump_class = (_qp.get("tab") or "").strip().lower() if hasattr(_qp, "get") else
 _jump_symbol = (_qp.get("symbol") or "").strip().upper() if hasattr(_qp, "get") else ""
 
 ui_tweaks.install_grid_resize()
+ui_tweaks.install_pane_resize()
 # on_change="rerun" makes Streamlit run only the selected tab's code (by default
 # every tab computes on every rerun). Switching tabs reruns and renders the new one.
 tabs = st.tabs([ac.label for ac in ASSET_CLASSES], default="Stocks", on_change="rerun", key="asset_tabs")
