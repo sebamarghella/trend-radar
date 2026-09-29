@@ -121,7 +121,9 @@ those logics appear in the same strategy dropdown as the hand-ported strategies.
 
 ## Autonomous alerts via GitHub Actions
 
-You don't need to keep the Streamlit app open to receive Telegram alerts. `run_alerts.py` scans only daily Stocks signals. The scheduled job sends green-flip OPEN LONG and red-flip CLOSE LONG alerts shortly after fills at the following trading bar's open. OPEN alerts include the entry fill price; CLOSE alerts include both the entry and exit fill prices. The Streamlit app displays alert history but does not send Telegram messages.
+You don't need to keep the Streamlit app open to receive Telegram alerts. `run_alerts.py` scans only daily Stocks signals. The scheduled job sends green-flip OPEN LONG and red-flip CLOSE LONG alerts shortly after modeled fills at the following trading bar's open. OPEN alerts include the entry fill price; CLOSE alerts include both the entry and exit fill prices. The Streamlit app displays alert history but does not send Telegram messages. These are modeled market-open fills, not broker executions.
+
+The delivered-alert position ledger starts on 29 September 2026 with **AMD only**, opened at $616.96. A CLOSE alert is sent only for a stock with a delivered OPEN alert in that ledger; older model positions are not treated as user trades. Each tracked stock remains in the daily scan even after it leaves the top-570 ranking, until its matching closing fill is reported. Its opening strategy settings are saved with the position so later changes to the tab's preset do not change the exit rule for that open trade. An unavailable or stale bar for a tracked stock fails the job so the run monitor can warn about it. A recovered close from a missed scan is marked as a late notice.
 
 **Setup, one-time:**
 
@@ -137,7 +139,7 @@ You don't need to keep the Streamlit app open to receive Telegram alerts. `run_a
 
 - Keep the schedule after the US market open. The engine enforces the weekday and 09:45 New York time gates, and the Stocks alert timeframe is daily.
 
-**State persistence:** the workflow commits `alerts_state.json` back to the repo after each run. Without that, every run would think it's the first run and never alert.
+**State persistence:** the workflow commits `alerts_state.json`, `stocks_alert_positions.json`, and alert history back to the repo after each run, including when a tracked-stock fetch or Telegram send fails. Without those files, it could lose track of open alerted trades or repeat messages.
 
 **Local cron alternative:** if you have a Linux box / WSL / Mac that's always on, set its cron timezone to New York:
 

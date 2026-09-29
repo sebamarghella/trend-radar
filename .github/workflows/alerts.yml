@@ -37,6 +37,7 @@ jobs:
         run: pip install -r requirements-alerts.txt
 
       - name: Run alert engine
+        id: alert_engine
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -44,12 +45,14 @@ jobs:
         run: python run_alerts.py
 
       - name: Commit updated state & history
+        if: ${{ success() || steps.alert_engine.outcome == 'failure' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           changed=0
           [[ -f .cache/alerts_state.json ]]  && git add .cache/alerts_state.json  && changed=1
           [[ -f .cache/alerts_history.json ]] && git add .cache/alerts_history.json && changed=1
+          [[ -f .cache/stocks_alert_positions.json ]] && git add .cache/stocks_alert_positions.json && changed=1
           # Forward track record (equity curve + trade log) — see live_log.py
           for f in .cache/live_*_equity.json .cache/live_*_trades.json; do
             [[ -f "$f" ]] && git add "$f" && changed=1

@@ -555,6 +555,176 @@ def test_gc_stocks_green_red_flips():
     print("GC stocks green/red flips: ok")
 
 
+def test_open_stock_kept_after_leaving_ranked_universe():
+    """A saved LONG still gets its closing alert after leaving the top 570."""
+    from datetime import date
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    import run_alerts
+    from gaussian_channel import TradeRecord
+
+    dates = pd.date_range("2026-09-21", periods=5, freq="B", tz="UTC")
+    df = pd.DataFrame({"open": [95., 97., 101., 105., 112.],
+                       "close": [96., 98., 103., 106., 111.]}, index=dates)
+    trade = TradeRecord(entry_ts=dates[1], entry_price=98.,
+                        exit_ts=dates[3], exit_price=106.)
+    result = SimpleNamespace(
+        state_series=pd.Series([0, 1, 1, 0, 0], index=dates),
+        trades=[trade],
+        snapshot=SimpleNamespace(last_close=111., stoch_k=None,
+                                 filter_up=False, close_vs_hband_pct=0.),
+    )
+    strategy = SimpleNamespace(name="GC stocks",
+                               to_dict=lambda: {"name": "GC stocks",
+                                                "logic_key": "gaussian_channel_stocks_v1",
+                                                "params": {}})
+    resolver = SimpleNamespace(coverage=lambda: {"Yahoo": 1})
+    ac = SimpleNamespace(
+        key="stocks", label="Stocks", interval_options=[("1 day", 1440)],
+        default_interval_idx=0, resolver_factory=lambda: resolver,
+        get_universe=lambda _: [{"symbol": "MSFT"}], is_24_7=False,
+        alerts_enabled=True,
+    )
+    previous = {"__strategy__|stocks": "GC stocks|next-open-fills-v1",
+                "stocks|AAPL|1440": "LONG",
+                "stocks|MSFT|1440": "LONG"}  # historic model LONG, no delivered entry
+    alerted_positions = {"AAPL": {"entry_date": "2026-09-23", "entry_price": 101.}}
+    scanned = []
+
+    def fetch(symbol, *_args):
+        scanned.append(symbol)
+        if symbol == "AAPL":
+            return {"symbol": symbol, "pair": symbol, "exchange": "Yahoo", "df": df}
+        return None
+
+    with (patch.object(run_alerts.strat_registry, "load_strategies",
+                       return_value={strategy.name: strategy}),
+          patch.object(run_alerts.strat_registry, "get_assignment",
+                       return_value=strategy.name),
+          patch.object(run_alerts.strat_registry, "run_strategy", return_value=result),
+          patch.object(run_alerts, "fetch_one", side_effect=fetch),
+          patch.object(run_alerts.live_log, "LIVE_CLASSES", set()),
+          patch.object(run_alerts.alerts, "record_flips"),
+          patch.object(run_alerts.alerts, "fire_alerts",
+                       side_effect=lambda flips, *_: (flips, [])) as sent):
+        state, positions, issues = run_alerts.scan_class(
+            ac, 2, previous, "token", "chat", date(2026, 9, 25), alerted_positions.copy(),
+        )
+    assert sorted(scanned) == ["AAPL", "MSFT"]
+    assert state["stocks|AAPL|1440"] == "FLAT" and not issues
+    assert positions == {}
+    flips = sent.call_args.args[0]
+    assert len(flips) == 1 and flips[0].symbol == "AAPL"
+    assert flips[0].direction == "EXIT" and flips[0].exit_price == 112.
+
+    with (patch.object(run_alerts.strat_registry, "load_strategies",
+                       return_value={strategy.name: strategy}),
+          patch.object(run_alerts.strat_registry, "get_assignment",
+                       return_value=strategy.name),
+          patch.object(run_alerts, "fetch_one", return_value=None),
+          patch.object(run_alerts.live_log, "LIVE_CLASSES", set())):
+        state, positions, issues = run_alerts.scan_class(
+            ac, 2, previous, "token", "chat", date(2026, 9, 25), alerted_positions.copy(),
+        )
+    assert state["stocks|AAPL|1440"] == "LONG"
+    assert "AAPL" in positions
+    assert len(issues) == 1 and "AAPL" in issues[0]
+
+    # A historic model LONG with no delivered OPEN alert must not emit a
+    # confusing CLOSE alert, even when it exits today.
+    ac.get_universe = lambda _: [{"symbol": "AAPL"}]
+    with (patch.object(run_alerts.strat_registry, "load_strategies",
+                       return_value={strategy.name: strategy}),
+          patch.object(run_alerts.strat_registry, "get_assignment",
+                       return_value=strategy.name),
+          patch.object(run_alerts.strat_registry, "run_strategy", return_value=result),
+          patch.object(run_alerts, "fetch_one", side_effect=fetch),
+          patch.object(run_alerts.live_log, "LIVE_CLASSES", set()),
+          patch.object(run_alerts.alerts, "fire_alerts") as send_unpaired):
+        _, positions, issues = run_alerts.scan_class(
+            ac, 2, previous, "token", "chat", date(2026, 9, 25), {},
+        )
+    assert positions == {} and not issues
+    send_unpaired.assert_not_called()
+
+    # If Friday's scan was missed, the next scan still delivers the tracked
+    # CLOSE with Friday's fill date and price.
+    later = dates[-1] + pd.Timedelta(days=3)
+    late_df = pd.concat([df, pd.DataFrame({"open": [113.], "close": [114.]},
+                                           index=pd.DatetimeIndex([later]))])
+    late_result = SimpleNamespace(
+        state_series=pd.Series([0, 1, 1, 0, 0, 0], index=late_df.index),
+        trades=[trade], snapshot=result.snapshot,
+    )
+    ac.get_universe = lambda _: [{"symbol": "MSFT"}]
+    with (patch.object(run_alerts.strat_registry, "load_strategies",
+                       return_value={strategy.name: strategy}),
+          patch.object(run_alerts.strat_registry, "get_assignment",
+                       return_value=strategy.name),
+          patch.object(run_alerts.strat_registry, "run_strategy", return_value=late_result),
+          patch.object(run_alerts, "fetch_one",
+                       side_effect=lambda symbol, *_: {"symbol": symbol, "pair": symbol,
+                                                        "exchange": "Yahoo", "df": late_df}
+                       if symbol == "AAPL" else None),
+          patch.object(run_alerts.live_log, "LIVE_CLASSES", set()),
+          patch.object(run_alerts.alerts, "record_flips"),
+          patch.object(run_alerts.alerts, "fire_alerts",
+                       side_effect=lambda flips, *_: (flips, [])) as sent_late):
+        _, positions, issues = run_alerts.scan_class(
+            ac, 2, previous, "token", "chat", date(2026, 9, 28),
+            alerted_positions.copy(),
+        )
+    late_flip = sent_late.call_args.args[0][0]
+    assert late_flip.late and late_flip.fill_date == "2026-09-25"
+    assert "late notice" in late_flip.format()
+    assert positions == {} and not issues
+
+    # Only a successfully delivered new OPEN becomes a tracked position.
+    new_trade = TradeRecord(entry_ts=dates[-2], entry_price=106.,
+                            exit_ts=None, exit_price=None)
+    entry_result = SimpleNamespace(
+        state_series=pd.Series([0, 0, 0, 1, 1], index=dates),
+        trades=[new_trade], snapshot=result.snapshot,
+    )
+    ac.get_universe = lambda _: [{"symbol": "AAPL"}]
+    with (patch.object(run_alerts.strat_registry, "load_strategies",
+                       return_value={strategy.name: strategy}),
+          patch.object(run_alerts.strat_registry, "get_assignment",
+                       return_value=strategy.name),
+          patch.object(run_alerts.strat_registry, "run_strategy", return_value=entry_result),
+          patch.object(run_alerts, "fetch_one", side_effect=fetch),
+          patch.object(run_alerts.live_log, "LIVE_CLASSES", set()),
+          patch.object(run_alerts.alerts, "record_flips"),
+          patch.object(run_alerts.alerts, "fire_alerts",
+                       side_effect=lambda flips, *_: (flips, []))):
+        _, positions, issues = run_alerts.scan_class(
+            ac, 2, {**previous, "stocks|AAPL|1440": "FLAT"}, "token", "chat",
+            date(2026, 9, 25), {},
+        )
+    assert not issues and positions["AAPL"]["entry_date"] == "2026-09-25"
+    assert positions["AAPL"]["entry_price"] == 112.
+    assert positions["AAPL"]["strategy"] == strategy.to_dict()
+    with (patch.object(run_alerts.strat_registry, "load_strategies",
+                       return_value={strategy.name: strategy}),
+          patch.object(run_alerts.strat_registry, "get_assignment",
+                       return_value=strategy.name),
+          patch.object(run_alerts.strat_registry, "run_strategy", return_value=entry_result),
+          patch.object(run_alerts, "fetch_one", side_effect=fetch),
+          patch.object(run_alerts.live_log, "LIVE_CLASSES", set()),
+          patch.object(run_alerts.alerts, "record_flips") as record_failed,
+          patch.object(run_alerts.alerts, "fire_alerts",
+                       return_value=([], ["AAPL: Telegram unavailable"]))):
+        state, positions, issues = run_alerts.scan_class(
+            ac, 2, {**previous, "stocks|AAPL|1440": "FLAT"}, "token", "chat",
+            date(2026, 9, 25), {},
+        )
+    assert positions == {} and state["stocks|AAPL|1440"] == "FLAT"
+    assert issues == ["AAPL: Telegram unavailable"]
+    record_failed.assert_not_called()
+    print("open stock remains tracked after ranking exit: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -576,4 +746,5 @@ if __name__ == "__main__":
     test_next_open_fills()
     test_next_open_forward_log()
     test_gc_stocks_green_red_flips()
+    test_open_stock_kept_after_leaving_ranked_universe()
     print("\nAll smoke tests passed.")

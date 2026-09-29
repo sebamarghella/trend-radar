@@ -1,0 +1,18 @@
+{
+  "AMD": {
+    "entry_date": "2026-09-29",
+    "entry_price": 616.96,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  }
+}

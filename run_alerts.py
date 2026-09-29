@@ -85,6 +85,27 @@ def seed_prior_filled_states(signals: list[dict], previous: dict[str, str],
     return seeded
 
 
+def include_open_positions(universe: list[dict],
+                           open_positions: dict[str, dict]) -> tuple[list[dict], set[str]]:
+    """Keep scanning delivered OPEN alerts after they leave the ranked universe."""
+    held = set(open_positions)
+    symbols = {item["symbol"] for item in universe}
+    extra = sorted(held - symbols)
+    return [*universe, *({"symbol": symbol} for symbol in extra)], held
+
+
+def tracked_exit(result, df, position: dict) -> tuple[float, float, str] | None:
+    """Find the close fill for the exact trade whose OPEN alert was delivered."""
+    entry_date = position["entry_date"]
+    for trade in perf.filled_trades(result.trades, df):
+        if trade.entry_ts.date().isoformat() != entry_date:
+            continue
+        if trade.exit_ts is not None and trade.exit_price is not None:
+            return float(trade.entry_price), float(trade.exit_price), trade.exit_ts.date().isoformat()
+        return None
+    return None
+
+
 def scan_class(
     ac: AssetClass,
     max_workers: int,
@@ -92,9 +113,10 @@ def scan_class(
     bot_token: str,
     chat_id: str,
     today_ny: date,
+    open_positions: dict[str, dict],
     send_todays_fills: bool = False,
-) -> dict[str, str]:
-    """Scan one asset class with its assigned strategy, send alerts, return state."""
+) -> tuple[dict[str, str], dict[str, dict], list[str]]:
+    """Scan one asset class, maintain alerted trades, and report failures."""
     interval = ac.interval_options[ac.default_interval_idx][1]
 
     all_strategies = strat_registry.load_strategies()
@@ -109,8 +131,10 @@ def scan_class(
     coverage = resolver.coverage()
     cov_str = " · ".join(f"{k}={v}" for k, v in coverage.items())
     print(f"  Sources: {cov_str}")
-    universe = ac.get_universe(resolver)
-    print(f"  Universe: {len(universe)} symbols")
+    ranked_universe = ac.get_universe(resolver)
+    universe, held_symbols = include_open_positions(ranked_universe, open_positions)
+    print(f"  Universe: {len(ranked_universe)} ranked + "
+          f"{len(universe) - len(ranked_universe)} previously open = {len(universe)} symbols")
 
     rows: list[dict] = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
@@ -128,15 +152,64 @@ def scan_class(
     breakdown = ", ".join(f"{k}={v}" for k, v in sorted(per_exchange.items()))
     print(f"  Fetched: {len(rows)}/{len(universe)} ({breakdown})")
 
+    fetched = {r["symbol"] for r in rows}
+    issues = []
+    missing_held = sorted(held_symbols - fetched)
+    if missing_held:
+        issues.append(f"Could not fetch {len(missing_held)} open Stocks position(s): "
+                      + ", ".join(missing_held))
+    # Holidays have no new bars for any symbol. If other stocks have today's
+    # bar, an open position without one cannot be checked for its exit fill.
+    if any(r["df"].index[-1].date() == today_ny for r in rows):
+        stale_held = sorted(
+            r["symbol"] for r in rows
+            if r["symbol"] in held_symbols and r["df"].index[-1].date() != today_ny
+        )
+        if stale_held:
+            issues.append(f"No current trading bar for {len(stale_held)} open "
+                          f"Stocks position(s): " + ", ".join(stale_held))
+    for issue in issues:
+        print(f"  [error] {issue}", file=sys.stderr)
+
     signals: list[dict] = []
     live_items: list[tuple] = []
     for r in rows:
         df = r["df"]
-        result = strat_registry.run_strategy(strategy, df)
-        live_items.append((r["symbol"], df, result))
+        current_result = strat_registry.run_strategy(strategy, df)
+        live_items.append((r["symbol"], df, current_result))
+        result = current_result
+        if r["symbol"] in open_positions and "strategy" in open_positions[r["symbol"]]:
+            try:
+                opened_strategy = strat_registry.parse_strategy_dict(
+                    open_positions[r["symbol"]]["strategy"]
+                )
+                if opened_strategy.to_dict() != strategy.to_dict():
+                    result = strat_registry.run_strategy(opened_strategy, df)
+            except (KeyError, TypeError, ValueError) as exc:
+                issue = f"Could not replay tracked Stocks strategy for {r['symbol']}: {exc}"
+                issues.append(issue)
+                print(f"  [error] {issue}", file=sys.stderr)
+                continue
         snap = result.snapshot
         state, entry_price, exit_price, filled_today = stock_fill(result, df)
         bar_today = df.index[-1].date() == today_ny
+        fill_date = df.index[-1].date().isoformat() if filled_today else None
+        alertable = filled_today and bar_today
+        if r["symbol"] in open_positions:
+            closed = tracked_exit(result, df, open_positions[r["symbol"]])
+            if closed is not None:
+                if state == "LONG":
+                    issue = (f"{r['symbol']} closed its alerted trade and later re-entered "
+                             "before this scan; review the newer entry")
+                    issues.append(issue)
+                    print(f"  [error] {issue}", file=sys.stderr)
+                state = "FLAT"  # deliver the tracked close before any newer trade
+                entry_price, exit_price, fill_date = closed
+                alertable = True  # deliver a late close even after a missed run
+            elif state == "FLAT":
+                issue = f"Could not match a closing fill for tracked Stocks position: {r['symbol']}"
+                issues.append(issue)
+                print(f"  [error] {issue}", file=sys.stderr)
         signals.append({
             "symbol": r["symbol"],
             "pair": r["pair"],
@@ -145,7 +218,9 @@ def scan_class(
             "last_close": snap.last_close,
             "entry_price": entry_price,
             "exit_price": exit_price,
-            "alertable": filled_today and bar_today,
+            "alertable": alertable,
+            "fill_date": fill_date,
+            "late": bool(fill_date and fill_date != today_ny.isoformat()),
             "stoch_k": snap.stoch_k,
             "filter_up": snap.filter_up,
             "close_vs_hband_pct": snap.close_vs_hband_pct,
@@ -177,35 +252,59 @@ def scan_class(
         prev_state = seed_prior_filled_states(signals, prev_state, ac.key, interval)
     class_prefix = f"{ac.key}|"
     interval_suffix = f"|{interval}"
-    had_baseline = any(
+    had_baseline = bool(open_positions) or any(
         k.startswith(class_prefix) and k.endswith(interval_suffix) for k in prev_state
     )
+    # The delivered-alert ledger is authoritative. Historic model LONGs were
+    # seeded before alerting began and must not generate unpaired CLOSE alerts.
+    for symbol in open_positions:
+        prev_state[f"{ac.key}|{symbol}|{interval}"] = "LONG"
+    for signal in signals:
+        if signal["state"] == "LONG" and signal["alertable"] and signal["symbol"] not in open_positions:
+            prev_state[f"{ac.key}|{signal['symbol']}|{interval}"] = "FLAT"
     flips, new_state = alerts.detect_flips(signals, interval, prev_state, asset_class=ac.key)
 
     if not ac.alerts_enabled:
         # Keep the baseline current so re-enabling later doesn't fire a burst of stale flips.
         print(f"  Alerts are turned off for {ac.label}: {len(flips)} flip(s) not sent or recorded; baseline updated silently.")
-        return new_state
+        return new_state, open_positions, issues
 
     if not had_baseline:
         print(f"  Seeded baseline ({len(signals)} symbols); no alerts sent.")
-        return new_state
+        return new_state, open_positions, issues
 
+    flips = [f for f in flips
+             if (f.direction == "ENTRY" and f.symbol not in open_positions)
+             or (f.direction == "EXIT" and f.symbol in open_positions)]
     if not flips:
         print("  No flips.")
-        return new_state
+        return new_state, open_positions, issues
 
     print(f"  Detected {len(flips)} flip(s):")
     for f in flips:
         print(f"    {f.symbol} {f.direction} @ {f.price:.6g}")
-    alerts.record_flips(flips, asset_class=ac.key)
-
     sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
-    print(f"  Sent {sent} alert(s); {len(errs)} error(s)")
+    print(f"  Sent {len(sent)} alert(s); {len(errs)} error(s)")
+    delivered = {id(f) for f in sent}
+    for f in flips:
+        key = f"{ac.key}|{f.symbol}|{interval}"
+        if id(f) not in delivered:
+            new_state[key] = prev_state[key]  # allow same-day manual retry
+        elif f.direction == "ENTRY":
+            open_positions[f.symbol] = {
+                "entry_date": f.fill_date,
+                "entry_price": f.entry_price,
+                "strategy": strategy.to_dict(),
+            }
+        else:
+            open_positions.pop(f.symbol)
+    if sent:
+        alerts.record_flips(sent, asset_class=ac.key)
     for e in errs:
         print(f"    [error] {e}", file=sys.stderr)
+    issues.extend(errs)
 
-    return new_state
+    return new_state, open_positions, issues
 
 
 def main() -> int:
@@ -228,11 +327,15 @@ def main() -> int:
     print(f"strategy assignments: {strat_registry.load_assignments()}")
 
     state = alerts.load_state()
-    state = scan_class(STOCKS, max_workers, state, bot_token, chat_id,
-                       now_ny.date(), send_todays_fills)
+    open_positions = alerts.load_open_positions()
+    state, open_positions, issues = scan_class(
+        STOCKS, max_workers, state, bot_token, chat_id,
+        now_ny.date(), open_positions, send_todays_fills,
+    )
     alerts.save_state(state)
+    alerts.save_open_positions(open_positions)
 
-    return 0
+    return 1 if issues else 0
 
 
 if __name__ == "__main__":

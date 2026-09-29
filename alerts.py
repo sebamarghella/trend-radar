@@ -16,6 +16,7 @@ import requests
 
 STATE_FILE = Path(__file__).parent / ".cache" / "alerts_state.json"
 HISTORY_FILE = Path(__file__).parent / ".cache" / "alerts_history.json"
+OPEN_POSITIONS_FILE = Path(__file__).parent / ".cache" / "stocks_alert_positions.json"
 STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 TELEGRAM_API = "https://api.telegram.org"
@@ -36,18 +37,22 @@ class Flip:
     asset_class: str = "crypto"
     entry_price: float | None = None
     exit_price: float | None = None
+    fill_date: str | None = None
+    late: bool = False
 
     def format(self) -> str:
         if self.asset_class == "stocks":
             opening = self.entry_price if self.entry_price is not None else self.price
+            late = (f"\nFill date: {self.fill_date} (late notice)"
+                    if self.late and self.fill_date else "")
             if self.direction == "ENTRY":
                 return (f"🟢 FlipGreen · OPEN LONG · {self.symbol}\n"
                         f"Open price: ${opening:,.2f}\n"
-                        "Close price: pending")
+                        f"Close price: pending{late}")
             closing = self.exit_price if self.exit_price is not None else self.price
             return (f"🔴 FlipRed · CLOSE LONG · {self.symbol}\n"
                     f"Open price: ${opening:,.2f}\n"
-                    f"Close price: ${closing:,.2f}")
+                    f"Close price: ${closing:,.2f}{late}")
         tf = _tf_label(self.interval_minutes)
         emoji = "🟢" if self.direction == "ENTRY" else "🔴"
         verb = "LONG" if self.direction == "ENTRY" else "EXIT"
@@ -74,17 +79,28 @@ def _tf_label(minutes: int) -> str:
 def load_state() -> dict[str, str]:
     if not STATE_FILE.exists():
         return {}
-    try:
-        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {}
+    data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("alerts_state.json must contain an object")
+    return data
 
 
 def save_state(state: dict[str, str]) -> None:
-    try:
-        STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
-    except OSError:
-        pass
+    STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
+def load_open_positions() -> dict[str, dict]:
+    """Stocks whose OPEN LONG Telegram alert succeeded and has not closed."""
+    if not OPEN_POSITIONS_FILE.exists():
+        raise FileNotFoundError("stocks_alert_positions.json is required for Stocks alerts")
+    data = json.loads(OPEN_POSITIONS_FILE.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("stocks_alert_positions.json must contain an object")
+    return data
+
+
+def save_open_positions(positions: dict[str, dict]) -> None:
+    OPEN_POSITIONS_FILE.write_text(json.dumps(positions, indent=2) + "\n", encoding="utf-8")
 
 
 def _key(asset_class: str, symbol: str, interval_minutes: int) -> str:
@@ -160,6 +176,8 @@ def detect_flips(
             asset_class=asset_class,
             entry_price=s.get("entry_price"),
             exit_price=s.get("exit_price"),
+            fill_date=s.get("fill_date"),
+            late=bool(s.get("late", False)),
         ))
     return flips, new_state
 
@@ -186,14 +204,14 @@ def fire_alerts(
     flips: list[Flip],
     bot_token: str,
     chat_id: str,
-) -> tuple[int, list[str]]:
-    """Send one Telegram message per flip. Returns (sent_count, errors)."""
-    sent = 0
+) -> tuple[list[Flip], list[str]]:
+    """Send one Telegram message per flip. Return delivered flips and errors."""
+    sent: list[Flip] = []
     errors: list[str] = []
     for flip in flips:
         ok, err = send_telegram(bot_token, chat_id, flip.format())
         if ok:
-            sent += 1
+            sent.append(flip)
         else:
             errors.append(f"{flip.symbol}: {err}")
     return sent, errors
