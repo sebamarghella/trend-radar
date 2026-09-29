@@ -1,1 +1,8 @@
-{}
+{
+  "stocks": [
+    "symbol",
+    "name",
+    "bars_in_state",
+    "tv"
+  ]
+}

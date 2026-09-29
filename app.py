@@ -1425,15 +1425,18 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                     content = save_column_preferences(key, visible_columns)
                     if _gh_token and _gh_repo:
                         import repo_sync
-                        repo_sync.put_file(
+                        status = repo_sync.put_file(
                             _gh_repo, COLUMN_PREFS_FILE.name, content, _gh_token, _gh_branch,
                             f"chore: save {ac.label.lower()} radar columns",
                         )
-                        st.success("Column choices committed to the repo.")
+                        if status == "unchanged":
+                            st.success("Column choices are already committed to the repo.")
+                        else:
+                            st.success("Column choices committed to the repo.")
                     else:
                         st.info("Column choices saved on this app instance. GitHub credentials are needed to keep them after a Cloud restart.")
                 except Exception as exc:
-                    st.error(f"Could not commit column choices: {exc}")
+                    st.error(f"Column choices work in this session, but could not be committed: {exc}")
         active_columns = set(visible_columns or [all_fields[0]])
         for col in grid_opts["columnDefs"]:
             if col.get("field") in all_fields:

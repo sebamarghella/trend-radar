@@ -14,6 +14,7 @@ provided via st.secrets["github"]["token"].
 from __future__ import annotations
 
 import base64
+import hashlib
 from pathlib import Path
 
 import requests
@@ -30,6 +31,20 @@ def _headers(token: str) -> dict:
     }
 
 
+def _raise_github_error(response: requests.Response) -> None:
+    if response.ok:
+        return
+    try:
+        message = response.json().get("message", response.reason)
+    except (ValueError, AttributeError):
+        message = response.reason
+    hint = (
+        " Check the Streamlit [github] token's repository access and Contents: Read and write permission."
+        if response.status_code in (401, 403) else ""
+    )
+    raise requests.HTTPError(f"GitHub {response.status_code}: {message}.{hint}", response=response)
+
+
 def _get_sha(repo: str, path: str, token: str, branch: str) -> str | None:
     r = requests.get(
         f"{API}/repos/{repo}/contents/{path}",
@@ -37,11 +52,17 @@ def _get_sha(repo: str, path: str, token: str, branch: str) -> str | None:
     )
     if r.status_code == 200:
         return r.json().get("sha")
+    if r.status_code == 404:
+        return None
+    _raise_github_error(r)
     return None
 
 
 def put_file(repo: str, path: str, content: bytes, token: str, branch: str, message: str) -> str:
     sha = _get_sha(repo, path, token, branch)
+    blob_sha = hashlib.sha1(f"blob {len(content)}\0".encode() + content).hexdigest()
+    if sha == blob_sha:
+        return "unchanged"
     payload = {
         "message": message,
         "content": base64.b64encode(content).decode(),
@@ -53,7 +74,7 @@ def put_file(repo: str, path: str, content: bytes, token: str, branch: str, mess
         f"{API}/repos/{repo}/contents/{path}",
         headers=_headers(token), json=payload, timeout=TIMEOUT,
     )
-    r.raise_for_status()
+    _raise_github_error(r)
     return "updated" if sha else "created"
 
 
@@ -67,7 +88,7 @@ def delete_file(repo: str, path: str, token: str, branch: str, message: str) -> 
         json={"message": message, "sha": sha, "branch": branch},
         timeout=TIMEOUT,
     )
-    r.raise_for_status()
+    _raise_github_error(r)
     return "deleted"
 
 
@@ -96,7 +117,7 @@ def sync_presets(
 
     Returns a summary dict with created/updated/deleted/errors lists.
     """
-    results: dict[str, list[str]] = {"created": [], "updated": [], "deleted": [], "errors": []}
+    results: dict[str, list[str]] = {"created": [], "updated": [], "unchanged": [], "deleted": [], "errors": []}
     local_files = {p.name for p in strategies_dir.glob("*.json")}
 
     for p in sorted(strategies_dir.glob("*.json")):
