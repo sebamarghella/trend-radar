@@ -1587,58 +1587,6 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             with st.container():
                 st.altair_chart(chart, width="stretch")
 
-                equity_df = _build_equity_curve(
-                    sel.get("_trades", []),
-                    now=sel["_df"].index[-1],
-                    lookback_days_=lookback_days,
-                    latest_ts=chart_df["time"].iloc[-1],
-                    latest_close=float(chart_df["close"].iloc[-1]),
-                )
-                eq_col, dd_col = st.columns(2)
-                eq_axis = alt.Axis(
-                    grid=True,
-                    gridColor=PALETTE["BORDER"],
-                    gridOpacity=PALETTE["GRID_OPACITY"],
-                    labelColor=PALETTE["FG_MUTED"],
-                    tickColor=PALETTE["BORDER"],
-                    domainColor=PALETTE["BORDER"],
-                    title=None,
-                )
-                eq_base = alt.Chart(equity_df).encode(x=alt.X("time:T", axis=x_axis))
-                with eq_col:
-                    st.caption(f"Equity curve ({lookback_days}d lookback)")
-                    equity_chart = (
-                        eq_base.mark_line(color=PALETTE["BULLISH"], strokeWidth=2)
-                        .encode(
-                            y=alt.Y("equity:Q", axis=eq_axis, scale=alt.Scale(zero=False)),
-                            tooltip=[
-                                alt.Tooltip("time:T", title="Time"),
-                                alt.Tooltip("equity:Q", title="Equity", format=".3f"),
-                                alt.Tooltip("stage:N", title="Stage"),
-                            ],
-                        )
-                        .properties(height=170, background=PALETTE["BG_CARD"])
-                        .configure_view(stroke=None)
-                    )
-                    st.altair_chart(equity_chart, width="stretch")
-
-                with dd_col:
-                    st.caption("Underwater")
-                    underwater_chart = (
-                        eq_base.mark_area(color=PALETTE["BEARISH"], opacity=0.18)
-                        .encode(
-                            y=alt.Y("drawdown:Q", axis=eq_axis, scale=alt.Scale(domainMax=0)),
-                            tooltip=[
-                                alt.Tooltip("time:T", title="Time"),
-                                alt.Tooltip("drawdown:Q", title="Drawdown", format=".2f"),
-                                alt.Tooltip("stage:N", title="Stage"),
-                            ],
-                        )
-                        .properties(height=170, background=PALETTE["BG_CARD"])
-                        .configure_view(stroke=None)
-                    )
-                    st.altair_chart(underwater_chart, width="stretch")
-
                 mc1, mc2, mc3, mc4, mc5 = st.columns(5)
                 mc1.metric("State", sel["state"])
                 mc2.metric("Bars in state", sel["bars_in_state"])
