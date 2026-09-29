@@ -121,7 +121,7 @@ those logics appear in the same strategy dropdown as the hand-ported strategies.
 
 ## Autonomous alerts via GitHub Actions
 
-You don't need to keep the Streamlit app open to receive Telegram alerts. `run_alerts.py` scans only daily Stocks signals. The scheduled job sends green-flip OPEN LONG and red-flip CLOSE LONG alerts after fills at the following trading bar's open. OPEN alerts include the entry fill price; CLOSE alerts include both the entry and exit fill prices. The Streamlit app displays alert history but does not send Telegram messages.
+You don't need to keep the Streamlit app open to receive Telegram alerts. `run_alerts.py` scans only daily Stocks signals. The scheduled job sends green-flip OPEN LONG and red-flip CLOSE LONG alerts shortly after fills at the following trading bar's open. OPEN alerts include the entry fill price; CLOSE alerts include both the entry and exit fill prices. The Streamlit app displays alert history but does not send Telegram messages.
 
 **Setup, one-time:**
 
@@ -129,20 +129,21 @@ You don't need to keep the Streamlit app open to receive Telegram alerts. `run_a
 2. Repo → **Settings → Secrets and variables → Actions → New repository secret**, add:
    - `TELEGRAM_BOT_TOKEN` — your bot token from @BotFather
    - `TELEGRAM_CHAT_ID` — your numeric chat id (e.g. from @userinfobot)
-3. The workflow at `.github/workflows/alerts.yml` runs **Monday-Friday at 23:15 UTC**, after the US stock close. Triggering it manually before 17:30 New York time or on a weekend does nothing.
+3. The workflow at `.github/workflows/alerts.yml` runs **Monday-Friday at 09:50 New York time**, shortly after the US stock open. GitHub handles daylight saving time through the workflow's timezone. Triggering it manually before 09:45 New York time or on a weekend does nothing.
 4. The first run after an alert-logic change silently seeds the filled-position baseline. Future filled flips generate Telegram messages. If the latest Yahoo daily bar is not for the current New York trading day, it cannot generate an alert.
-   For a one-time check of fills that already occurred today, dispatch the workflow with `send_todays_fills=true` after 09:45 New York time. That first dispatch sends only today's filled flips and establishes the new baseline; the routine evening run will not repeat them.
+   For a one-time check of fills that already occurred today, dispatch the workflow with `send_todays_fills=true` after 09:45 New York time. That first dispatch sends only today's filled flips and establishes the new baseline; later routine runs will not repeat them.
 
 **Tweaking the cadence or timeframe:**
 
-- Keep the schedule after the US market close. The engine enforces the weekday and 17:30 New York time gates, and the Stocks alert timeframe is daily.
+- Keep the schedule after the US market open. The engine enforces the weekday and 09:45 New York time gates, and the Stocks alert timeframe is daily.
 
 **State persistence:** the workflow commits `alerts_state.json` back to the repo after each run. Without that, every run would think it's the first run and never alert.
 
-**Local cron alternative:** if you have a Linux box / WSL / Mac that's always on, just put this in your crontab and skip GitHub entirely:
+**Local cron alternative:** if you have a Linux box / WSL / Mac that's always on, set its cron timezone to New York:
 
 ```cron
-15 23 * * 1-5 cd /path/to/trend_radar && TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... python run_alerts.py >> alerts.log 2>&1
+CRON_TZ=America/New_York
+50 9 * * 1-5 cd /path/to/trend_radar && TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... python run_alerts.py >> alerts.log 2>&1
 ```
 
 ## Public crypto signals JSON

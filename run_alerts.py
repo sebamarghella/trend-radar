@@ -1,4 +1,4 @@
-"""Weekday Stocks Telegram alerts, sent after the US market close.
+"""Weekday Stocks Telegram alerts, sent shortly after the US market opens.
 
 Replays the assigned daily Stocks strategy, compares filled positions against
 the saved baseline, and sends OPEN/CLOSE messages for today's next-open fills.
@@ -69,10 +69,9 @@ def stock_fill(result, df) -> tuple[str, float | None, float | None, bool]:
     return "FLAT", float(trade.entry_price), float(trade.exit_price), True
 
 
-def should_scan(now_ny: datetime, send_todays_fills: bool = False) -> bool:
-    """Manual previews can use known open fills; routine scans wait for the close."""
-    cutoff = time(9, 45) if send_todays_fills else time(17, 30)
-    return now_ny.weekday() < 5 and now_ny.time() >= cutoff
+def should_scan(now_ny: datetime) -> bool:
+    """Both routine and manual scans require the next-open fill to exist."""
+    return now_ny.weekday() < 5 and now_ny.time() >= time(9, 45)
 
 
 def seed_prior_filled_states(signals: list[dict], previous: dict[str, str],
@@ -212,9 +211,8 @@ def scan_class(
 def main() -> int:
     now_ny = datetime.now(ZoneInfo("America/New_York"))
     send_todays_fills = _env("TR_SEND_TODAYS_FILLS", "").lower() in {"true", "1", "yes"}
-    if not should_scan(now_ny, send_todays_fills):
-        print("No alert scan: Stocks alerts run Monday-Friday after 17:30 New York time "
-              "(or after 09:45 for an explicit send-today dispatch).")
+    if not should_scan(now_ny):
+        print("No alert scan: Stocks fills are checked Monday-Friday after 09:45 New York time.")
         return 0
 
     bot_token = _env("TELEGRAM_BOT_TOKEN", "")

@@ -364,7 +364,7 @@ grid_height = st.sidebar.slider(
 )
 
 st.sidebar.header("Telegram alerts")
-st.sidebar.caption("Stocks only · green/red flips · Monday-Friday after the US close. Sent by the scheduled job.")
+st.sidebar.caption("Stocks only · green/red flips · Monday-Friday after the US open. Sent by the scheduled job.")
 
 if st.sidebar.button("Wipe disk cache", help="Delete cached OHLC files"):
     n = ohlc_cache.clear()
