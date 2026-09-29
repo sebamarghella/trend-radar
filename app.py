@@ -7,6 +7,8 @@ Run:
 from __future__ import annotations
 
 import time
+from html import escape
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import altair as alt
@@ -108,6 +110,66 @@ section[data-testid='stSidebar'] {{
 [data-testid='stSidebarUserContent'] {{ padding-top: 0.25rem; }}
 /* Keep the native settings collapse affordance visible without a hover. */
 [data-testid='stSidebarCollapseButton'] {{ visibility: visible !important; }}
+@media (min-width: 901px) {{
+    /* Keep asset switching beside the page title while tab content stays full width. */
+    .st-key-asset_tabs {{ position: relative; }}
+    .st-key-asset_tabs > div > [role='tablist'] {{
+        position: absolute;
+        top: -128px;
+        right: 0;
+        width: max-content;
+        z-index: 5;
+        background: {PALETTE["BG_BASE"]};
+    }}
+    /* The right watchlist grows with the chart and basket on the left. */
+    [data-testid='stHorizontalBlock']:has([class*='st-key-radar_panel_']) > [data-testid='stColumn']:nth-child(2) > [data-testid='stVerticalBlock'] {{
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }}
+    [data-testid='stHorizontalBlock']:has([class*='st-key-radar_panel_']) > [data-testid='stColumn']:nth-child(2) > [data-testid='stVerticalBlock'] > [class*='st-key-radar_panel_'] {{
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+    }}
+    [class*='st-key-radar_panel_'] > [data-testid='stVerticalBlock'] {{
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }}
+    [class*='st-key-radar_panel_'] [data-testid='stElementContainer']:has([data-testid='stCustomComponentV1']) {{
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 300px;
+    }}
+    [class*='st-key-radar_panel_'] [data-testid='stElementContainer']:has([data-testid='stCustomComponentV1']) > div {{
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+    }}
+    [class*='st-key-radar_panel_'] [data-testid='stCustomComponentV1'] {{
+        flex: 1 1 auto;
+        height: 100% !important;
+    }}
+}}
+.drilldown-metrics {{
+    display: grid;
+    grid-template-columns: repeat(9, minmax(72px, 1fr));
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px 0;
+    border-top: 1px solid {PALETTE["BORDER"]};
+    border-bottom: 1px solid {PALETTE["BORDER"]};
+}}
+.drilldown-metric {{ min-width: 0; white-space: nowrap; }}
+.drilldown-metric span {{ display: block; font-size: 9px; color: {PALETTE["FG_MUTED"]}; text-transform: uppercase; letter-spacing: .02em; }}
+.drilldown-metric strong {{ display: block; font-size: 12px; line-height: 1.35; font-weight: 600; color: {PALETTE["FG_PRIMARY"]}; }}
+.drilldown-metric small {{ display: block; font-size: 9px; line-height: 1.2; color: {PALETTE["FG_MUTED"]}; }}
+.drilldown-metric small.positive {{ color: {PALETTE["BULLISH"]}; }}
+.drilldown-metric small.negative {{ color: {PALETTE["BEARISH"]}; }}
 @media (max-width: 900px) {{
     /* Let the chart use the full width before the watchlist on smaller screens. */
     [data-testid='stHorizontalBlock']:has([class*='st-key-drilldown_pane_']) {{
@@ -146,60 +208,6 @@ section[data-testid='stSidebar'] [data-testid='stCaptionContainer'] {{ font-size
 [data-testid='stMetricValue'] {{ color: {PALETTE["FG_PRIMARY"]}; }}
 </style>
 """, unsafe_allow_html=True)
-
-st.markdown(f"""
-<style>
-.radar-help-row {{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin: 2px 0 10px 0;
-}}
-.radar-help-pill {{
-    position:relative;
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:4px 10px;
-    border-radius:999px;
-    border:1px solid {PALETTE["BORDER"]};
-    background:{PALETTE["BG_CARD"]};
-    color:{PALETTE["FG_MUTED"]};
-    font-size:12px;
-    line-height:1.2;
-    cursor:default;
-}}
-.radar-help-pill b {{
-    color:{PALETTE["FG_PRIMARY"]};
-    font-family:{PALETTE["FONT_MONO"]};
-    font-weight:600;
-}}
-.radar-help-bubble {{
-    position:absolute;
-    left:0;
-    top:calc(100% + 8px);
-    width:220px;
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid {PALETTE["BORDER"]};
-    background:{PALETTE["BG_CARD"]};
-    color:{PALETTE["FG_PRIMARY"]};
-    box-shadow:0 10px 24px rgba(0,0,0,0.12);
-    font-size:12px;
-    line-height:1.45;
-    opacity:0;
-    transform:translateY(-4px);
-    pointer-events:none;
-    transition:opacity .16s ease, transform .16s ease;
-    z-index:999;
-}}
-.radar-help-pill:hover .radar-help-bubble {{
-    opacity:1;
-    transform:translateY(0);
-}}
-</style>
-""", unsafe_allow_html=True)
-
 
 # --- Global sidebar (shared across all tabs) -----------------------------------
 
@@ -917,6 +925,24 @@ COLUMN_FLEX = {
 
 assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
 
+COLUMN_PREFS_FILE = Path(__file__).with_name("column_preferences.json")
+
+
+def load_column_preferences() -> dict[str, list[str]]:
+    try:
+        data = json.loads(COLUMN_PREFS_FILE.read_text(encoding="utf-8"))
+        return {k: v for k, v in data.items() if isinstance(k, str) and isinstance(v, list)}
+    except (FileNotFoundError, OSError, ValueError, TypeError):
+        return {}
+
+
+def save_column_preferences(asset_key: str, visible_columns: list[str]) -> bytes:
+    data = load_column_preferences()
+    data[asset_key] = visible_columns
+    content = (json.dumps(data, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    COLUMN_PREFS_FILE.write_bytes(content)
+    return content
+
 
 def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
     cs = _cellstyles(palette)
@@ -1099,182 +1125,183 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     if key not in st.session_state.bust:
         st.session_state.bust[key] = 0
 
-    st.caption(ac.description)
+    with st.expander("Strategy & market status", expanded=False, key=f"market_controls_{key}"):
+        st.caption(ac.description)
 
-    # --- Strategy (logic) + Preset selection, persisted per asset class ---
-    all_strategies = strat_registry.load_strategies()
-    assigned_name = strat_registry.get_assignment(key)
-    assigned_strat = all_strategies.get(assigned_name)
-    assigned_logic = assigned_strat.logic_key if assigned_strat else strat_registry.DEFAULT_LOGIC_KEY
+        # --- Strategy (logic) + Preset selection, persisted per asset class ---
+        all_strategies = strat_registry.load_strategies()
+        assigned_name = strat_registry.get_assignment(key)
+        assigned_strat = all_strategies.get(assigned_name)
+        assigned_logic = assigned_strat.logic_key if assigned_strat else strat_registry.DEFAULT_LOGIC_KEY
 
-    logics = strat_registry.list_logics(key)
-    logic_keys = [k for k, _ in logics]
-    logic_labels = dict(logics)
+        logics = strat_registry.list_logics(key)
+        logic_keys = [k for k, _ in logics]
+        logic_labels = dict(logics)
 
-    # TradingView-style toolbar: the existing selectors and actions share one row.
-    c0, c1, c2, c3, r1, r2 = st.columns(
-        [2.4, 2.4, 1.5, 2.3, 1, 1], gap="small", vertical_alignment="bottom"
-    )
-    logic_idx = logic_keys.index(assigned_logic) if assigned_logic in logic_keys else 0
-    chosen_logic = c0.selectbox(
-        "Strategy", logic_keys, index=logic_idx,
-        format_func=lambda k: logic_labels[k], key=f"logic_{key}",
-    )
-    presets = strat_registry.presets_for_logic(chosen_logic, all_strategies)
-    preset_names = list(presets.keys())
-    # Preset dropdown key is scoped to the logic so switching strategy gives a
-    # clean preset list (no stale-selection error).
-    preset_widget_key = f"preset_{key}_{chosen_logic}"
-    preset_idx = preset_names.index(assigned_name) if assigned_name in preset_names else 0
-    chosen_preset = c1.selectbox("Preset", preset_names, index=preset_idx, key=preset_widget_key)
-    if chosen_preset != assigned_name:
-        strat_registry.save_assignment(key, chosen_preset)
+        # TradingView-style toolbar: the existing selectors and actions share one row.
+        c0, c1, c2, c3, r1, r2 = st.columns(
+            [2.4, 2.4, 1.5, 2.3, 1, 1], gap="small", vertical_alignment="bottom"
+        )
+        logic_idx = logic_keys.index(assigned_logic) if assigned_logic in logic_keys else 0
+        chosen_logic = c0.selectbox(
+            "Strategy", logic_keys, index=logic_idx,
+            format_func=lambda k: logic_labels[k], key=f"logic_{key}",
+        )
+        presets = strat_registry.presets_for_logic(chosen_logic, all_strategies)
+        preset_names = list(presets.keys())
+        # Preset dropdown key is scoped to the logic so switching strategy gives a
+        # clean preset list (no stale-selection error).
+        preset_widget_key = f"preset_{key}_{chosen_logic}"
+        preset_idx = preset_names.index(assigned_name) if assigned_name in preset_names else 0
+        chosen_preset = c1.selectbox("Preset", preset_names, index=preset_idx, key=preset_widget_key)
+        if chosen_preset != assigned_name:
+            strat_registry.save_assignment(key, chosen_preset)
 
-    interval_label = c2.selectbox(
-        "Timeframe", options=ac.interval_options,
-        format_func=lambda x: x[0],
-        index=ac.default_interval_idx if ac.ui_default_interval_idx is None else ac.ui_default_interval_idx,
-        key=f"tf_{key}",
-    )
-    interval_minutes = interval_label[1]
-    sort_options = list(SORT_MAP.keys())
-    # Stocks default to newest trades first (pairs with the "Pos: Long" filter).
-    default_sort = "Bars in state (newest first)" if key == "stocks" else sort_options[0]
-    sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
+        interval_label = c2.selectbox(
+            "Timeframe", options=ac.interval_options,
+            format_func=lambda x: x[0],
+            index=ac.default_interval_idx if ac.ui_default_interval_idx is None else ac.ui_default_interval_idx,
+            key=f"tf_{key}",
+        )
+        interval_minutes = interval_label[1]
+        sort_options = list(SORT_MAP.keys())
+        # Stocks default to newest trades first (pairs with the "Pos: Long" filter).
+        default_sort = "Bars in state (newest first)" if key == "stocks" else sort_options[0]
+        sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
 
-    soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
-    hard_refresh = r2.button("Force", key=f"force_{key}", help="Ignore disk cache")
+        soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
+        hard_refresh = r2.button("Force", key=f"force_{key}", help="Ignore disk cache")
 
-    # Assignment hint: this tab uses (logic, preset); how to make it permanent.
-    if _gh_token and _gh_repo:
-        _persist = "Sidebar → **⬆ Commit presets to repo** saves this choice permanently (and for alerts)."
-    else:
-        _persist = "Add a GitHub token in secrets to enable permanent saving (sidebar)."
-    st.caption(
-        f"**{ac.label}** uses **{logic_labels[chosen_logic]}** · preset "
-        f"**{chosen_preset}**. {_persist}"
-    )
-
-    # Param editor (returns the strategy with live-edited params for this session)
-    strategy = _render_strategy_editor(key, chosen_logic, presets[chosen_preset], preset_widget_key)
-
-    if soft_refresh or hard_refresh:
-        st.session_state.bust[key] += 1
-        st.cache_data.clear()
-    force_refetch = hard_refresh
-
-    # Bar cycle context (only meaningful for 24/7 markets)
-    if ac.is_24_7:
-        _now, _bar_open, _bar_next = _bar_cycle(interval_minutes)
+        # Assignment hint: this tab uses (logic, preset); how to make it permanent.
+        if _gh_token and _gh_repo:
+            _persist = "Sidebar → **⬆ Commit presets to repo** saves this choice permanently (and for alerts)."
+        else:
+            _persist = "Add a GitHub token in secrets to enable permanent saving (sidebar)."
         st.caption(
-            f"⏱ Current {interval_label[0]} bar: **{_bar_open.strftime('%H:%M UTC')} → "
-            f"{_bar_next.strftime('%H:%M UTC')}** · "
-            f"{_fmt_hm(_now - _bar_open)} in, **{_fmt_hm(_bar_next - _now)} to next rollover** · "
-            f"caches refresh at the rollover."
-        )
-    else:
-        st.caption(
-            "Non-24/7 market — data updates when the underlying exchange publishes a new close. "
-            "Run during your local market hours for fresh prices."
+            f"**{ac.label}** uses **{logic_labels[chosen_logic]}** · preset "
+            f"**{chosen_preset}**. {_persist}"
         )
 
-    # Load
-    with st.spinner(f"Loading {ac.label.lower()} data…"):
-        ok_rows, skipped_rows = load_universe_data(
-            key, interval_minutes, st.session_state.bust[key], force_refetch
-        )
+        # Param editor (returns the strategy with live-edited params for this session)
+        strategy = _render_strategy_editor(key, chosen_logic, presets[chosen_preset], preset_widget_key)
 
-    if not ok_rows:
-        st.error(f"No {ac.label.lower()} symbols resolved. Check your network and try Refresh.")
-        if skipped_rows:
-            st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]])
-        return
+        if soft_refresh or hard_refresh:
+            st.session_state.bust[key] += 1
+            st.cache_data.clear()
+        force_refetch = hard_refresh
 
-    signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
-    # Stocks default to "Pos: Long" (only ~half the rows are shown), so only those
-    # need the TF✓ lookup. The checkbox value from the previous run is already in
-    # session_state; unticking it reruns and fills in the rest (fetches are cached).
-    _conf_only: set[str] | None = None
-    if key == "stocks" and st.session_state.get(f"long_only_{key}", True):
-        _conf_only = {s["symbol"] for s in signals if s["state"] == "LONG"}
-        if focus_symbol:
-            _conf_only.add(focus_symbol)
-    _add_confluence(
-        signals,
-        ok_rows,
-        only_symbols=_conf_only,
-        asset_key=key,
-        strategy=strategy,
-        interval_options=ac.interval_options,
-        current_interval_minutes=interval_minutes,
-        force_refetch=force_refetch,
-    )
-
-    # In-app alerts run only on the timeframe the cron uses (daily). Other views
-    # (e.g. 1 week, 4 hour) neither seed a baseline nor send anything, so browsing
-    # them can never fire extra Telegram messages.
-    _alert_interval = ac.interval_options[ac.default_interval_idx]
-    if not ac.alerts_enabled:
-        st.caption(f"🔕 Alerts are turned off for {ac.label}.")
-    elif interval_minutes == _alert_interval[1]:
-        # Alert detection — per-asset-class state key prevents cross-contamination
-        prev_alert_state = alerts.reseed_on_strategy_change(
-            alerts.load_state(), key, strategy.name, strat_registry.DEFAULT_STRATEGY_NAME,
-        )
-        class_prefix = f"{key}|"
-        interval_suffix = f"|{interval_minutes}"
-        had_baseline = any(
-            k.startswith(class_prefix) and k.endswith(interval_suffix)
-            for k in prev_alert_state
-        )
-        flips, new_alert_state = alerts.detect_flips(
-            signals, interval_minutes, prev_alert_state, asset_class=key,
-        )
-        alerts.save_state(new_alert_state)
-
-        if not had_baseline:
-            st.info(
-                f"Seeded alert baseline for {len(signals)} {ac.label.lower()} symbols on this timeframe. "
-                "Future flips will diff against this."
+        # Bar cycle context (only meaningful for 24/7 markets)
+        if ac.is_24_7:
+            _now, _bar_open, _bar_next = _bar_cycle(interval_minutes)
+            st.caption(
+                f"⏱ Current {interval_label[0]} bar: **{_bar_open.strftime('%H:%M UTC')} → "
+                f"{_bar_next.strftime('%H:%M UTC')}** · "
+                f"{_fmt_hm(_now - _bar_open)} in, **{_fmt_hm(_bar_next - _now)} to next rollover** · "
+                f"caches refresh at the rollover."
             )
-        elif flips:
-            # Record every real flip into the history feed (drives the sidebar list).
-            alerts.record_flips(flips, asset_class=key)
-            if alerts_enabled and bot_token and chat_id:
-                sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
-                if sent:
-                    st.toast(f"📨 Sent {sent} Telegram alert(s) for {ac.label}", icon="📨")
-                for e in errs:
-                    st.warning(f"Alert failed for {e}")
-            else:
-                flip_summary = ", ".join(
-                    f"{f.symbol} {'↗' if f.direction == 'ENTRY' else '↘'}" for f in flips
-                )
-                st.info(f"State flips detected (alerts disabled): {flip_summary}")
-    else:
-        st.caption(
-            f"🔕 Alerts are evaluated on the {_alert_interval[0]} timeframe only (matching the scheduled job); "
-            f"this {interval_label[0]} view doesn't send any."
+        else:
+            st.caption(
+                "Non-24/7 market — data updates when the underlying exchange publishes a new close. "
+                "Run during your local market hours for fresh prices."
+            )
+
+        # Load
+        with st.spinner(f"Loading {ac.label.lower()} data…"):
+            ok_rows, skipped_rows = load_universe_data(
+                key, interval_minutes, st.session_state.bust[key], force_refetch
+            )
+
+        if not ok_rows:
+            st.error(f"No {ac.label.lower()} symbols resolved. Check your network and try Refresh.")
+            if skipped_rows:
+                st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]])
+            return
+
+        signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
+        # Stocks default to "Pos: Long" (only ~half the rows are shown), so only those
+        # need the TF✓ lookup. The checkbox value from the previous run is already in
+        # session_state; unticking it reruns and fills in the rest (fetches are cached).
+        _conf_only: set[str] | None = None
+        if key == "stocks" and st.session_state.get(f"long_only_{key}", True):
+            _conf_only = {s["symbol"] for s in signals if s["state"] == "LONG"}
+            if focus_symbol:
+                _conf_only.add(focus_symbol)
+        _add_confluence(
+            signals,
+            ok_rows,
+            only_symbols=_conf_only,
+            asset_key=key,
+            strategy=strategy,
+            interval_options=ac.interval_options,
+            current_interval_minutes=interval_minutes,
+            force_refetch=force_refetch,
         )
 
-    # Headline strip
-    long_count = sum(1 for s in signals if s["state"] == "LONG")
-    green_filter = sum(1 for s in signals if s["filter_up"])
-    covered = len(signals)
-    total = len(ok_rows) + len(skipped_rows)
-    cache_hits = sum(1 for r in ok_rows if r.get("cache_status") == "cache")
-    stale_hits = sum(1 for r in ok_rows if r.get("cache_status") == "stale")
+        # In-app alerts run only on the timeframe the cron uses (daily). Other views
+        # (e.g. 1 week, 4 hour) neither seed a baseline nor send anything, so browsing
+        # them can never fire extra Telegram messages.
+        _alert_interval = ac.interval_options[ac.default_interval_idx]
+        if not ac.alerts_enabled:
+            st.caption(f"🔕 Alerts are turned off for {ac.label}.")
+        elif interval_minutes == _alert_interval[1]:
+            # Alert detection — per-asset-class state key prevents cross-contamination
+            prev_alert_state = alerts.reseed_on_strategy_change(
+                alerts.load_state(), key, strategy.name, strat_registry.DEFAULT_STRATEGY_NAME,
+            )
+            class_prefix = f"{key}|"
+            interval_suffix = f"|{interval_minutes}"
+            had_baseline = any(
+                k.startswith(class_prefix) and k.endswith(interval_suffix)
+                for k in prev_alert_state
+            )
+            flips, new_alert_state = alerts.detect_flips(
+                signals, interval_minutes, prev_alert_state, asset_class=key,
+            )
+            alerts.save_state(new_alert_state)
 
-    h1, h2, h3, h4 = st.columns(4)
-    h1.metric("Covered", f"{covered} / {total}")
-    h2.metric("In long", long_count, delta=f"{long_count / covered * 100:.0f}%")
-    h3.metric("Filter rising", green_filter, delta=f"{green_filter / covered * 100:.0f}%")
-    h4.metric("Timeframe", interval_label[0])
+            if not had_baseline:
+                st.info(
+                    f"Seeded alert baseline for {len(signals)} {ac.label.lower()} symbols on this timeframe. "
+                    "Future flips will diff against this."
+                )
+            elif flips:
+                # Record every real flip into the history feed (drives the sidebar list).
+                alerts.record_flips(flips, asset_class=key)
+                if alerts_enabled and bot_token and chat_id:
+                    sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
+                    if sent:
+                        st.toast(f"📨 Sent {sent} Telegram alert(s) for {ac.label}", icon="📨")
+                    for e in errs:
+                        st.warning(f"Alert failed for {e}")
+                else:
+                    flip_summary = ", ".join(
+                        f"{f.symbol} {'↗' if f.direction == 'ENTRY' else '↘'}" for f in flips
+                    )
+                    st.info(f"State flips detected (alerts disabled): {flip_summary}")
+        else:
+            st.caption(
+                f"🔕 Alerts are evaluated on the {_alert_interval[0]} timeframe only (matching the scheduled job); "
+                f"this {interval_label[0]} view doesn't send any."
+            )
 
-    cache_msg = f"{cache_hits}/{covered} from cache"
-    if stale_hits:
-        cache_msg += f" · {stale_hits} stale (source errored)"
-    st.caption(cache_msg)
+        # Headline strip
+        long_count = sum(1 for s in signals if s["state"] == "LONG")
+        green_filter = sum(1 for s in signals if s["filter_up"])
+        covered = len(signals)
+        total = len(ok_rows) + len(skipped_rows)
+        cache_hits = sum(1 for r in ok_rows if r.get("cache_status") == "cache")
+        stale_hits = sum(1 for r in ok_rows if r.get("cache_status") == "stale")
+
+        h1, h2, h3, h4 = st.columns(4)
+        h1.metric("Covered", f"{covered} / {total}")
+        h2.metric("In long", long_count, delta=f"{long_count / covered * 100:.0f}%")
+        h3.metric("Filter rising", green_filter, delta=f"{green_filter / covered * 100:.0f}%")
+        h4.metric("Timeframe", interval_label[0])
+
+        cache_msg = f"{cache_hits}/{covered} from cache"
+        if stale_hits:
+            cache_msg += f" · {stale_hits} stale (source errored)"
+        st.caption(cache_msg)
 
     # Grid + drilldown
     df = pd.DataFrame(signals)
@@ -1298,7 +1325,8 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     # Chart and watchlist sit side by side; the grid keeps its horizontal scroll
     # so every original data column remains available in the narrower dock.
     chart_col, radar_col = st.columns([2.5, 1], gap="small", vertical_alignment="top")
-    with radar_col.expander("Radar", expanded=True):
+    with radar_col.container(border=False, key=f"radar_panel_{key}"):
+        st.subheader("Radar")
         st.caption("Click any cell in a row to drill down into that coin's chart.")
         long_only = False
         if key == "stocks":
@@ -1308,33 +1336,6 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             "Search", key=f"search_{key}", type="search", placeholder="Search ticker or name",
             live="300ms", label_visibility="collapsed",
         ).strip()
-        st.markdown(
-            """
-            <div class="radar-help-row">
-              <span class="radar-help-pill"><b>Fl</b>
-                <span class="radar-help-bubble">
-                  Filter slope. Checked means the strategy's core trend filter is rising right now.
-                </span>
-              </span>
-              <span class="radar-help-pill"><b>vs HB</b>
-                <span class="radar-help-bubble">
-                  Close versus upper band. Positive means price is above the trigger band; negative means it is still below it.
-                </span>
-              </span>
-              <span class="radar-help-pill"><b>StK</b>
-                <span class="radar-help-bubble">
-                  Stochastic RSI K value. A fast momentum gauge: high values mean hot momentum, low values mean washed-out momentum.
-                </span>
-              </span>
-              <span class="radar-help-pill"><b>MaxDD</b>
-                <span class="radar-help-bubble">
-                  Maximum drawdown over the selected lookback. It shows the worst peak-to-trough equity drop the strategy suffered.
-                </span>
-              </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
         # Filter rows server-side: AgGrid only renders the rows in view, so the
         # browser's Ctrl+F misses tickers further down the list.
         df_base = df_display
@@ -1363,6 +1364,41 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             else:
                 st.caption(f"{len(df_grid)} of {len(df_base)} {scope}rows match “{search}”.")
         grid_opts = build_grid_options(df_grid, PALETTE)
+        selectable_columns = [
+            (col["field"], col.get("headerName", col["field"]))
+            for col in grid_opts["columnDefs"]
+            if col.get("field") in COLUMN_FLEX and not col.get("hide", False)
+        ]
+        all_fields = [field for field, _ in selectable_columns]
+        saved_fields = set(load_column_preferences().get(key, all_fields))
+        with st.popover("Columns", width="stretch"):
+            st.caption("Show or hide Radar columns. Commit to keep this view after a restart.")
+            with st.container(height=360, border=False):
+                visible_columns = [
+                    field for field, label in selectable_columns
+                    if st.checkbox(label, value=field in saved_fields, key=f"column_{key}_{field}")
+                ]
+            if not visible_columns:
+                st.warning("Keep at least one column visible.")
+            if st.button("Commit", key=f"commit_columns_{key}", disabled=not visible_columns,
+                         help="Save these column choices for this asset class"):
+                try:
+                    content = save_column_preferences(key, visible_columns)
+                    if _gh_token and _gh_repo:
+                        import repo_sync
+                        repo_sync.put_file(
+                            _gh_repo, COLUMN_PREFS_FILE.name, content, _gh_token, _gh_branch,
+                            f"chore: save {ac.label.lower()} radar columns",
+                        )
+                        st.success("Column choices committed to the repo.")
+                    else:
+                        st.info("Column choices saved on this app instance. GitHub credentials are needed to keep them after a Cloud restart.")
+                except Exception as exc:
+                    st.error(f"Could not commit column choices: {exc}")
+        active_columns = set(visible_columns or [all_fields[0]])
+        for col in grid_opts["columnDefs"]:
+            if col.get("field") in all_fields:
+                col["hide"] = col["field"] not in active_columns
         # If we arrived via an alert deep-link, mark that row as pre-selected so
         # AgGrid highlights + ensures it's visible on first render.
         if focus_symbol and focus_symbol in set(df_grid["symbol"]):
@@ -1392,16 +1428,16 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             # every value; without it the grid scrolls horizontally on narrow windows.
             fit_columns_on_grid_load=False,
             theme=PALETTE["AGGRID_THEME"],
-            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}_{search.lower()}_{int(long_only)}",
+            key=f"grid_{key}_{sort_by}_{focus_symbol or ''}_{search.lower()}_{int(long_only)}_"
+                + "".join("1" if field in active_columns else "0" for field in all_fields),
         )
 
     if skipped_rows:
         with radar_col.expander(f"Skipped ({len(skipped_rows)})"):
             st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]], width="stretch")
 
-    # A fixed-height chart dock aligns with the watchlist. Its existing detail
-    # sections remain accessible by scrolling inside the dock.
-    with chart_col.container(height=grid_height + 160, border=False, key=f"drilldown_pane_{key}"):
+    # Drilldown and basket share the left column; the radar fills the right.
+    with chart_col.container(border=False, key=f"drilldown_pane_{key}"):
         selected = grid_response.get("selected_rows")
         selected_sym: str | None = None
         if isinstance(selected, pd.DataFrame) and not selected.empty:
@@ -1416,314 +1452,315 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
         sel = next(s for s in signals if s["symbol"] == selected_sym)
 
-        with st.expander(f"Drilldown — {selected_sym}", expanded=True):
-            _spacer, action_col = st.columns([4, 1])
-            with action_col:
-                tear_sheet = _compute_tear_sheet(
-                    sel.get("_trades", []),
-                    now=sel["_df"].index[-1],
-                    lookback_days_=lookback_days,
-                    latest_ts=sel["_df"].index[-1],
-                    latest_close=float(sel["_df"]["close"].iloc[-1]),
-                )
-                with st.popover("Tear sheet", width="stretch"):
-                    st.caption(f"{selected_sym} · {lookback_days}d strategy report")
-                    ts1, ts2 = st.columns(2)
-                    ts1.metric("Sharpe", _fmt_number(tear_sheet["sharpe"]))
-                    ts2.metric("Sortino", _fmt_number(tear_sheet["sortino"]))
-                    ts3, ts4 = st.columns(2)
-                    ts3.metric("Calmar", _fmt_number(tear_sheet["calmar"]))
-                    ts4.metric("Profit factor", _fmt_number(tear_sheet["profit_factor"]))
-                    ts5, ts6 = st.columns(2)
-                    ts5.metric("Recovery", _fmt_number(tear_sheet["recovery_factor"]))
-                    ts6.metric("Expectancy", _fmt_number(tear_sheet["expectancy_pct"], pct=True))
-                    ts7, ts8 = st.columns(2)
-                    ts7.metric("Net return", _fmt_number(tear_sheet["net_return_pct"], pct=True))
-                    ts8.metric("Max drawdown", _fmt_number(tear_sheet["max_dd_pct"], pct=True))
-                    ts9, ts10 = st.columns(2)
-                    ts9.metric("Trades", str(tear_sheet["trades"]))
-                    ts10.metric("Win rate", _fmt_number(tear_sheet["win_rate"], pct=True))
-                    if not tear_sheet["recent_trades"].empty:
-                        st.caption("Recent trades")
-                        st.dataframe(tear_sheet["recent_trades"], width="stretch", hide_index=True)
-            st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
-
-            chart_df = sel["_df"].copy()
-            overlays = sel.get("_overlays")
-            overlay_cols = []
-            if overlays is not None:
-                for col in ("filt", "hband", "lband"):
-                    if col in overlays.columns:
-                        chart_df[col] = overlays[col]
-                        overlay_cols.append(col)
-            # Transitions in the state series = trade signals.
-            #   0 -> 1 : BUY (entry)
-            #   1 -> 0 : SELL (exit)
-            _state = sel["_state_series"].astype(int)
-            _shift = _state.shift(1).fillna(0).astype(int)
-            chart_df["signal"] = ""
-            chart_df.loc[(_state == 1) & (_shift == 0), "signal"] = "BUY"
-            chart_df.loc[(_state == 0) & (_shift == 1), "signal"] = "SELL"
-            chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
-
-            # Chart height tracks the grid height so the two panes stay aligned.
-            chart_height = max(grid_height - 160, 240)
-
-            # Chart guidance from UUPM charts.csv:
-            #   - line + hover + zoom (Interactive Level for "Trend Over Time")
-            #   - bullish #26A69A / bearish #EF5350 (Stock/Trading OHLC palette)
-            #   - differentiate series by line style, not only color
-            #   - axis grid muted, no zero-anchored Y (use scale.zero=False)
-            x_axis = alt.Axis(grid=False, labelColor=PALETTE["FG_MUTED"], tickColor=PALETTE["BORDER"],
-                              domainColor=PALETTE["BORDER"], title=None)
-            y_axis = alt.Axis(grid=True, gridColor=PALETTE["BORDER"], gridOpacity=PALETTE["GRID_OPACITY"],
-                              labelColor=PALETTE["FG_MUTED"], tickColor=PALETTE["BORDER"],
-                              domainColor=PALETTE["BORDER"], title=None)
-            base = alt.Chart(chart_df).encode(x=alt.X("time:T", axis=x_axis))
-
-            layers = [
-                base.mark_line(color=PALETTE["NEUTRAL_LINE"], strokeWidth=1.4).encode(
-                    y=alt.Y("close:Q", axis=y_axis, scale=alt.Scale(zero=False)),
-                )
-            ]
-            if "filt" in overlay_cols:
-                layers.append(base.mark_line(color=PALETTE["BULLISH"], strokeWidth=2).encode(y="filt:Q"))
-            if "hband" in overlay_cols:
-                # Dashed = "channel boundary, not the trend itself" (series style cue).
-                layers.append(base.mark_line(
-                    color=PALETTE["BULLISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
-                ).encode(y="hband:Q"))
-            if "lband" in overlay_cols:
-                layers.append(base.mark_line(
-                    color=PALETTE["BEARISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
-                ).encode(y="lband:Q"))
-
-            # Breakout box: resistance / support lines + marker (latest event,
-            # plus the current unbroken range when there is one).
-            bo_state = sel.get("_bo")
-            win_start, win_end = chart_df["time"].iloc[0], chart_df["time"].iloc[-1]
-            bo_lines = []
-            if bo_state is not None:
-                ev = bo_state.last
-                if ev is not None and ev.date >= win_start:
-                    bo_lines += [("Resistance", ev.resistance, ev.resistance_start, ev.date, PALETTE["BEARISH"]),
-                                 ("Support", ev.support, ev.support_start, ev.date, PALETTE["BULLISH"])]
-                if bo_state.resistance is not None:
-                    bo_lines.append(("Range top", bo_state.resistance, bo_state.resistance_start, win_end,
-                                     PALETTE["BEARISH"]))
-                    if bo_state.support is not None:
-                        bo_lines.append(("Range floor", bo_state.support, bo_state.support_start, win_end,
-                                         PALETTE["BULLISH"]))
-            for label, level, start, end, colour in bo_lines:
-                seg = pd.DataFrame({"t0": [max(start, win_start)], "t1": [end], "y": [level], "label": [label]})
-                layers.append(
-                    alt.Chart(seg).mark_rule(color=colour, strokeWidth=1.6, strokeDash=[2, 3]).encode(
-                        x=alt.X("t0:T", axis=x_axis), x2="t1:T", y="y:Q",
-                        tooltip=[alt.Tooltip("label:N", title="Level"),
-                                 alt.Tooltip("y:Q", title="Price", format=".6g")],
-                    )
-                )
-            if bo_state is not None and bo_state.last is not None and bo_state.last.date >= win_start:
-                ev = bo_state.last
-                pt = chart_df[chart_df["time"] == ev.date]
-                if not pt.empty:
-                    layers.append(
-                        alt.Chart(pt.assign(status=ev.status)).mark_point(
-                            shape="diamond", color=PALETTE["FG_PRIMARY"], filled=True, size=140,
-                        ).encode(
-                            x=alt.X("time:T", axis=x_axis), y="close:Q",
-                            tooltip=[alt.Tooltip("time:T", title="Breakout"),
-                                     alt.Tooltip("status:N", title="Status"),
-                                     alt.Tooltip("close:Q", title="Close", format=".6g")],
-                        )
-                    )
-
-            buys = chart_df[chart_df["signal"] == "BUY"]
-            sells = chart_df[chart_df["signal"] == "SELL"]
-            if not buys.empty:
-                layers.append(
-                    alt.Chart(buys).mark_point(
-                        shape="triangle-up", color=PALETTE["BULLISH"], filled=True,
-                        size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
-                    ).encode(
-                        x=alt.X("time:T", axis=x_axis), y="close:Q",
-                        tooltip=[alt.Tooltip("time:T", title="Buy"),
-                                 alt.Tooltip("close:Q", title="Price", format=".6g")],
-                    )
-                )
-            if not sells.empty:
-                layers.append(
-                    alt.Chart(sells).mark_point(
-                        shape="triangle-down", color=PALETTE["BEARISH"], filled=True,
-                        size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
-                    ).encode(
-                        x=alt.X("time:T", axis=x_axis), y="close:Q",
-                        tooltip=[alt.Tooltip("time:T", title="Sell"),
-                                 alt.Tooltip("close:Q", title="Price", format=".6g")],
-                    )
-                )
-
-            # Nearest-point hover (vertical rule + multi-series tooltip).
-            hover = alt.selection_point(
-                fields=["time"], nearest=True, on="pointerover", empty=False, clear="pointerout",
+        st.subheader(f"Drilldown — {selected_sym}")
+        _spacer, action_col = st.columns([4, 1])
+        with action_col:
+            tear_sheet = _compute_tear_sheet(
+                sel.get("_trades", []),
+                now=sel["_df"].index[-1],
+                lookback_days_=lookback_days,
+                latest_ts=sel["_df"].index[-1],
+                latest_close=float(sel["_df"]["close"].iloc[-1]),
             )
-            tooltip_fields = [alt.Tooltip("time:T", title="Time"),
-                              alt.Tooltip("close:Q", title="Close", format=".6g")]
-            if "filt" in overlay_cols:
-                tooltip_fields.append(alt.Tooltip("filt:Q", title="Filter", format=".6g"))
-            if "hband" in overlay_cols:
-                tooltip_fields.append(alt.Tooltip("hband:Q", title="HBand", format=".6g"))
+            with st.popover("Tear sheet", width="stretch"):
+                st.caption(f"{selected_sym} · {lookback_days}d strategy report")
+                ts1, ts2 = st.columns(2)
+                ts1.metric("Sharpe", _fmt_number(tear_sheet["sharpe"]))
+                ts2.metric("Sortino", _fmt_number(tear_sheet["sortino"]))
+                ts3, ts4 = st.columns(2)
+                ts3.metric("Calmar", _fmt_number(tear_sheet["calmar"]))
+                ts4.metric("Profit factor", _fmt_number(tear_sheet["profit_factor"]))
+                ts5, ts6 = st.columns(2)
+                ts5.metric("Recovery", _fmt_number(tear_sheet["recovery_factor"]))
+                ts6.metric("Expectancy", _fmt_number(tear_sheet["expectancy_pct"], pct=True))
+                ts7, ts8 = st.columns(2)
+                ts7.metric("Net return", _fmt_number(tear_sheet["net_return_pct"], pct=True))
+                ts8.metric("Max drawdown", _fmt_number(tear_sheet["max_dd_pct"], pct=True))
+                ts9, ts10 = st.columns(2)
+                ts9.metric("Trades", str(tear_sheet["trades"]))
+                ts10.metric("Win rate", _fmt_number(tear_sheet["win_rate"], pct=True))
+                if not tear_sheet["recent_trades"].empty:
+                    st.caption("Recent trades")
+                    st.dataframe(tear_sheet["recent_trades"], width="stretch", hide_index=True)
+        st.caption(f"{sel['name']} · {sel['pair']} · last 150 bars")
+
+        chart_df = sel["_df"].copy()
+        overlays = sel.get("_overlays")
+        overlay_cols = []
+        if overlays is not None:
+            for col in ("filt", "hband", "lband"):
+                if col in overlays.columns:
+                    chart_df[col] = overlays[col]
+                    overlay_cols.append(col)
+        # Transitions in the state series = trade signals.
+        #   0 -> 1 : BUY (entry)
+        #   1 -> 0 : SELL (exit)
+        _state = sel["_state_series"].astype(int)
+        _shift = _state.shift(1).fillna(0).astype(int)
+        chart_df["signal"] = ""
+        chart_df.loc[(_state == 1) & (_shift == 0), "signal"] = "BUY"
+        chart_df.loc[(_state == 0) & (_shift == 1), "signal"] = "SELL"
+        chart_df = chart_df.tail(150).reset_index().rename(columns={"ts": "time"})
+
+        # Chart height tracks the grid height so the two panes stay aligned.
+        chart_height = max(grid_height - 160, 240)
+
+        # Chart guidance from UUPM charts.csv:
+        #   - line + hover + zoom (Interactive Level for "Trend Over Time")
+        #   - bullish #26A69A / bearish #EF5350 (Stock/Trading OHLC palette)
+        #   - differentiate series by line style, not only color
+        #   - axis grid muted, no zero-anchored Y (use scale.zero=False)
+        x_axis = alt.Axis(grid=False, labelColor=PALETTE["FG_MUTED"], tickColor=PALETTE["BORDER"],
+                          domainColor=PALETTE["BORDER"], title=None)
+        y_axis = alt.Axis(grid=True, gridColor=PALETTE["BORDER"], gridOpacity=PALETTE["GRID_OPACITY"],
+                          labelColor=PALETTE["FG_MUTED"], tickColor=PALETTE["BORDER"],
+                          domainColor=PALETTE["BORDER"], title=None)
+        base = alt.Chart(chart_df).encode(x=alt.X("time:T", axis=x_axis))
+
+        layers = [
+            base.mark_line(color=PALETTE["NEUTRAL_LINE"], strokeWidth=1.4).encode(
+                y=alt.Y("close:Q", axis=y_axis, scale=alt.Scale(zero=False)),
+            )
+        ]
+        if "filt" in overlay_cols:
+            layers.append(base.mark_line(color=PALETTE["BULLISH"], strokeWidth=2).encode(y="filt:Q"))
+        if "hband" in overlay_cols:
+            # Dashed = "channel boundary, not the trend itself" (series style cue).
+            layers.append(base.mark_line(
+                color=PALETTE["BULLISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
+            ).encode(y="hband:Q"))
+        if "lband" in overlay_cols:
+            layers.append(base.mark_line(
+                color=PALETTE["BEARISH"], strokeWidth=1, opacity=0.55, strokeDash=[4, 3],
+            ).encode(y="lband:Q"))
+
+        # Breakout box: resistance / support lines + marker (latest event,
+        # plus the current unbroken range when there is one).
+        bo_state = sel.get("_bo")
+        win_start, win_end = chart_df["time"].iloc[0], chart_df["time"].iloc[-1]
+        bo_lines = []
+        if bo_state is not None:
+            ev = bo_state.last
+            if ev is not None and ev.date >= win_start:
+                bo_lines += [("Resistance", ev.resistance, ev.resistance_start, ev.date, PALETTE["BEARISH"]),
+                             ("Support", ev.support, ev.support_start, ev.date, PALETTE["BULLISH"])]
+            if bo_state.resistance is not None:
+                bo_lines.append(("Range top", bo_state.resistance, bo_state.resistance_start, win_end,
+                                 PALETTE["BEARISH"]))
+                if bo_state.support is not None:
+                    bo_lines.append(("Range floor", bo_state.support, bo_state.support_start, win_end,
+                                     PALETTE["BULLISH"]))
+        for label, level, start, end, colour in bo_lines:
+            seg = pd.DataFrame({"t0": [max(start, win_start)], "t1": [end], "y": [level], "label": [label]})
             layers.append(
-                base.mark_rule(color=PALETTE["FG_MUTED"], opacity=0.0).encode(
-                    opacity=alt.condition(hover, alt.value(0.5), alt.value(0.0)),
-                    tooltip=tooltip_fields,
-                ).add_params(hover)
+                alt.Chart(seg).mark_rule(color=colour, strokeWidth=1.6, strokeDash=[2, 3]).encode(
+                    x=alt.X("t0:T", axis=x_axis), x2="t1:T", y="y:Q",
+                    tooltip=[alt.Tooltip("label:N", title="Level"),
+                             alt.Tooltip("y:Q", title="Price", format=".6g")],
+                )
+            )
+        if bo_state is not None and bo_state.last is not None and bo_state.last.date >= win_start:
+            ev = bo_state.last
+            pt = chart_df[chart_df["time"] == ev.date]
+            if not pt.empty:
+                layers.append(
+                    alt.Chart(pt.assign(status=ev.status)).mark_point(
+                        shape="diamond", color=PALETTE["FG_PRIMARY"], filled=True, size=140,
+                    ).encode(
+                        x=alt.X("time:T", axis=x_axis), y="close:Q",
+                        tooltip=[alt.Tooltip("time:T", title="Breakout"),
+                                 alt.Tooltip("status:N", title="Status"),
+                                 alt.Tooltip("close:Q", title="Close", format=".6g")],
+                    )
+                )
+
+        buys = chart_df[chart_df["signal"] == "BUY"]
+        sells = chart_df[chart_df["signal"] == "SELL"]
+        if not buys.empty:
+            layers.append(
+                alt.Chart(buys).mark_point(
+                    shape="triangle-up", color=PALETTE["BULLISH"], filled=True,
+                    size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
+                ).encode(
+                    x=alt.X("time:T", axis=x_axis), y="close:Q",
+                    tooltip=[alt.Tooltip("time:T", title="Buy"),
+                             alt.Tooltip("close:Q", title="Price", format=".6g")],
+                )
+            )
+        if not sells.empty:
+            layers.append(
+                alt.Chart(sells).mark_point(
+                    shape="triangle-down", color=PALETTE["BEARISH"], filled=True,
+                    size=180, stroke=PALETTE["BG_BASE"], strokeWidth=1.5,
+                ).encode(
+                    x=alt.X("time:T", axis=x_axis), y="close:Q",
+                    tooltip=[alt.Tooltip("time:T", title="Sell"),
+                             alt.Tooltip("close:Q", title="Price", format=".6g")],
+                )
             )
 
-            chart = alt.layer(*layers).properties(
-                height=chart_height,
-                background=PALETTE["BG_CARD"],
-            ).configure_view(stroke=None).interactive(bind_y=False)
-            with st.container():
-                st.altair_chart(chart, width="stretch")
+        # Nearest-point hover (vertical rule + multi-series tooltip).
+        hover = alt.selection_point(
+            fields=["time"], nearest=True, on="pointerover", empty=False, clear="pointerout",
+        )
+        tooltip_fields = [alt.Tooltip("time:T", title="Time"),
+                          alt.Tooltip("close:Q", title="Close", format=".6g")]
+        if "filt" in overlay_cols:
+            tooltip_fields.append(alt.Tooltip("filt:Q", title="Filter", format=".6g"))
+        if "hband" in overlay_cols:
+            tooltip_fields.append(alt.Tooltip("hband:Q", title="HBand", format=".6g"))
+        layers.append(
+            base.mark_rule(color=PALETTE["FG_MUTED"], opacity=0.0).encode(
+                opacity=alt.condition(hover, alt.value(0.5), alt.value(0.0)),
+                tooltip=tooltip_fields,
+            ).add_params(hover)
+        )
 
-                mc1, mc2, mc3, mc4, mc5 = st.columns(5)
-                mc1.metric("State", sel["state"])
-                mc2.metric("Bars in state", sel["bars_in_state"])
-                mc3.metric("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—")
-                mc4.metric("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%")
-                mc5.metric("Taker flow", f"{sel['flow_delta_pct']:+.1f}%" if sel.get("flow_delta_pct") is not None else "—")
+        chart = alt.layer(*layers).properties(
+            height=chart_height,
+            background=PALETTE["BG_CARD"],
+        ).configure_view(stroke=None).interactive(bind_y=False)
+        with st.container():
+            st.altair_chart(chart, width="stretch")
 
-                bo_state = sel.get("_bo")
-                ev = bo_state.last if bo_state is not None else None
-                bc1, bc2, bc3, bc4 = st.columns(4)
-                if ev is not None:
-                    bc1.metric("Last breakout", str(ev.date.date()), delta=ev.status.capitalize(),
-                               delta_color={"validated": "normal", "invalidated": "inverse"}.get(ev.status, "off"))
-                    bc2.metric("Resistance", f"{ev.resistance:.6g}")
-                    bc3.metric("Support", f"{ev.support:.6g}")
-                else:
-                    bc1.metric("Last breakout", "—")
-                    bc2.metric("Resistance", "—")
-                    bc3.metric("Support", "—")
-                if bo_state is not None and bo_state.resistance is not None:
-                    dist = (sel["last_close"] / bo_state.resistance - 1) * 100
-                    bc4.metric("Current range top", f"{bo_state.resistance:.6g}",
-                               delta=f"{dist:+.1f}% from close", delta_color="off")
-                else:
-                    bc4.metric("Current range top", "—")
+            bo_state = sel.get("_bo")
+            ev = bo_state.last if bo_state is not None else None
+            range_delta = ""
+            if bo_state is not None and bo_state.resistance is not None:
+                dist = (sel["last_close"] / bo_state.resistance - 1) * 100
+                range_delta = f"{dist:+.1f}% from close"
+            metric_items = [
+                ("State", sel["state"], "", ""),
+                ("Bars in state", sel["bars_in_state"], "", ""),
+                ("Stoch K", f"{sel['stoch_k']:.1f}" if sel["stoch_k"] is not None else "—", "", ""),
+                ("Close vs HBand", f"{sel['close_vs_hband_pct']:+.2f}%", "", ""),
+                ("Taker flow", f"{sel['flow_delta_pct']:+.1f}%" if sel.get("flow_delta_pct") is not None else "—", "", ""),
+                ("Last breakout", str(ev.date.date()) if ev else "—", ev.status.capitalize() if ev else "",
+                 "positive" if ev and ev.status == "validated" else "negative" if ev and ev.status == "invalidated" else ""),
+                ("Resistance", f"{ev.resistance:.6g}" if ev else "—", "", ""),
+                ("Support", f"{ev.support:.6g}" if ev else "—", "", ""),
+                ("Current range top", f"{bo_state.resistance:.6g}" if bo_state is not None and bo_state.resistance is not None else "—", range_delta, ""),
+            ]
+            metric_html = "".join(
+                f'<div class="drilldown-metric" title="{escape(str(label))}: {escape(str(value))} {escape(delta)}">'
+                f'<span>{escape(str(label))}</span><strong>{escape(str(value))}</strong>'
+                f'<small class="{delta_class}">{escape(delta) if delta else "&nbsp;"}</small></div>'
+                for label, value, delta, delta_class in metric_items
+            )
+            st.markdown(f'<div class="drilldown-metrics">{metric_html}</div>', unsafe_allow_html=True)
 
-                with st.expander("Strategy comparison", expanded=False):
-                    compare_strategies = strat_registry.strategies_for_asset(key)
-                    compare_names = list(compare_strategies.keys())
-                    default_left = strategy.name if strategy.name in compare_strategies else compare_names[0]
-                    preferred_right = next(
-                        (
-                            candidate for candidate in (
-                                "Supertrend v1 (10, 3.0)",
-                                "EMA Cross v1 (21/55)",
-                                "Donchian Breakout v1.0 (20/10)",
-                                "GaussianChannel v3.1 (default)",
-                            )
-                            if candidate in compare_strategies and candidate != default_left
-                        ),
-                        next((name for name in compare_names if name != default_left), default_left),
-                    )
-                    cmp1, cmp2 = st.columns(2)
-                    left_name = cmp1.selectbox(
-                        "Strategy A",
-                        compare_names,
-                        index=compare_names.index(default_left),
-                        key=f"cmp_left_{key}_{selected_sym}",
-                    )
-                    right_name = cmp2.selectbox(
-                        "Strategy B",
-                        compare_names,
-                        index=compare_names.index(preferred_right),
-                        key=f"cmp_right_{key}_{selected_sym}",
-                    )
-
-                    left_result = strat_registry.run_strategy_cached(compare_strategies[left_name], sel["_df"])
-                    right_result = strat_registry.run_strategy_cached(compare_strategies[right_name], sel["_df"])
-                    latest_ts = sel["_df"].index[-1]
-                    latest_close = float(sel["_df"]["close"].iloc[-1])
-                    now_ts = latest_ts
-                    left_stats = compute_stats(left_result.trades, now=now_ts, lookback_days=lookback_days)
-                    right_stats = compute_stats(right_result.trades, now=now_ts, lookback_days=lookback_days)
-
-                    cmp_curves = pd.concat(
-                        [
-                            _comparison_curve_frame(
-                                left_name,
-                                left_result,
-                                now=now_ts,
-                                lookback_days_=lookback_days,
-                                latest_ts=latest_ts,
-                                latest_close=latest_close,
-                            ),
-                            _comparison_curve_frame(
-                                right_name,
-                                right_result,
-                                now=now_ts,
-                                lookback_days_=lookback_days,
-                                latest_ts=latest_ts,
-                                latest_close=latest_close,
-                            ),
-                        ],
-                        ignore_index=True,
-                    )
-                    cmp_chart = (
-                        alt.Chart(cmp_curves)
-                        .mark_line(strokeWidth=2.2)
-                        .encode(
-                            x=alt.X("time:T", axis=x_axis),
-                            y=alt.Y("equity:Q", axis=y_axis, scale=alt.Scale(zero=False)),
-                            color=alt.Color(
-                                "strategy:N",
-                                legend=alt.Legend(title=None, orient="top"),
-                                scale=alt.Scale(range=[PALETTE["BULLISH"], PALETTE["ACCENT"]]),
-                            ),
-                            strokeDash=alt.StrokeDash(
-                                "strategy:N",
-                                legend=None,
-                                scale=alt.Scale(range=[[1, 0], [5, 3]]),
-                            ),
-                            tooltip=[
-                                alt.Tooltip("time:T", title="Time"),
-                                alt.Tooltip("strategy:N", title="Strategy"),
-                                alt.Tooltip("equity:Q", title="Equity", format=".3f"),
-                            ],
+            with st.expander("Strategy comparison", expanded=False):
+                compare_strategies = strat_registry.strategies_for_asset(key)
+                compare_names = list(compare_strategies.keys())
+                default_left = strategy.name if strategy.name in compare_strategies else compare_names[0]
+                preferred_right = next(
+                    (
+                        candidate for candidate in (
+                            "Supertrend v1 (10, 3.0)",
+                            "EMA Cross v1 (21/55)",
+                            "Donchian Breakout v1.0 (20/10)",
+                            "GaussianChannel v3.1 (default)",
                         )
-                        .properties(height=220, background=PALETTE["BG_CARD"])
-                        .configure_view(stroke=None)
-                    )
-                    st.altair_chart(cmp_chart, width="stretch")
+                        if candidate in compare_strategies and candidate != default_left
+                    ),
+                    next((name for name in compare_names if name != default_left), default_left),
+                )
+                cmp1, cmp2 = st.columns(2)
+                left_name = cmp1.selectbox(
+                    "Strategy A",
+                    compare_names,
+                    index=compare_names.index(default_left),
+                    key=f"cmp_left_{key}_{selected_sym}",
+                )
+                right_name = cmp2.selectbox(
+                    "Strategy B",
+                    compare_names,
+                    index=compare_names.index(preferred_right),
+                    key=f"cmp_right_{key}_{selected_sym}",
+                )
 
-                    ca1, ca2, ca3 = st.columns(3)
-                    with ca1:
-                        st.caption(left_name)
-                        st.metric("Net", f"{left_stats.net_pct:+.2f}%")
-                        st.metric("Sharpe", _fmt_number(left_stats.sharpe))
-                        st.metric("Max DD", _fmt_number(left_stats.max_drawdown_pct, pct=True))
-                    with ca2:
-                        st.caption(right_name)
-                        st.metric("Net", f"{right_stats.net_pct:+.2f}%")
-                        st.metric("Sharpe", _fmt_number(right_stats.sharpe))
-                        st.metric("Max DD", _fmt_number(right_stats.max_drawdown_pct, pct=True))
-                    with ca3:
-                        st.caption("Head-to-head")
-                        st.metric("Net edge", f"{(left_stats.net_pct - right_stats.net_pct):+.2f}%")
-                        if left_stats.sharpe is not None and right_stats.sharpe is not None:
-                            st.metric("Sharpe edge", _fmt_number(left_stats.sharpe - right_stats.sharpe))
-                        else:
-                            st.metric("Sharpe edge", "—")
-                        if left_stats.max_drawdown_pct is not None and right_stats.max_drawdown_pct is not None:
-                            st.metric("DD edge", _fmt_number(left_stats.max_drawdown_pct - right_stats.max_drawdown_pct, pct=True))
-                        else:
-                            st.metric("DD edge", "—")
+                left_result = strat_registry.run_strategy_cached(compare_strategies[left_name], sel["_df"])
+                right_result = strat_registry.run_strategy_cached(compare_strategies[right_name], sel["_df"])
+                latest_ts = sel["_df"].index[-1]
+                latest_close = float(sel["_df"]["close"].iloc[-1])
+                now_ts = latest_ts
+                left_stats = compute_stats(left_result.trades, now=now_ts, lookback_days=lookback_days)
+                right_stats = compute_stats(right_result.trades, now=now_ts, lookback_days=lookback_days)
+
+                cmp_curves = pd.concat(
+                    [
+                        _comparison_curve_frame(
+                            left_name,
+                            left_result,
+                            now=now_ts,
+                            lookback_days_=lookback_days,
+                            latest_ts=latest_ts,
+                            latest_close=latest_close,
+                        ),
+                        _comparison_curve_frame(
+                            right_name,
+                            right_result,
+                            now=now_ts,
+                            lookback_days_=lookback_days,
+                            latest_ts=latest_ts,
+                            latest_close=latest_close,
+                        ),
+                    ],
+                    ignore_index=True,
+                )
+                cmp_chart = (
+                    alt.Chart(cmp_curves)
+                    .mark_line(strokeWidth=2.2)
+                    .encode(
+                        x=alt.X("time:T", axis=x_axis),
+                        y=alt.Y("equity:Q", axis=y_axis, scale=alt.Scale(zero=False)),
+                        color=alt.Color(
+                            "strategy:N",
+                            legend=alt.Legend(title=None, orient="top"),
+                            scale=alt.Scale(range=[PALETTE["BULLISH"], PALETTE["ACCENT"]]),
+                        ),
+                        strokeDash=alt.StrokeDash(
+                            "strategy:N",
+                            legend=None,
+                            scale=alt.Scale(range=[[1, 0], [5, 3]]),
+                        ),
+                        tooltip=[
+                            alt.Tooltip("time:T", title="Time"),
+                            alt.Tooltip("strategy:N", title="Strategy"),
+                            alt.Tooltip("equity:Q", title="Equity", format=".3f"),
+                        ],
+                    )
+                    .properties(height=220, background=PALETTE["BG_CARD"])
+                    .configure_view(stroke=None)
+                )
+                st.altair_chart(cmp_chart, width="stretch")
+
+                ca1, ca2, ca3 = st.columns(3)
+                with ca1:
+                    st.caption(left_name)
+                    st.metric("Net", f"{left_stats.net_pct:+.2f}%")
+                    st.metric("Sharpe", _fmt_number(left_stats.sharpe))
+                    st.metric("Max DD", _fmt_number(left_stats.max_drawdown_pct, pct=True))
+                with ca2:
+                    st.caption(right_name)
+                    st.metric("Net", f"{right_stats.net_pct:+.2f}%")
+                    st.metric("Sharpe", _fmt_number(right_stats.sharpe))
+                    st.metric("Max DD", _fmt_number(right_stats.max_drawdown_pct, pct=True))
+                with ca3:
+                    st.caption("Head-to-head")
+                    st.metric("Net edge", f"{(left_stats.net_pct - right_stats.net_pct):+.2f}%")
+                    if left_stats.sharpe is not None and right_stats.sharpe is not None:
+                        st.metric("Sharpe edge", _fmt_number(left_stats.sharpe - right_stats.sharpe))
+                    else:
+                        st.metric("Sharpe edge", "—")
+                    if left_stats.max_drawdown_pct is not None and right_stats.max_drawdown_pct is not None:
+                        st.metric("DD edge", _fmt_number(left_stats.max_drawdown_pct - right_stats.max_drawdown_pct, pct=True))
+                    else:
+                        st.metric("DD edge", "—")
 
     if key in live_log.LIVE_CLASSES:
-        perf_ui.render_basket_performance(signals, key, PALETTE)
+        with chart_col:
+            perf_ui.render_basket_performance(signals, key, PALETTE)
 
 # --- Page header + tabs --------------------------------------------------------
 
