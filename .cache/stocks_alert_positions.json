@@ -14,5 +14,21 @@
         "start_year": 2018
       }
     }
+  },
+  "TEL": {
+    "entry_date": "2026-10-01",
+    "entry_price": 208.61000061035156,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
   }
 }
