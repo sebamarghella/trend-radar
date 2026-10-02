@@ -121,6 +121,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "AGNCL|carried",
+  "symbol": "AGNCL",
+  "entry_date": "2026-09-25",
+  "entry_price": 25.469999313354492,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "AGNCN|carried",
   "symbol": "AGNCN",
   "entry_date": "2026-09-25",
@@ -235,8 +247,8 @@
   "symbol": "APD",
   "entry_date": "2026-09-25",
   "entry_price": 281.760009765625,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-01",
+  "exit_price": 272.7799987792969,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -789,8 +801,8 @@
   "symbol": "CP",
   "entry_date": "2026-09-25",
   "entry_price": 86.91000366210938,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-01",
+  "exit_price": 85.0,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -1218,8 +1230,8 @@
   "symbol": "EW",
   "entry_date": "2026-09-25",
   "entry_price": 86.29000091552734,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-01",
+  "exit_price": 85.98999786376953,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -1572,8 +1584,8 @@
   "symbol": "IBN",
   "entry_date": "2026-09-25",
   "entry_price": 27.920000076293945,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-01",
+  "exit_price": 27.420000076293945,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -2858,6 +2870,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "SNX|carried",
+  "symbol": "SNX",
+  "entry_date": "2026-09-25",
+  "entry_price": 263.0299987792969,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "SNY|carried",
   "symbol": "SNY",
   "entry_date": "2026-09-25",
@@ -3248,8 +3272,8 @@
   "symbol": "USB",
   "entry_date": "2026-09-25",
   "entry_price": 59.33000183105469,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-01",
+  "exit_price": 57.310001373291016,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -3558,6 +3582,18 @@
   "symbol": "UMC",
   "entry_date": "2026-09-28",
   "entry_price": 24.079999923706055,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "TEL|2026-09-30",
+  "symbol": "TEL",
+  "entry_date": "2026-10-01",
+  "entry_price": 208.61000061035156,
   "exit_date": null,
   "exit_price": null,
   "carried": false,
