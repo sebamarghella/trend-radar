@@ -1199,11 +1199,10 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         )
         interval_minutes = interval_label[1]
         sort_options = list(SORT_MAP.keys())
-        # Stocks default to newest trades first; low-float candidates arrive
-        # pre-ranked by Benzinga's regular-session change.
+        # Stocks and low-float both default to the newest long position first.
+        # Benzinga's rank remains available as an explicit sort option.
         default_sort = (
-            "Bars in state (newest first)" if key == "stocks"
-            else "Rank" if key == "low_float"
+            "Bars in state (newest first)" if key in {"stocks", "low_float"}
             else sort_options[0]
         )
         sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
