@@ -15,6 +15,7 @@ streamlit run app.py
 ## What it shows
 
 - **Radar grid**: every top-100 coin tradable on Binance, with current strategy state (LONG / FLAT), Pine bar color, filter slope, bars in state, Stoch K, and distance from the upper band.
+- **Low-Float tab**: broker-neutral US regular-session gainers discovered through Benzinga, locally validated to price $1–$20, session volume above 10K, and float 100K–20M. The grid retains Benzinga's scan price, day change, volume, and float alongside Yahoo-backed strategy signals. A visible warning appears if Benzinga reaches its current 500-row response ceiling.
 - **Order-flow context**: crypto rows can now expose Binance taker buy/sell delta from the native kline payload, derived from `taker_buy_base_volume` vs total bar volume.
 - **Drilldown**: per-coin price chart with the Gaussian channel overlaid and long-position bars highlighted.
 - **Strategy comparison**: on a selected coin, compare two presets side by side with a head-to-head equity curve in drilldown.
@@ -50,7 +51,7 @@ Binance.com (`api.binance.com`) is blocked in the US/UK. The client transparentl
 
 ## Strategies
 
-Each of the four tabs (Crypto / Stocks / Metals / Commodities) picks its own
+Each of the five tabs (Crypto / Stocks / Low-Float / Metals / Commodities) picks its own
 strategy from a dropdown. A *strategy* is a named preset: a logic + its parameters.
 
 - **Logic**: the actual Python implementation (currently `gaussian_channel_v3_1`).
@@ -83,13 +84,28 @@ branch = "main"
 
 Without a token, commit `strategies/*.json` to the repo manually.
 
+### Benzinga low-float candidates
+
+Add the Benzinga Stock Scanner API key locally or in the Streamlit Cloud Secrets
+panel. It is read server-side and must not be committed:
+
+```toml
+[benzinga]
+api_key = "your-key"
+```
+
+The Low-Float tab uses one cached market-movers request per refresh (five-minute
+cache by default). It is informational only: it does not feed the scheduled
+Telegram alert workflow or place trades.
+
 **Security**: the commit button is server-side (the token is never exposed to the
 browser), but anyone who can open the app can click it. Keep the deployed app's
 sharing set to "Only specific people" if commit is enabled.
 
 ## Files
 
-- `app.py` — Streamlit UI (4 tabs, per-class strategy dropdowns)
+- `app.py` — Streamlit UI (5 tabs, per-class strategy dropdowns)
+- `benzinga_universe.py` — Benzinga low-float candidate discovery and local validation
 - `run_alerts.py` — Headless alert engine; each class uses its assigned strategy
 - `strategies.py` — Logic registry, Strategy presets, JSON load/save, assignments
 - `indicator_engine.py` — optional `pandas-ta` wrapper for library-backed indicators

@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
+from benzinga_universe import live_low_float_universe
 from coins import live_universe, tradable_universe as crypto_universe
 from sources import Resolver, default_resolver, yahoo_resolver
 from stocks_universe import live_stocks_universe
@@ -112,13 +113,13 @@ class AssetClass:
     is_24_7: bool = True  # crypto is 24/7; stocks/futures aren't (affects cache freshness)
     # Optional dynamic universe, given the class's resolver. `universe` stays
     # as the static fallback / default.
-    universe_loader: Callable[[Resolver], list[dict]] | None = None
+    universe_loader: Callable[[Resolver, bool], list[dict]] | None = None
 
-    def get_universe(self, resolver: Resolver) -> list[dict]:
+    def get_universe(self, resolver: Resolver, force_refresh: bool = False) -> list[dict]:
         if self.universe_loader is None:
             return self.universe
         try:
-            return self.universe_loader(resolver)
+            return self.universe_loader(resolver, force_refresh)
         except Exception as e:  # never blank a tab over a ranking-API hiccup
             print(f"[warn] {self.key} universe loader failed ({e}); using static list")
             return self.universe
@@ -129,7 +130,7 @@ CRYPTO = AssetClass(
     label="Crypto",
     description="Top 120 tradable by market cap (live CoinGecko ranking) on Binance / Gate.io / Kraken / KuCoin.",
     universe=crypto_universe(),
-    universe_loader=lambda resolver: live_universe(resolver.can_supply),
+    universe_loader=lambda resolver, force_refresh=False: live_universe(resolver.can_supply),
     resolver_factory=default_resolver,
     interval_options=[("1 day", 1440), ("4 hour", 240), ("1 hour", 60)],
     default_interval_idx=0,
@@ -143,12 +144,35 @@ STOCKS = AssetClass(
     label="Stocks",
     description="Top 570 US-listed stocks by market cap (incl. ADRs; live NASDAQ screener ranking) via Yahoo Finance.",
     universe=STOCKS_UNIVERSE,  # fallback if the screener is unreachable
-    universe_loader=lambda resolver: live_stocks_universe(STOCKS_UNIVERSE),
+    universe_loader=lambda resolver, force_refresh=False: live_stocks_universe(STOCKS_UNIVERSE),
     resolver_factory=yahoo_resolver,
     interval_options=[("1 day", 1440), ("1 week", 10080)],
     default_interval_idx=0,       # cron / alerts / live log stay on daily
     ui_default_interval_idx=0,    # open Stocks on 1 day to match daily signals
     tv_default_prefix="",  # TV auto-resolves common tickers
+    is_24_7=False,
+)
+
+# Benzinga identifies the fast-changing candidate set; Yahoo supplies the
+# history that the strategy uses.  This class is deliberately not alertable.
+LOW_FLOAT = AssetClass(
+    key="low_float",
+    label="Low-Float",
+    description=(
+        "US regular-session gainers from Benzinga: price $1–$20, volume above "
+        "10K and float 100K–20M. Benzinga discovers candidates; Yahoo Finance "
+        "provides the price history used by the strategy."
+    ),
+    universe=[],
+    universe_loader=lambda resolver, force_refresh=False: live_low_float_universe(
+        force_refresh=force_refresh
+    ),
+    resolver_factory=yahoo_resolver,
+    interval_options=[("1 day", 1440), ("1 week", 10080)],
+    default_interval_idx=0,
+    ui_default_interval_idx=0,
+    alerts_enabled=False,
+    tv_default_prefix="",
     is_24_7=False,
 )
 
@@ -179,4 +203,4 @@ COMMODITIES = AssetClass(
 )
 
 
-ASSET_CLASSES: list[AssetClass] = [CRYPTO, STOCKS, METALS, COMMODITIES]
+ASSET_CLASSES: list[AssetClass] = [CRYPTO, STOCKS, LOW_FLOAT, METALS, COMMODITIES]

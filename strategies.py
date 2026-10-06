@@ -334,7 +334,7 @@ register(LogicSpec(
     ),
     param_schema=_GC_STOCKS_SCHEMA,
     run=_run_gc_stocks_v1,
-    asset_classes=("stocks",),
+    asset_classes=("stocks", "low_float"),
 ))
 
 

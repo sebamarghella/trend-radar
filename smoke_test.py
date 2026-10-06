@@ -375,6 +375,33 @@ def test_stocks_universe_ranking():
     print("stocks universe ranking: ok")
 
 
+def test_benzinga_low_float_universe():
+    """Offline: Benzinga candidates are locally checked against every bound."""
+    import benzinga_universe as bu
+    import strategies
+
+    gainers = [
+        {"symbol": "LOW", "companyName": "Low Float", "price": "5.00",
+         "volume": "10001", "shareFloat": "100000", "changePercent": "10.0"},
+        {"symbol": "HIGH", "companyName": "Higher Move", "price": 10,
+         "volume": 50000, "shareFloat": 2_000_000, "changePercent": 20},
+        {"symbol": "EDGEVOL", "companyName": "Volume Edge", "price": 8,
+         "volume": 10_000, "shareFloat": 500_000, "changePercent": 99},
+        {"symbol": "EDGEFLOAT", "companyName": "Float Edge", "price": 8,
+         "volume": 50_000, "shareFloat": 20_000_001, "changePercent": 99},
+        {"symbol": "NOPRICE", "companyName": "Bad Data", "price": None,
+         "volume": 50_000, "shareFloat": 1_000_000, "changePercent": 99},
+    ]
+    rows = bu.select_candidates(gainers)
+    assert [r["symbol"] for r in rows] == ["HIGH", "LOW"], rows
+    assert [r["rank"] for r in rows] == [1, 2]
+    assert rows[0]["scan_change_pct"] == 20.0
+    _, metadata = bu._parse_payload({"result": {"gainers": gainers}})
+    assert metadata["source_count"] == len(gainers) and not metadata["saturated"]
+    assert strategies.LOGICS["gaussian_channel_stocks_v1"].available_for("low_float")
+    print("Benzinga low-float universe: ok")
+
+
 def test_run_strategy_cached():
     import strategies as S
 
@@ -765,6 +792,7 @@ if __name__ == "__main__":
     test_crypto_signal_export_helpers()
     test_fetch_series_staleness_and_renames()
     test_stocks_universe_ranking()
+    test_benzinga_low_float_universe()
     test_run_strategy_cached()
     test_breakouts()
     test_performance_entry_exit_alignment()

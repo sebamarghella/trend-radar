@@ -32,6 +32,7 @@ import performance as _performance
 for _m in (_performance, live_log, perf_ui, ui_tweaks):
     importlib.reload(_m)
 import breakouts as bo_mod
+import benzinga_universe
 import cache as ohlc_cache
 import strategies as strat_registry
 import theme as T
@@ -440,7 +441,7 @@ def load_universe_data(
 ) -> tuple[list[dict], list[dict]]:
     ac = next(a for a in ASSET_CLASSES if a.key == asset_key)
     resolver = cached_resolver(asset_key)
-    universe = ac.get_universe(resolver)
+    universe = ac.get_universe(resolver, force_refresh=force_refresh)
     results: list[dict] = []
     with ThreadPoolExecutor(max_workers=20) as ex:
         futures = {
@@ -455,6 +456,11 @@ def load_universe_data(
             res = fut.result()
             res["rank"] = meta["rank"]
             res["name"] = meta["name"]
+            # The Benzinga universe enriches candidates with scan metrics. Keep
+            # them alongside the Yahoo-backed strategy result for that tab only.
+            for scan_key in ("scan_price", "scan_change_pct", "scan_volume", "scan_float"):
+                if scan_key in meta:
+                    res[scan_key] = meta[scan_key]
             if res.get("cache_status") == "cache":
                 cache_hits += 1
             results.append(res)
@@ -526,7 +532,7 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         taker_buy_base = pd.to_numeric(df["taker_buy_base_volume"], errors="coerce").iloc[-1]
         if pd.notna(volume_now) and volume_now not in (None, 0) and pd.notna(taker_buy_base):
             taker_delta_pct = float(((2.0 * taker_buy_base) - volume_now) / volume_now * 100.0)
-    return {
+    signal = {
         "rank": row["rank"],
         "symbol": row["symbol"],
         "name": row["name"],
@@ -558,6 +564,10 @@ def compute_signal(row: dict, strategy: Strategy, lookback_days_: int) -> dict:
         "_trades": trades,
         "_pending_order": pending_order,
     }
+    for scan_key in ("scan_price", "scan_change_pct", "scan_volume", "scan_float"):
+        if scan_key in row:
+            signal[scan_key] = row[scan_key]
+    return signal
 
 
 def _mark_to_market_return(trade, latest_close: float, commission_per_side: float = 0.001) -> float | None:
@@ -919,10 +929,11 @@ function(event) {{
 # the grid always fills 100% width; minWidth is just a readability floor that
 # triggers horizontal scroll only when the pane gets very narrow.
 COLUMN_FLEX = {
-    "rank": 4, "symbol": 6, "name": 5, "exchange_short": 4, "pair": 5,
-    "state": 5, "confluence": 5, "bar_color": 5, "filter_up": 4, "bars_in_state": 3,
-    "close_vs_hband_pct": 5, "stoch_k": 4, "flow_delta": 5, "trend_pnl": 5, "breakout": 6, "last_close": 4,
-    "trades": 4, "net_pct": 5, "win_pct": 3, "sharpe": 5, "max_dd_pct": 5, "tv": 3,
+    "rank": 3, "symbol": 5, "name": 6, "exchange_short": 3, "pair": 3,
+    "scan_price": 4, "scan_change_pct": 4, "scan_volume": 4, "scan_float": 4,
+    "state": 5, "confluence": 5, "bar_color": 4, "filter_up": 3, "bars_in_state": 3,
+    "close_vs_hband_pct": 4, "stoch_k": 3, "flow_delta": 4, "trend_pnl": 4, "breakout": 5, "last_close": 3,
+    "trades": 3, "net_pct": 4, "win_pct": 3, "sharpe": 4, "max_dd_pct": 4, "tv": 3,
 }  # sums to 100
 
 assert sum(COLUMN_FLEX.values()) == 100, "column flex weights must sum to 100"
@@ -959,6 +970,27 @@ def build_grid_options(df: pd.DataFrame, palette: dict) -> dict:
                         tooltipField="name")
     gb.configure_column("exchange_short", header_name="Src", flex=F["exchange_short"], minWidth=45)
     gb.configure_column("pair", header_name="Pair", flex=F["pair"], minWidth=65)
+    if "scan_price" in df.columns:
+        gb.configure_column(
+            "scan_price", header_name="Scan $", flex=F["scan_price"], minWidth=72,
+            type=["numericColumn"], valueFormatter=_FMT_PRICE,
+            headerTooltip="Benzinga last price used for the low-float screen.",
+        )
+        gb.configure_column(
+            "scan_change_pct", header_name="Day %", flex=F["scan_change_pct"], minWidth=72,
+            type=["numericColumn"], valueFormatter=_FMT_PCT, cellStyle=cs["PCT"],
+            headerTooltip="Benzinga regular-session price change.",
+        )
+        gb.configure_column(
+            "scan_volume", header_name="Scan Vol", flex=F["scan_volume"], minWidth=84,
+            type=["numericColumn"], valueFormatter=_FMT_INT,
+            headerTooltip="Benzinga session volume, re-checked locally against the 10K minimum.",
+        )
+        gb.configure_column(
+            "scan_float", header_name="Float", flex=F["scan_float"], minWidth=82,
+            type=["numericColumn"], valueFormatter=_FMT_INT,
+            headerTooltip="Benzinga reported public float, re-checked locally against 100K–20M.",
+        )
     gb.configure_column("exchange", hide=True)
     gb.configure_column("tv_prefix", hide=True)
     gb.configure_column("state", header_name="Pos", flex=F["state"], minWidth=55, cellStyle=cs["STATE"])
@@ -1167,8 +1199,13 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         )
         interval_minutes = interval_label[1]
         sort_options = list(SORT_MAP.keys())
-        # Stocks default to newest trades first (pairs with the "Pos: Long" filter).
-        default_sort = "Bars in state (newest first)" if key == "stocks" else sort_options[0]
+        # Stocks default to newest trades first; low-float candidates arrive
+        # pre-ranked by Benzinga's regular-session change.
+        default_sort = (
+            "Bars in state (newest first)" if key == "stocks"
+            else "Rank" if key == "low_float"
+            else sort_options[0]
+        )
         sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
 
         soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
@@ -1213,7 +1250,29 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
                 key, interval_minutes, st.session_state.bust[key], force_refetch
             )
 
+        if key == "low_float":
+            scan_status = benzinga_universe.last_status()
+            source_count = scan_status.get("source_count")
+            cache_state = scan_status.get("cache_state")
+            from_date = scan_status.get("from_date")
+            to_date = scan_status.get("to_date")
+            if source_count is not None:
+                st.caption(
+                    f"Benzinga REGULAR movers · {source_count} source rows · "
+                    f"volume re-checked locally · {cache_state or 'loaded'}"
+                    + (f" · {from_date} to {to_date}" if from_date and to_date else "")
+                )
+            if scan_status.get("saturated"):
+                st.warning(
+                    "Benzinga returned its 500-row ceiling. This list may be incomplete until the "
+                    "movers set falls below that ceiling."
+                )
+            if scan_status.get("error"):
+                st.warning(f"Benzinga refresh issue — using the last available candidate list. {scan_status['error']}")
+
         if not ok_rows:
+            if key == "low_float" and benzinga_universe.last_status().get("cache_state") == "unavailable":
+                st.error(benzinga_universe.last_status().get("error", "Benzinga candidates are unavailable."))
             st.error(f"No {ac.label.lower()} symbols resolved. Check your network and try Refresh.")
             if skipped_rows:
                 st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]])
@@ -1282,7 +1341,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     chart_col, radar_col = st.columns([2.5, 1], gap="small", vertical_alignment="top")
     with radar_col.container(border=False, key=f"radar_panel_{key}"):
         st.subheader("Radar")
-        st.caption("Click any cell in a row to drill down into that coin's chart.")
+        st.caption("Click any cell in a row to drill down into that symbol's chart.")
         long_only = False
         if key == "stocks":
             long_only = st.checkbox("Pos: Long", value=True, key=f"long_only_{key}",
@@ -1741,7 +1800,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
 
 st.title("Trend Radar")
 st.caption(
-    "Per-asset-class trend strategies across crypto / stocks / metals / commodities. "
+    "Per-asset-class trend strategies across crypto / stocks / low-float / metals / commodities. "
     "Each tab picks its own strategy; defaults to GaussianChannel v3.1."
 )
 
