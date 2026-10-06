@@ -4133,5 +4133,50 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-06T19:08:31+00:00",
+    "asset_class": "stocks",
+    "symbol": "TSLA",
+    "pair": "TSLA",
+    "direction": "ENTRY",
+    "price": 382.0400085449219,
+    "fill_date": "2026-10-06",
+    "entry_price": 382.0400085449219,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-06T19:08:31+00:00",
+    "asset_class": "stocks",
+    "symbol": "AME",
+    "pair": "AME",
+    "direction": "ENTRY",
+    "price": 252.7100067138672,
+    "fill_date": "2026-10-06",
+    "entry_price": 252.7100067138672,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-06T19:08:31+00:00",
+    "asset_class": "stocks",
+    "symbol": "BAP",
+    "pair": "BAP",
+    "direction": "ENTRY",
+    "price": 380.7699890136719,
+    "fill_date": "2026-10-06",
+    "entry_price": 380.7699890136719,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
