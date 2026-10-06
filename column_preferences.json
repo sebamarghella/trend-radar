@@ -4,5 +4,11 @@
     "name",
     "bars_in_state",
     "tv"
+  ],
+  "low_float": [
+    "symbol",
+    "name",
+    "bars_in_state",
+    "tv"
   ]
 }
