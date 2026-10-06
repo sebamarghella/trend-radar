@@ -328,7 +328,7 @@ register(LogicSpec(
     key="gaussian_channel_stocks_v1",
     label="Gaussian Channel Stocks",
     description=(
-        "Stocks only. Donovan Wall Gaussian filter colour flip: long on the first "
+        "Stocks and low-float. Donovan Wall Gaussian filter colour flip: long on the first "
         "green (rising) filter bar after a red one; flat on the first red bar after "
         "a green one."
     ),

@@ -1279,11 +1279,12 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
             return
 
         signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
-        # Stocks default to "Pos: Long" (only ~half the rows are shown), so only those
-        # need the TF✓ lookup. The checkbox value from the previous run is already in
-        # session_state; unticking it reruns and fills in the rest (fetches are cached).
+        # Stock and low-float screens default to "Pos: Long" (only a subset of rows
+        # is shown), so only those need the TF✓ lookup. The checkbox value from the
+        # previous run is already in session_state; unticking it reruns and fills in
+        # the rest (fetches are cached).
         _conf_only: set[str] | None = None
-        if key == "stocks" and st.session_state.get(f"long_only_{key}", True):
+        if key in {"stocks", "low_float"} and st.session_state.get(f"long_only_{key}", True):
             _conf_only = {s["symbol"] for s in signals if s["state"] == "LONG"}
             if focus_symbol:
                 _conf_only.add(focus_symbol)
@@ -1343,7 +1344,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         st.subheader("Radar")
         st.caption("Click any cell in a row to drill down into that symbol's chart.")
         long_only = False
-        if key == "stocks":
+        if key in {"stocks", "low_float"}:
             long_only = st.checkbox("Pos: Long", value=True, key=f"long_only_{key}",
                                     help="Show only stocks currently in a LONG position.")
         search = st.text_input(
