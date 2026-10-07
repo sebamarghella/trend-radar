@@ -2,8 +2,9 @@ name: Trend Radar Low-Float Alerts
 
 on:
   schedule:
-    # Run separately from Stocks, five minutes after the US open alert scan.
-    - cron: '55 9 * * 1-5'
+    # Wait for the completed daily NYSE/Nasdaq candle, then notify traders
+    # the evening before the next regular-session open.
+    - cron: '30 16 * * 1-5'
       timezone: 'America/New_York'
   workflow_dispatch:
     inputs:
