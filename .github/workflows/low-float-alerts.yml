@@ -11,6 +11,10 @@ on:
         description: "Send today's already filled Low-Float flips now (weekdays after 09:45 New York)"
         type: boolean
         default: false
+      test_alert:
+        description: "Send one clearly labelled Low-Float Telegram test alert"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # persist only the Low-Float alert baseline, history, and ledger
@@ -35,6 +39,36 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements-alerts.txt
+
+      - name: Send Low-Float Telegram test alert
+        if: ${{ inputs.test_alert }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.LOW_FLOAT_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.LOW_FLOAT_TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+
+          token = os.environ["TELEGRAM_BOT_TOKEN"]
+          chat_id = os.environ["TELEGRAM_CHAT_ID"]
+          data = urlencode({
+              "chat_id": chat_id,
+              "text": "✅ Trend Radar Low-Float alerts are active. This is a test message.",
+          }).encode("utf-8")
+          request = Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=data,
+              method="POST",
+          )
+          with urlopen(request, timeout=20) as response:
+              result = json.loads(response.read().decode("utf-8"))
+          if not result.get("ok"):
+              raise SystemExit("Telegram rejected the Low-Float test alert.")
+          print("Low-Float Telegram test alert delivered.")
+          PY
 
       - name: Run Low-Float alert engine
         id: alert_engine
