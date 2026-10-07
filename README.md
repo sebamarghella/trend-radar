@@ -150,13 +150,13 @@ The delivered-alert position ledger starts on 29 September 2026 with **AMD only*
    - `TELEGRAM_CHAT_ID` — your numeric chat id (e.g. from @userinfobot)
    - `LOW_FLOAT_TELEGRAM_BOT_TOKEN` — a separate bot token for Low-Float alerts
    - `LOW_FLOAT_TELEGRAM_CHAT_ID` — the Low-Float bot's destination chat ID
-3. `.github/workflows/alerts.yml` runs Stocks **Monday-Friday at 09:50 New York time**. `.github/workflows/low-float-alerts.yml` runs Low-Float separately at **09:55 New York time**. GitHub handles daylight saving time through the workflow's timezone. Triggering either manually before 09:45 New York time or on a weekend does nothing.
+3. `.github/workflows/alerts.yml` runs Stocks **Monday-Friday at 09:50 New York time**. `.github/workflows/low-float-alerts.yml` runs Low-Float separately at **16:30 New York time**, after the daily market candle has closed so traders can prepare for the next opening bell. GitHub handles daylight saving time through the workflow's timezone. Triggering either manually before 09:45 New York time or on a weekend does nothing.
 4. The first run after an alert-logic change silently seeds the filled-position baseline. Future filled flips generate Telegram messages. If the latest Yahoo daily bar is not for the current New York trading day, it cannot generate an alert.
    For a one-time check of fills that already occurred today, dispatch the workflow with `send_todays_fills=true` after 09:45 New York time. That first dispatch sends only today's filled flips and establishes the new baseline; later routine runs will not repeat them.
 
 **Tweaking the cadence or timeframe:**
 
-- Keep the schedule after the US market open. The engine enforces the weekday and 09:45 New York time gates, and the Stocks alert timeframe is daily.
+- Keep the Stocks schedule after the US market open; the Low-Float schedule is intentionally after the 16:00 New York close. The engine enforces the weekday and 09:45 New York time gates, and both equity alert timeframes are daily.
 
 **State persistence:** each workflow commits only its own state, open-position ledger, and alert history after each run, including when a tracked fetch or Telegram send fails. Stocks retains its legacy files; Low-Float uses `low_float_alerts_state.json`, `low_float_alert_positions.json`, and `low_float_alerts_history.json`. Without these files, a workflow could lose track of open alerted trades or repeat messages.
 
