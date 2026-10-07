@@ -13,5 +13,35 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-07T21:03:33+00:00",
+    "asset_class": "low_float",
+    "symbol": "CANG",
+    "pair": "CANG",
+    "direction": "ENTRY",
+    "price": 3.5799999237060547,
+    "fill_date": "2026-10-07",
+    "entry_price": 3.5799999237060547,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-07T21:03:33+00:00",
+    "asset_class": "low_float",
+    "symbol": "NRXS",
+    "pair": "NRXS",
+    "direction": "ENTRY",
+    "price": 6.829999923706055,
+    "fill_date": "2026-10-07",
+    "entry_price": 6.829999923706055,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
