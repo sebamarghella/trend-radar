@@ -1,8 +1,8 @@
 """Telegram alerts on strategy state flips.
 
-State is persisted in `.cache/alerts_state.json` keyed by `(symbol, interval)`.
-The scheduled Stocks job diffs filled positions and sends a message only on
-FLAT→LONG or LONG→FLAT transitions. First-ever run seeds silently.
+Each alert class owns its state, history, and open-position ledger.  The
+legacy Stocks files retain their original names; Low-Float uses its own files
+so separate bots and scheduled jobs can never overwrite each other's state.
 """
 
 from __future__ import annotations
@@ -17,7 +17,8 @@ import requests
 STATE_FILE = Path(__file__).parent / ".cache" / "alerts_state.json"
 HISTORY_FILE = Path(__file__).parent / ".cache" / "alerts_history.json"
 OPEN_POSITIONS_FILE = Path(__file__).parent / ".cache" / "stocks_alert_positions.json"
-STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+CACHE_DIR = STATE_FILE.parent
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 TELEGRAM_API = "https://api.telegram.org"
 # The Saturday report needs every delivered Stocks event from its start date.
@@ -43,16 +44,17 @@ class Flip:
     strategy_name: str | None = None
 
     def format(self) -> str:
-        if self.asset_class == "stocks":
+        if self.asset_class in {"stocks", "low_float"}:
             opening = self.entry_price if self.entry_price is not None else self.price
             late = (f"\nFill date: {self.fill_date} (late notice)"
                     if self.late and self.fill_date else "")
+            prefix = "LOW-FLOAT · " if self.asset_class == "low_float" else ""
             if self.direction == "ENTRY":
-                return (f"🟢 FlipGreen · OPEN LONG · {self.symbol}\n"
+                return (f"🟢 {prefix}FlipGreen · OPEN LONG · {self.symbol}\n"
                         f"Open price: ${opening:,.2f}\n"
                         f"Close price: pending{late}")
             closing = self.exit_price if self.exit_price is not None else self.price
-            return (f"🔴 FlipRed · CLOSE LONG · {self.symbol}\n"
+            return (f"🔴 {prefix}FlipRed · CLOSE LONG · {self.symbol}\n"
                     f"Open price: ${opening:,.2f}\n"
                     f"Close price: ${closing:,.2f}{late}")
         tf = _tf_label(self.interval_minutes)
@@ -78,31 +80,56 @@ def _tf_label(minutes: int) -> str:
     return f"{minutes // 1440}d"
 
 
-def load_state() -> dict[str, str]:
-    if not STATE_FILE.exists():
+def _class_file(asset_class: str, legacy: Path, suffix: str) -> Path:
+    """Return isolated persistence for a non-Stocks alert class."""
+    return legacy if asset_class == "stocks" else CACHE_DIR / f"{asset_class}_{suffix}"
+
+
+def _state_file(asset_class: str) -> Path:
+    return _class_file(asset_class, STATE_FILE, "alerts_state.json")
+
+
+def _history_file(asset_class: str) -> Path:
+    return _class_file(asset_class, HISTORY_FILE, "alerts_history.json")
+
+
+def _positions_file(asset_class: str) -> Path:
+    return _class_file(asset_class, OPEN_POSITIONS_FILE, "alert_positions.json")
+
+
+def load_state(asset_class: str = "stocks") -> dict[str, str]:
+    path = _state_file(asset_class)
+    if not path.exists():
         return {}
-    data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError("alerts_state.json must contain an object")
+        raise ValueError(f"{path.name} must contain an object")
     return data
 
 
-def save_state(state: dict[str, str]) -> None:
-    STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+def save_state(state: dict[str, str], asset_class: str = "stocks") -> None:
+    path = _state_file(asset_class)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
-def load_open_positions() -> dict[str, dict]:
-    """Stocks whose OPEN LONG Telegram alert succeeded and has not closed."""
-    if not OPEN_POSITIONS_FILE.exists():
-        raise FileNotFoundError("stocks_alert_positions.json is required for Stocks alerts")
-    data = json.loads(OPEN_POSITIONS_FILE.read_text(encoding="utf-8"))
+def load_open_positions(asset_class: str = "stocks") -> dict[str, dict]:
+    """Delivered OPEN LONG alerts that have not yet received a closing alert."""
+    path = _positions_file(asset_class)
+    if not path.exists():
+        if asset_class == "stocks":
+            raise FileNotFoundError("stocks_alert_positions.json is required for Stocks alerts")
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError("stocks_alert_positions.json must contain an object")
+        raise ValueError(f"{path.name} must contain an object")
     return data
 
 
-def save_open_positions(positions: dict[str, dict]) -> None:
-    OPEN_POSITIONS_FILE.write_text(json.dumps(positions, indent=2) + "\n", encoding="utf-8")
+def save_open_positions(positions: dict[str, dict], asset_class: str = "stocks") -> None:
+    path = _positions_file(asset_class)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(positions, indent=2) + "\n", encoding="utf-8")
 
 
 def _key(asset_class: str, symbol: str, interval_minutes: int) -> str:
@@ -159,7 +186,7 @@ def detect_flips(
             continue
         # We have a flip — record it.
         direction = "ENTRY" if current == "LONG" else "EXIT"
-        if asset_class == "stocks" and (
+        if asset_class in {"stocks", "low_float"} and (
             s.get("entry_price") is None
             or (direction == "EXIT" and s.get("exit_price") is None)
         ):
@@ -223,18 +250,21 @@ def fire_alerts(
 # --- Flip history (sidebar feed) ----------------------------------------------
 
 
-def load_history() -> list[dict]:
-    if not HISTORY_FILE.exists():
+def load_history(asset_class: str = "stocks") -> list[dict]:
+    path = _history_file(asset_class)
+    if not path.exists():
         return []
     try:
-        data = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, list) else []
     except (json.JSONDecodeError, OSError):
         return []
 
 
-def save_history(entries: list[dict]) -> None:
-    HISTORY_FILE.write_text(json.dumps(entries, indent=2), encoding="utf-8")
+def save_history(entries: list[dict], asset_class: str = "stocks") -> None:
+    path = _history_file(asset_class)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(entries, indent=2), encoding="utf-8")
 
 
 def record_flips(flips: list[Flip], asset_class: str, ts_iso: str | None = None) -> list[dict]:
@@ -243,7 +273,7 @@ def record_flips(flips: list[Flip], asset_class: str, ts_iso: str | None = None)
         return load_history()
     from datetime import datetime, timezone
     now = ts_iso or datetime.now(timezone.utc).isoformat(timespec="seconds")
-    history = load_history()
+    history = load_history(asset_class)
     for f in flips:
         history.append({
             "ts": now,
@@ -260,12 +290,12 @@ def record_flips(flips: list[Flip], asset_class: str, ts_iso: str | None = None)
             "interval_minutes": f.interval_minutes,
             "exchange": f.exchange,
         })
-    save_history(history)
+    save_history(history, asset_class)
     return history
 
 
-def clear_history() -> None:
+def clear_history(asset_class: str = "stocks") -> None:
     try:
-        HISTORY_FILE.unlink(missing_ok=True)
+        _history_file(asset_class).unlink(missing_ok=True)
     except OSError:
         pass

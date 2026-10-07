@@ -154,7 +154,8 @@ STOCKS = AssetClass(
 )
 
 # Benzinga identifies the fast-changing candidate set; Yahoo supplies the
-# history that the strategy uses.  This class is deliberately not alertable.
+# history that the strategy uses. Its daily alerts use a separate Telegram bot
+# and persistence namespace from the Stocks alert workflow.
 LOW_FLOAT = AssetClass(
     key="low_float",
     label="Low-Float",
@@ -171,7 +172,7 @@ LOW_FLOAT = AssetClass(
     interval_options=[("1 day", 1440), ("1 week", 10080)],
     default_interval_idx=0,
     ui_default_interval_idx=0,
-    alerts_enabled=False,
+    alerts_enabled=True,
     tv_default_prefix="",
     is_24_7=False,
 )

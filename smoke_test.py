@@ -777,6 +777,29 @@ def test_alert_history_keeps_reporting_fields():
     print("uncapped Stocks alert history with fill dates: ok")
 
 
+def test_low_float_alert_storage_is_isolated():
+    """Low-Float must never share state, history, or its ledger with Stocks."""
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from unittest.mock import patch
+
+    import alerts
+
+    with TemporaryDirectory() as folder:
+        cache_dir = Path(folder)
+        with patch.object(alerts, "CACHE_DIR", cache_dir):
+            alerts.save_state({"low_float|TEST|1440": "LONG"}, "low_float")
+            alerts.save_open_positions({"TEST": {"entry_date": "2026-10-07"}}, "low_float")
+            alerts.save_history([{ "symbol": "TEST" }], "low_float")
+            assert alerts.load_state("low_float")["low_float|TEST|1440"] == "LONG"
+            assert alerts.load_open_positions("low_float")["TEST"]["entry_date"] == "2026-10-07"
+            assert alerts.load_history("low_float") == [{"symbol": "TEST"}]
+            assert (cache_dir / "low_float_alerts_state.json").exists()
+            assert (cache_dir / "low_float_alert_positions.json").exists()
+            assert (cache_dir / "low_float_alerts_history.json").exists()
+    print("low-float alert storage isolation: ok")
+
+
 if __name__ == "__main__":
     test_true_range()
     test_gaussian_channel_step()
@@ -801,4 +824,5 @@ if __name__ == "__main__":
     test_gc_stocks_green_red_flips()
     test_open_stock_kept_after_leaving_ranked_universe()
     test_alert_history_keeps_reporting_fields()
+    test_low_float_alert_storage_is_isolated()
     print("\nAll smoke tests passed.")

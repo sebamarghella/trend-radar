@@ -1,0 +1,63 @@
+name: Trend Radar Low-Float Alerts
+
+on:
+  schedule:
+    # Run separately from Stocks, five minutes after the US open alert scan.
+    - cron: '55 9 * * 1-5'
+      timezone: 'America/New_York'
+  workflow_dispatch:
+    inputs:
+      send_todays_fills:
+        description: "Send today's already filled Low-Float flips now (weekdays after 09:45 New York)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # persist only the Low-Float alert baseline, history, and ledger
+
+concurrency:
+  group: trend-radar-low-float-alerts
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: requirements-alerts.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-alerts.txt
+
+      - name: Run Low-Float alert engine
+        id: alert_engine
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.LOW_FLOAT_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.LOW_FLOAT_TELEGRAM_CHAT_ID }}
+          BENZINGA_API_KEY: ${{ secrets.LOW_FLOAT_BENZINGA_API_KEY }}
+          TR_ALERT_CLASS: low_float
+          TR_SEND_TODAYS_FILLS: ${{ inputs.send_todays_fills }}
+        run: python run_alerts.py
+
+      - name: Commit Low-Float alert state and history
+        if: ${{ success() || steps.alert_engine.outcome == 'failure' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          changed=0
+          for f in .cache/low_float_alerts_state.json .cache/low_float_alerts_history.json .cache/low_float_alert_positions.json; do
+            [[ -f "$f" ]] && git add "$f" && changed=1
+          done
+          if [[ $changed -eq 1 ]] && ! git diff --staged --quiet; then
+            git commit -m "chore: update low-float alert state + history [skip ci]"
+            git push
+          else
+            echo "No Low-Float alert state changes."
+          fi

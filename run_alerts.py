@@ -1,14 +1,14 @@
-"""Weekday Stocks Telegram alerts, sent shortly after the US market opens.
+"""Weekday equity Telegram alerts, sent shortly after the US market opens.
 
 Replays the assigned daily Stocks strategy, compares filled positions against
 the saved baseline, and sends OPEN/CLOSE messages for today's next-open fills.
 
-Required env vars:
+Required env vars (supplied by the relevant GitHub Actions workflow):
     TELEGRAM_BOT_TOKEN
     TELEGRAM_CHAT_ID
 
-The Stocks strategy and preset come from strategy_assignments.json and the
-strategy registry. There are no per-param env vars.
+`TR_ALERT_CLASS` selects `stocks` (the default) or `low_float`. Each class
+uses an independent bot, state/history files, and open-position ledger.
 
 Optional:
     TR_MAX_WORKERS         default 20
@@ -26,7 +26,7 @@ import alerts
 import live_log
 import performance as perf
 import strategies as strat_registry
-from asset_classes import STOCKS, AssetClass
+from asset_classes import LOW_FLOAT, STOCKS, AssetClass
 from sources import Resolver, SourceError, fetch_series
 
 
@@ -156,9 +156,9 @@ def scan_class(
     issues = []
     missing_held = sorted(held_symbols - fetched)
     if missing_held:
-        issues.append(f"Could not fetch {len(missing_held)} open Stocks position(s): "
+        issues.append(f"Could not fetch {len(missing_held)} open {ac.label} position(s): "
                       + ", ".join(missing_held))
-    # Holidays have no new bars for any symbol. If other stocks have today's
+    # Holidays have no new bars for any symbol. If other symbols have today's
     # bar, an open position without one cannot be checked for its exit fill.
     if any(r["df"].index[-1].date() == today_ny for r in rows):
         stale_held = sorted(
@@ -167,7 +167,7 @@ def scan_class(
         )
         if stale_held:
             issues.append(f"No current trading bar for {len(stale_held)} open "
-                          f"Stocks position(s): " + ", ".join(stale_held))
+                          f"{ac.label} position(s): " + ", ".join(stale_held))
     for issue in issues:
         print(f"  [error] {issue}", file=sys.stderr)
 
@@ -188,7 +188,7 @@ def scan_class(
                 if opened_strategy.to_dict() != strategy.to_dict():
                     result = strat_registry.run_strategy(opened_strategy, df)
             except (KeyError, TypeError, ValueError) as exc:
-                issue = f"Could not replay tracked Stocks strategy for {r['symbol']}: {exc}"
+                issue = f"Could not replay tracked {ac.label} strategy for {r['symbol']}: {exc}"
                 issues.append(issue)
                 print(f"  [error] {issue}", file=sys.stderr)
                 continue
@@ -209,7 +209,7 @@ def scan_class(
                 entry_price, exit_price, fill_date = closed
                 alertable = True  # deliver a late close even after a missed run
             elif state == "FLAT":
-                issue = f"Could not match a closing fill for tracked Stocks position: {r['symbol']}"
+                issue = f"Could not match a closing fill for tracked {ac.label} position: {r['symbol']}"
                 issues.append(issue)
                 print(f"  [error] {issue}", file=sys.stderr)
         signals.append({
@@ -313,8 +313,14 @@ def scan_class(
 def main() -> int:
     now_ny = datetime.now(ZoneInfo("America/New_York"))
     send_todays_fills = _env("TR_SEND_TODAYS_FILLS", "").lower() in {"true", "1", "yes"}
+    asset_key = _env("TR_ALERT_CLASS", "stocks").strip().lower()
+    alert_classes = {"stocks": STOCKS, "low_float": LOW_FLOAT}
+    ac = alert_classes.get(asset_key)
+    if ac is None:
+        print("ERROR: TR_ALERT_CLASS must be 'stocks' or 'low_float'", file=sys.stderr)
+        return 2
     if not should_scan(now_ny):
-        print("No alert scan: Stocks fills are checked Monday-Friday after 09:45 New York time.")
+        print(f"No alert scan: {ac.label} fills are checked Monday-Friday after 09:45 New York time.")
         return 0
 
     bot_token = _env("TELEGRAM_BOT_TOKEN", "")
@@ -326,17 +332,17 @@ def main() -> int:
     max_workers = int(_env("TR_MAX_WORKERS", "20"))
 
     print("== Trend Radar alerts ==")
-    print("asset class: Stocks")
+    print(f"asset class: {ac.label}")
     print(f"strategy assignments: {strat_registry.load_assignments()}")
 
-    state = alerts.load_state()
-    open_positions = alerts.load_open_positions()
+    state = alerts.load_state(ac.key)
+    open_positions = alerts.load_open_positions(ac.key)
     state, open_positions, issues = scan_class(
-        STOCKS, max_workers, state, bot_token, chat_id,
+        ac, max_workers, state, bot_token, chat_id,
         now_ny.date(), open_positions, send_todays_fills,
     )
-    alerts.save_state(state)
-    alerts.save_open_positions(open_positions)
+    alerts.save_state(state, ac.key)
+    alerts.save_open_positions(open_positions, ac.key)
 
     return 1 if issues else 0
 
