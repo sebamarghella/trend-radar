@@ -45,18 +45,18 @@ class Flip:
 
     def format(self) -> str:
         if self.asset_class in {"stocks", "low_float"}:
-            opening = self.entry_price if self.entry_price is not None else self.price
-            late = (f"\nFill date: {self.fill_date} (late notice)"
+            signal_close = (self.entry_price if self.direction == "ENTRY" else self.exit_price)
+            signal_close = signal_close if signal_close is not None else self.price
+            late = (f"\nSignal date: {self.fill_date} (late notice)"
                     if self.late and self.fill_date else "")
             prefix = "LOW-FLOAT · " if self.asset_class == "low_float" else ""
             if self.direction == "ENTRY":
-                return (f"🟢 {prefix}FlipGreen · OPEN LONG · {self.symbol}\n"
-                        f"Open price: ${opening:,.2f}\n"
-                        f"Close price: pending{late}")
-            closing = self.exit_price if self.exit_price is not None else self.price
-            return (f"🔴 {prefix}FlipRed · CLOSE LONG · {self.symbol}\n"
-                    f"Open price: ${opening:,.2f}\n"
-                    f"Close price: ${closing:,.2f}{late}")
+                return (f"🟢 {prefix}FlipGreen · PLAN LONG · {self.symbol}\n"
+                        f"Signal close: ${signal_close:,.2f}\n"
+                        f"Action: next NYSE/Nasdaq open{late}")
+            return (f"🔴 {prefix}FlipRed · PLAN EXIT · {self.symbol}\n"
+                    f"Signal close: ${signal_close:,.2f}\n"
+                    f"Action: next NYSE/Nasdaq open{late}")
         tf = _tf_label(self.interval_minutes)
         emoji = "🟢" if self.direction == "ENTRY" else "🔴"
         verb = "LONG" if self.direction == "ENTRY" else "EXIT"
@@ -190,7 +190,7 @@ def detect_flips(
             s.get("entry_price") is None
             or (direction == "EXIT" and s.get("exit_price") is None)
         ):
-            continue  # Do not send a trade alert without its actual fill price.
+            continue  # Do not send an equity alert without its confirmed signal close.
         flips.append(Flip(
             symbol=s["symbol"],
             pair=s["pair"],

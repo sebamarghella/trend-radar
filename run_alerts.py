@@ -1,7 +1,8 @@
-"""Weekday equity Telegram alerts, sent shortly after the US market opens.
+"""Weekday equity Telegram alerts from confirmed daily closing signals.
 
-Replays the assigned daily Stocks strategy, compares filled positions against
-the saved baseline, and sends OPEN/CLOSE messages for today's next-open fills.
+Replays the assigned daily Stocks strategy after the New York close, compares
+the confirmed signal against the saved baseline, and sends action plans for
+the next regular-session open.
 
 Required env vars (supplied by the relevant GitHub Actions workflow):
     TELEGRAM_BOT_TOKEN
@@ -45,33 +46,24 @@ def fetch_one(base: str, resolver: Resolver, interval_minutes: int, is_24_7: boo
     return {"symbol": base, "pair": res.pair, "exchange": res.source.name, "df": res.df}
 
 
-def stock_fill(result, df) -> tuple[str, float | None, float | None, bool]:
-    """Position and trade prices after the latest bar's open fill.
+def confirmed_daily_signal(result, df) -> tuple[str, float | None, bool]:
+    """Return the latest completed daily signal and whether it just flipped.
 
-    The signal on the newest bar remains pending until the next trading bar.
+    An after-close alert is actionable at the following regular-session open,
+    so it intentionally uses the newest closed candle instead of waiting for
+    the model's simulated next-open fill price.
     """
     state = result.state_series
-    if len(state) < 3:
-        return "FLAT", None, None, False
-    position = bool(state.iloc[-2])
-    prior_position = bool(state.iloc[-3])
-    if position == prior_position:
-        return ("LONG" if position else "FLAT"), None, None, False
-
-    last_bar = df.index[-1]
-    fills = perf.filled_trades(result.trades, df)
-    if position:
-        trade = next((t for t in fills if t.entry_ts == last_bar), None)
-        return "LONG", float(trade.entry_price) if trade else None, None, trade is not None
-    trade = next((t for t in fills if t.exit_ts == last_bar), None)
-    if trade is None:
-        return "FLAT", None, None, False
-    return "FLAT", float(trade.entry_price), float(trade.exit_price), True
+    if len(state) < 2 or len(df) < 2:
+        return "FLAT", None, False
+    position = bool(state.iloc[-1])
+    prior_position = bool(state.iloc[-2])
+    return "LONG" if position else "FLAT", float(df["close"].iloc[-1]), position != prior_position
 
 
 def should_scan(now_ny: datetime) -> bool:
-    """Both routine and manual scans require the next-open fill to exist."""
-    return now_ny.weekday() < 5 and now_ny.time() >= time(9, 45)
+    """Both routine and manual scans require the regular session to have closed."""
+    return now_ny.weekday() < 5 and now_ny.time() >= time(16, 15)
 
 
 def seed_prior_filled_states(signals: list[dict], previous: dict[str, str],
@@ -94,15 +86,18 @@ def include_open_positions(universe: list[dict],
     return [*universe, *({"symbol": symbol} for symbol in extra)], held
 
 
-def tracked_exit(result, df, position: dict) -> tuple[float, float, str] | None:
-    """Find the close fill for the exact trade whose OPEN alert was delivered."""
-    entry_date = position["entry_date"]
-    for trade in perf.filled_trades(result.trades, df):
-        if trade.entry_ts.date().isoformat() != entry_date:
+def missed_exit_signal(result, df, position: dict) -> tuple[float, str] | None:
+    """Recover an unreported FlipRed for a delivered FlipGreen position."""
+    entry_date = str(position.get("entry_date") or "")
+    state = result.state_series
+    for i in range(1, len(state)):
+        if not bool(state.iloc[i - 1]) or bool(state.iloc[i]):
             continue
-        if trade.exit_ts is not None and trade.exit_price is not None:
-            return float(trade.entry_price), float(trade.exit_price), trade.exit_ts.date().isoformat()
-        return None
+        signal_date = df.index[i].date().isoformat()
+        if entry_date and signal_date < entry_date:
+            continue
+        return float(df["close"].iloc[i]), signal_date
+    return None
     return None
 
 
@@ -193,25 +188,18 @@ def scan_class(
                 print(f"  [error] {issue}", file=sys.stderr)
                 continue
         snap = result.snapshot
-        state, entry_price, exit_price, filled_today = stock_fill(result, df)
+        state, signal_close, flipped_today = confirmed_daily_signal(result, df)
         bar_today = df.index[-1].date() == today_ny
-        fill_date = df.index[-1].date().isoformat() if filled_today else None
-        alertable = filled_today and bar_today
-        if r["symbol"] in open_positions:
-            closed = tracked_exit(result, df, open_positions[r["symbol"]])
-            if closed is not None:
-                if state == "LONG":
-                    issue = (f"{r['symbol']} closed its alerted trade and later re-entered "
-                             "before this scan; review the newer entry")
-                    issues.append(issue)
-                    print(f"  [error] {issue}", file=sys.stderr)
-                state = "FLAT"  # deliver the tracked close before any newer trade
-                entry_price, exit_price, fill_date = closed
-                alertable = True  # deliver a late close even after a missed run
-            elif state == "FLAT":
-                issue = f"Could not match a closing fill for tracked {ac.label} position: {r['symbol']}"
-                issues.append(issue)
-                print(f"  [error] {issue}", file=sys.stderr)
+        signal_date = df.index[-1].date().isoformat() if flipped_today else None
+        alertable = flipped_today and bar_today
+        prior_alert = open_positions.get(r["symbol"], {})
+        entry_price = signal_close if state == "LONG" else prior_alert.get("entry_price")
+        exit_price = signal_close if state == "FLAT" else None
+        if state == "FLAT" and prior_alert and not alertable:
+            missed = missed_exit_signal(result, df, prior_alert)
+            if missed is not None:
+                exit_price, signal_date = missed
+                alertable = True
         signals.append({
             "symbol": r["symbol"],
             "pair": r["pair"],
@@ -221,8 +209,8 @@ def scan_class(
             "entry_price": entry_price,
             "exit_price": exit_price,
             "alertable": alertable,
-            "fill_date": fill_date,
-            "late": bool(fill_date and fill_date != today_ny.isoformat()),
+            "fill_date": signal_date,
+            "late": bool(signal_date and signal_date != today_ny.isoformat()),
             "strategy_name": signal_strategy_name,
             "stoch_k": snap.stoch_k,
             "filter_up": snap.filter_up,
@@ -248,7 +236,7 @@ def scan_class(
             print(f"  [warn] live log failed: {e!r}", file=sys.stderr)
 
     prev_state = alerts.reseed_on_strategy_change(
-        prev_state, ac.key, f"{assigned_name}|next-open-fills-v1",
+        prev_state, ac.key, f"{assigned_name}|confirmed-close-next-open-v2",
         strat_registry.DEFAULT_STRATEGY_NAME,
     )
     if send_todays_fills and not any(k.startswith(f"{ac.key}|") for k in prev_state):
@@ -320,7 +308,7 @@ def main() -> int:
         print("ERROR: TR_ALERT_CLASS must be 'stocks' or 'low_float'", file=sys.stderr)
         return 2
     if not should_scan(now_ny):
-        print(f"No alert scan: {ac.label} fills are checked Monday-Friday after 09:45 New York time.")
+        print(f"No alert scan: {ac.label} closing signals are checked Monday-Friday after 16:15 New York time.")
         return 0
 
     bot_token = _env("TELEGRAM_BOT_TOKEN", "")

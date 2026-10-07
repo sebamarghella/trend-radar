@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       send_todays_fills:
-        description: "Send today's already filled Low-Float flips now (weekdays after 09:45 New York)"
+        description: "Send today's confirmed Low-Float flips now (weekdays after 16:15 New York)"
         type: boolean
         default: false
       test_alert:

@@ -182,48 +182,45 @@ def test_alerts_flip_detection():
     print(f"alerts: ok, sample message:\n  {preview.replace(chr(10), chr(10)+'  ')}")
 
 
-def test_stock_alerts_use_next_open_fills():
-    """No entry on the signal bar; fills and Telegram prices match the next open."""
+def test_stock_alerts_use_confirmed_close_signals():
+    """Confirmed daily flips create next-session action plans after the close."""
     from datetime import datetime
     from types import SimpleNamespace
     from zoneinfo import ZoneInfo
 
     import alerts
     import run_alerts
-    from gaussian_channel import TradeRecord
 
     dates = pd.date_range("2026-09-21", periods=5, freq="B", tz="UTC")
     df = pd.DataFrame({"open": [95., 97., 101., 105., 112.],
                        "close": [96., 98., 103., 106., 111.]}, index=dates)
-    trade = TradeRecord(entry_ts=dates[1], entry_price=98.,
-                        exit_ts=dates[3], exit_price=106.)
     states = pd.Series([0, 1, 1, 0, 0], index=dates)
 
-    def filled_at(n):
-        result = SimpleNamespace(state_series=states.iloc[:n], trades=[trade])
-        return run_alerts.stock_fill(result, df.iloc[:n])
+    def signal_at(n):
+        result = SimpleNamespace(state_series=states.iloc[:n])
+        return run_alerts.confirmed_daily_signal(result, df.iloc[:n])
 
-    assert filled_at(2) == ("FLAT", None, None, False)
-    assert filled_at(3) == ("LONG", 101., None, True)
-    assert filled_at(4) == ("LONG", None, None, False)
-    assert filled_at(5) == ("FLAT", 101., 112., True)
+    assert signal_at(1) == ("FLAT", None, False)
+    assert signal_at(2) == ("LONG", 98., True)
+    assert signal_at(3) == ("LONG", 103., False)
+    assert signal_at(4) == ("FLAT", 106., True)
 
     baseline = {"stocks|AAPL|1440": "FLAT"}
     entry = {"symbol": "AAPL", "pair": "AAPL", "state": "LONG",
-             "entry_price": 101., "exit_price": None, "last_close": 103., "alertable": True}
+             "entry_price": 98., "exit_price": None, "last_close": 98., "alertable": True}
     flips, opened = alerts.detect_flips([entry], 1440, baseline, asset_class="stocks")
     assert len(flips) == 1
-    assert "FlipGreen · OPEN LONG · AAPL" in flips[0].format()
-    assert "Open price: $101.00" in flips[0].format()
-    assert "Close price: pending" in flips[0].format()
+    assert "FlipGreen · PLAN LONG · AAPL" in flips[0].format()
+    assert "Signal close: $98.00" in flips[0].format()
+    assert "Action: next NYSE/Nasdaq open" in flips[0].format()
 
-    exit_ = {**entry, "state": "FLAT", "entry_price": 101.,
-             "exit_price": 112., "last_close": 111.}
+    exit_ = {**entry, "state": "FLAT", "entry_price": 98.,
+             "exit_price": 106., "last_close": 106.}
     flips, _ = alerts.detect_flips([exit_], 1440, opened, asset_class="stocks")
     assert len(flips) == 1
-    assert "FlipRed · CLOSE LONG · AAPL" in flips[0].format()
-    assert "Open price: $101.00" in flips[0].format()
-    assert "Close price: $112.00" in flips[0].format()
+    assert "FlipRed · PLAN EXIT · AAPL" in flips[0].format()
+    assert "Signal close: $106.00" in flips[0].format()
+    assert "Action: next NYSE/Nasdaq open" in flips[0].format()
 
     flips, _ = alerts.detect_flips([{**exit_, "alertable": False}], 1440,
                                     opened, asset_class="stocks")
@@ -231,12 +228,12 @@ def test_stock_alerts_use_next_open_fills():
 
     ny = ZoneInfo("America/New_York")
     assert run_alerts.should_scan(datetime(2026, 9, 21, 18, tzinfo=ny))
-    assert not run_alerts.should_scan(datetime(2026, 9, 21, 9, 40, tzinfo=ny))
-    assert run_alerts.should_scan(datetime(2026, 9, 21, 9, 50, tzinfo=ny))
+    assert not run_alerts.should_scan(datetime(2026, 9, 21, 16, 10, tzinfo=ny))
+    assert run_alerts.should_scan(datetime(2026, 9, 21, 16, 15, tzinfo=ny))
     assert not run_alerts.should_scan(datetime(2026, 9, 26, 18, tzinfo=ny))
     seeded = run_alerts.seed_prior_filled_states([entry], {}, "stocks", 1440)
     assert seeded == {"stocks|AAPL|1440": "FLAT"}
-    print("Stocks alert fills, prices, and weekday gate: ok")
+    print("Stocks confirmed-close alerts and weekday gate: ok")
 
 
 def test_gc_short_state():
@@ -613,7 +610,7 @@ def test_open_stock_kept_after_leaving_ranked_universe():
         get_universe=lambda _: [{"symbol": "MSFT"}], is_24_7=False,
         alerts_enabled=True,
     )
-    previous = {"__strategy__|stocks": "GC stocks|next-open-fills-v1",
+    previous = {"__strategy__|stocks": "GC stocks|confirmed-close-next-open-v2",
                 "stocks|AAPL|1440": "LONG",
                 "stocks|MSFT|1440": "LONG"}  # historic model LONG, no delivered entry
     alerted_positions = {"AAPL": {"entry_date": "2026-09-23", "entry_price": 101.}}
@@ -643,7 +640,7 @@ def test_open_stock_kept_after_leaving_ranked_universe():
     assert positions == {}
     flips = sent.call_args.args[0]
     assert len(flips) == 1 and flips[0].symbol == "AAPL"
-    assert flips[0].direction == "EXIT" and flips[0].exit_price == 112.
+    assert flips[0].direction == "EXIT" and flips[0].exit_price == 106.
 
     with (patch.object(run_alerts.strat_registry, "load_strategies",
                        return_value={strategy.name: strategy}),
@@ -703,7 +700,7 @@ def test_open_stock_kept_after_leaving_ranked_universe():
             alerted_positions.copy(),
         )
     late_flip = sent_late.call_args.args[0][0]
-    assert late_flip.late and late_flip.fill_date == "2026-09-25"
+    assert late_flip.late and late_flip.fill_date == "2026-09-24"
     assert "late notice" in late_flip.format()
     assert positions == {} and not issues
 
@@ -711,7 +708,7 @@ def test_open_stock_kept_after_leaving_ranked_universe():
     new_trade = TradeRecord(entry_ts=dates[-2], entry_price=106.,
                             exit_ts=None, exit_price=None)
     entry_result = SimpleNamespace(
-        state_series=pd.Series([0, 0, 0, 1, 1], index=dates),
+        state_series=pd.Series([0, 0, 0, 0, 1], index=dates),
         trades=[new_trade], snapshot=result.snapshot,
     )
     ac.get_universe = lambda _: [{"symbol": "AAPL"}]
@@ -730,7 +727,7 @@ def test_open_stock_kept_after_leaving_ranked_universe():
             date(2026, 9, 25), {},
         )
     assert not issues and positions["AAPL"]["entry_date"] == "2026-09-25"
-    assert positions["AAPL"]["entry_price"] == 112.
+    assert positions["AAPL"]["entry_price"] == 111.
     assert positions["AAPL"]["strategy"] == strategy.to_dict()
     with (patch.object(run_alerts.strat_registry, "load_strategies",
                        return_value={strategy.name: strategy}),
@@ -810,7 +807,7 @@ if __name__ == "__main__":
     test_replay()
     test_backtest_stats()
     test_alerts_flip_detection()
-    test_stock_alerts_use_next_open_fills()
+    test_stock_alerts_use_confirmed_close_signals()
     test_gc_short_state()
     test_crypto_signal_export_helpers()
     test_fetch_series_staleness_and_renames()

@@ -2,13 +2,13 @@ name: Trend Radar Alerts
 
 on:
   schedule:
-    # 09:50 New York time Monday-Friday, after next-open trade fills are known.
-    - cron: '50 9 * * 1-5'
+    # 16:30 New York time Monday-Friday, after the daily candle has closed.
+    - cron: '30 16 * * 1-5'
       timezone: 'America/New_York'
   workflow_dispatch:
     inputs:
       send_todays_fills:
-        description: "Send today's already filled Stocks flips now (weekdays after 09:45 New York)"
+        description: "Send today's confirmed Stocks flips now (weekdays after 16:15 New York)"
         type: boolean
         default: false
 

@@ -138,9 +138,9 @@ those logics appear in the same strategy dropdown as the hand-ported strategies.
 
 ## Autonomous alerts via GitHub Actions
 
-You don't need to keep the Streamlit app open to receive Telegram alerts. `run_alerts.py` scans daily Stocks or Low-Float signals, selected by its workflow. The scheduled job sends green-flip OPEN LONG and red-flip CLOSE LONG alerts shortly after modeled fills at the following trading bar's open. OPEN alerts include the entry fill price; CLOSE alerts include both the entry and exit fill prices. The Streamlit app displays the Stocks alert history but does not send Telegram messages. These are modeled market-open fills, not broker executions.
+You don't need to keep the Streamlit app open to receive Telegram alerts. `run_alerts.py` scans daily Stocks or Low-Float signals, selected by its workflow. After the market closes, the scheduled jobs send confirmed green-flip PLAN LONG and red-flip PLAN EXIT alerts for the next regular-session open. Each message includes the signal-day closing price, not a broker execution price. The Streamlit app displays the Stocks alert history but does not send Telegram messages.
 
-The delivered-alert position ledger starts on 29 September 2026 with **AMD only**, opened at $616.96. A CLOSE alert is sent only for a stock with a delivered OPEN alert in that ledger; older model positions are not treated as user trades. Each tracked stock remains in the daily scan even after it leaves the top-570 ranking, until its matching closing fill is reported. Its opening strategy settings are saved with the position so later changes to the tab's preset do not change the exit rule for that open trade. An unavailable or stale bar for a tracked stock fails the job so the run monitor can warn about it. A recovered close from a missed scan is marked as a late notice.
+The delivered-alert position ledger starts on 29 September 2026 with **AMD only**, opened at $616.96. A PLAN EXIT alert is sent only for a stock with a delivered PLAN LONG alert in that ledger; older model positions are not treated as user trades. Each tracked stock remains in the daily scan even after it leaves the top-570 ranking, until its matching exit signal is reported. Its opening strategy settings are saved with the position so later changes to the tab's preset do not change the exit rule for that open trade. An unavailable or stale bar for a tracked stock fails the job so the run monitor can warn about it. A recovered signal from a missed scan is marked as a late notice.
 
 **Setup, one-time:**
 
@@ -150,13 +150,13 @@ The delivered-alert position ledger starts on 29 September 2026 with **AMD only*
    - `TELEGRAM_CHAT_ID` — your numeric chat id (e.g. from @userinfobot)
    - `LOW_FLOAT_TELEGRAM_BOT_TOKEN` — a separate bot token for Low-Float alerts
    - `LOW_FLOAT_TELEGRAM_CHAT_ID` — the Low-Float bot's destination chat ID
-3. `.github/workflows/alerts.yml` runs Stocks **Monday-Friday at 09:50 New York time**. `.github/workflows/low-float-alerts.yml` runs Low-Float separately at **16:30 New York time**, after the daily market candle has closed so traders can prepare for the next opening bell. GitHub handles daylight saving time through the workflow's timezone. Triggering either manually before 09:45 New York time or on a weekend does nothing.
-4. The first run after an alert-logic change silently seeds the filled-position baseline. Future filled flips generate Telegram messages. If the latest Yahoo daily bar is not for the current New York trading day, it cannot generate an alert.
-   For a one-time check of fills that already occurred today, dispatch the workflow with `send_todays_fills=true` after 09:45 New York time. That first dispatch sends only today's filled flips and establishes the new baseline; later routine runs will not repeat them.
+3. `.github/workflows/alerts.yml` runs Stocks **Monday-Friday at 16:30 New York time**. `.github/workflows/low-float-alerts.yml` runs Low-Float separately at **16:30 New York time**. Both run after the daily market candle has closed so traders can prepare for the next opening bell. GitHub handles daylight saving time through the workflow's timezone. Triggering either manually before 16:15 New York time or on a weekend does nothing.
+4. The first run after an alert-logic change silently seeds the daily-signal baseline. Future confirmed FlipGreen/FlipRed signals generate Telegram action plans for the next opening bell. If the latest Yahoo daily bar is not for the current New York trading day, it cannot generate an alert.
+   For a one-time check of confirmed signals that occurred today, dispatch the workflow with `send_todays_fills=true` after 16:15 New York time. That first dispatch sends only today's confirmed flips and establishes the new baseline; later routine runs will not repeat them.
 
 **Tweaking the cadence or timeframe:**
 
-- Keep the Stocks schedule after the US market open; the Low-Float schedule is intentionally after the 16:00 New York close. The engine enforces the weekday and 09:45 New York time gates, and both equity alert timeframes are daily.
+- Keep both equity schedules after the 16:00 New York close. The engine enforces the weekday and 16:15 New York time gates, and both alert timeframes are daily.
 
 **State persistence:** each workflow commits only its own state, open-position ledger, and alert history after each run, including when a tracked fetch or Telegram send fails. Stocks retains its legacy files; Low-Float uses `low_float_alerts_state.json`, `low_float_alert_positions.json`, and `low_float_alerts_history.json`. Without these files, a workflow could lose track of open alerted trades or repeat messages.
 
