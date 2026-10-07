@@ -11,6 +11,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import quote
 
 import requests
 
@@ -21,6 +22,7 @@ CACHE_DIR = STATE_FILE.parent
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 TELEGRAM_API = "https://api.telegram.org"
+TV_CHART_ID = "6O2rb5Ql"
 # The Saturday report needs every delivered Stocks event from its start date.
 # Keep the complete history; the dashboard may limit how many rows it displays.
 
@@ -50,13 +52,14 @@ class Flip:
             late = (f"\nSignal date: {self.fill_date} (late notice)"
                     if self.late and self.fill_date else "")
             prefix = "LOW-FLOAT · " if self.asset_class == "low_float" else ""
+            chart_link = f"\nChart (1D): {_tradingview_daily_url(self.symbol)}"
             if self.direction == "ENTRY":
                 return (f"🟢 {prefix}FlipGreen · PLAN LONG · {self.symbol}\n"
                         f"Signal close: ${signal_close:,.2f}\n"
-                        f"Action: next NYSE/Nasdaq open{late}")
+                        f"Action: next NYSE/Nasdaq open{late}{chart_link}")
             return (f"🔴 {prefix}FlipRed · PLAN EXIT · {self.symbol}\n"
                     f"Signal close: ${signal_close:,.2f}\n"
-                    f"Action: next NYSE/Nasdaq open{late}")
+                    f"Action: next NYSE/Nasdaq open{late}{chart_link}")
         tf = _tf_label(self.interval_minutes)
         emoji = "🟢" if self.direction == "ENTRY" else "🔴"
         verb = "LONG" if self.direction == "ENTRY" else "EXIT"
@@ -78,6 +81,14 @@ def _tf_label(minutes: int) -> str:
     if minutes < 1440:
         return f"{minutes // 60}h"
     return f"{minutes // 1440}d"
+
+
+def _tradingview_daily_url(symbol: str) -> str:
+    """Open the dashboard's saved TradingView layout on the equity daily chart."""
+    return (
+        f"https://www.tradingview.com/chart/{TV_CHART_ID}/"
+        f"?symbol={quote(symbol, safe='')}&interval=1D"
+    )
 
 
 def _class_file(asset_class: str, legacy: Path, suffix: str) -> Path:

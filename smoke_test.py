@@ -213,6 +213,7 @@ def test_stock_alerts_use_confirmed_close_signals():
     assert "FlipGreen · PLAN LONG · AAPL" in flips[0].format()
     assert "Signal close: $98.00" in flips[0].format()
     assert "Action: next NYSE/Nasdaq open" in flips[0].format()
+    assert "Chart (1D): https://www.tradingview.com/chart/6O2rb5Ql/?symbol=AAPL&interval=1D" in flips[0].format()
 
     exit_ = {**entry, "state": "FLAT", "entry_price": 98.,
              "exit_price": 106., "last_close": 106.}
@@ -221,6 +222,15 @@ def test_stock_alerts_use_confirmed_close_signals():
     assert "FlipRed · PLAN EXIT · AAPL" in flips[0].format()
     assert "Signal close: $106.00" in flips[0].format()
     assert "Action: next NYSE/Nasdaq open" in flips[0].format()
+    assert "Chart (1D): https://www.tradingview.com/chart/6O2rb5Ql/?symbol=AAPL&interval=1D" in flips[0].format()
+
+    low_float_entry = {**entry, "symbol": "ABCD", "pair": "ABCD"}
+    low_float_flips, _ = alerts.detect_flips(
+        [low_float_entry], 1440, {"low_float|ABCD|1440": "FLAT"}, asset_class="low_float"
+    )
+    assert len(low_float_flips) == 1
+    assert "LOW-FLOAT · FlipGreen · PLAN LONG · ABCD" in low_float_flips[0].format()
+    assert "Chart (1D): https://www.tradingview.com/chart/6O2rb5Ql/?symbol=ABCD&interval=1D" in low_float_flips[0].format()
 
     flips, _ = alerts.detect_flips([{**exit_, "alertable": False}], 1440,
                                     opened, asset_class="stocks")
