@@ -4178,5 +4178,20 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-07T19:35:15+00:00",
+    "asset_class": "stocks",
+    "symbol": "BBD",
+    "pair": "BBD",
+    "direction": "ENTRY",
+    "price": 4.5,
+    "fill_date": "2026-10-07",
+    "entry_price": 4.5,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
