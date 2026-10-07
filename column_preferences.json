@@ -3,6 +3,7 @@
     "symbol",
     "name",
     "bars_in_state",
+    "trend_pnl",
     "tv"
   ],
   "low_float": [
