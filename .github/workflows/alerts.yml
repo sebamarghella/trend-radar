@@ -11,6 +11,10 @@ on:
         description: "Send today's confirmed Stocks flips now (weekdays after 16:15 New York)"
         type: boolean
         default: false
+      recover_sent_symbols:
+        description: "Comma-separated Stocks symbols already delivered before a state-save failure"
+        type: string
+        default: ""
 
 permissions:
   contents: write  # so the job can commit alerts_state.json back
@@ -42,6 +46,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TR_SEND_TODAYS_FILLS: ${{ inputs.send_todays_fills }}
+          TR_RECOVER_SENT_SYMBOLS: ${{ inputs.recover_sent_symbols }}
         run: python run_alerts.py
 
       - name: Commit updated state & history
@@ -59,7 +64,14 @@ jobs:
           done
           if [[ $changed -eq 1 ]] && ! git diff --staged --quiet; then
             git commit -m "chore: update alert state + history [skip ci]"
-            git push
+            for attempt in 1 2 3; do
+              if git pull --rebase && git push; then
+                exit 0
+              fi
+              git rebase --abort || true
+              sleep $((attempt * 2))
+            done
+            exit 1
           else
             echo "No state changes."
           fi

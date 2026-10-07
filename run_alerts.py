@@ -110,6 +110,7 @@ def scan_class(
     today_ny: date,
     open_positions: dict[str, dict],
     send_todays_fills: bool = False,
+    recover_sent_symbols: set[str] | None = None,
 ) -> tuple[dict[str, str], dict[str, dict], list[str]]:
     """Scan one asset class, maintain alerted trades, and report failures."""
     interval = ac.interval_options[ac.default_interval_idx][1]
@@ -274,8 +275,14 @@ def scan_class(
     print(f"  Detected {len(flips)} flip(s):")
     for f in flips:
         print(f"    {f.symbol} {f.direction} @ {f.price:.6g}")
-    sent, errs = alerts.fire_alerts(flips, bot_token, chat_id)
-    print(f"  Sent {len(sent)} alert(s); {len(errs)} error(s)")
+    recovered_symbols = recover_sent_symbols or set()
+    recovered = [f for f in flips if f.symbol.upper() in recovered_symbols]
+    outbound = [f for f in flips if f.symbol.upper() not in recovered_symbols]
+    sent, errs = alerts.fire_alerts(outbound, bot_token, chat_id)
+    sent = [*recovered, *sent]
+    if recovered:
+        print(f"  Recovered {len(recovered)} already-delivered alert(s) without re-sending.")
+    print(f"  Sent {len(outbound) - len(errs)} alert(s); {len(errs)} error(s)")
     delivered = {id(f) for f in sent}
     for f in flips:
         key = f"{ac.key}|{f.symbol}|{interval}"
@@ -301,6 +308,11 @@ def scan_class(
 def main() -> int:
     now_ny = datetime.now(ZoneInfo("America/New_York"))
     send_todays_fills = _env("TR_SEND_TODAYS_FILLS", "").lower() in {"true", "1", "yes"}
+    recover_sent_symbols = {
+        symbol.strip().upper()
+        for symbol in _env("TR_RECOVER_SENT_SYMBOLS", "").split(",")
+        if symbol.strip()
+    }
     asset_key = _env("TR_ALERT_CLASS", "stocks").strip().lower()
     alert_classes = {"stocks": STOCKS, "low_float": LOW_FLOAT}
     ac = alert_classes.get(asset_key)
@@ -327,7 +339,7 @@ def main() -> int:
     open_positions = alerts.load_open_positions(ac.key)
     state, open_positions, issues = scan_class(
         ac, max_workers, state, bot_token, chat_id,
-        now_ny.date(), open_positions, send_todays_fills,
+        now_ny.date(), open_positions, send_todays_fills, recover_sent_symbols,
     )
     alerts.save_state(state, ac.key)
     alerts.save_open_positions(open_positions, ac.key)

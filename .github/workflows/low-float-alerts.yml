@@ -92,7 +92,14 @@ jobs:
           done
           if [[ $changed -eq 1 ]] && ! git diff --staged --quiet; then
             git commit -m "chore: update low-float alert state + history [skip ci]"
-            git push
+            for attempt in 1 2 3; do
+              if git pull --rebase && git push; then
+                exit 0
+              fi
+              git rebase --abort || true
+              sleep $((attempt * 2))
+            done
+            exit 1
           else
             echo "No Low-Float alert state changes."
           fi
