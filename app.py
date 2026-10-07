@@ -825,6 +825,40 @@ def _fmt_hm(td: pd.Timedelta) -> str:
     return f"{hours}h {minutes:02d}m" if hours else f"{minutes}m"
 
 
+def _last_completed_bar(
+    df: pd.DataFrame, interval_minutes: int, is_24_7: bool,
+) -> tuple[pd.Timestamp, bool]:
+    """Return the latest completed candle and whether the newest one is still forming."""
+    latest = pd.Timestamp(df.index[-1])
+    if len(df) == 1:
+        return latest, False
+
+    # Yahoo daily equity bars are date-labelled rather than close-timestamped.
+    # Treat today's bar as complete only once the regular US session has closed.
+    if not is_24_7 and interval_minutes == 1440:
+        now_ny = pd.Timestamp.now(tz="America/New_York")
+        market_closed = (
+            now_ny.weekday() < 5
+            and (now_ny.hour, now_ny.minute) >= (16, 15)
+        )
+        if latest.date() < now_ny.date() or (latest.date() == now_ny.date() and market_closed):
+            return latest, False
+        return pd.Timestamp(df.index[-2]), True
+
+    latest_utc = latest.tz_localize("UTC") if latest.tzinfo is None else latest.tz_convert("UTC")
+    if latest_utc + pd.Timedelta(minutes=interval_minutes) <= pd.Timestamp.now(tz="UTC"):
+        return latest, False
+    return pd.Timestamp(df.index[-2]), True
+
+
+def _current_bar_flip(signal: dict) -> str | None:
+    """Classify the newest model state change without treating it as an execution."""
+    states = signal["_state_series"].astype(int)
+    if len(states) < 2 or int(states.iloc[-1]) == int(states.iloc[-2]):
+        return None
+    return "LONG" if int(states.iloc[-1]) else "EXIT"
+
+
 # --- AgGrid styling (shared across all tabs) -----------------------------------
 
 
@@ -1090,10 +1124,9 @@ SORT_MAP = {
 
 
 def _render_strategy_editor(
-    ac_key: str, logic_key: str, base: Strategy, preset_widget_key: str,
+    ac_key: str, logic_key: str, base: Strategy, preset_widget_key: str, assigned_name: str,
 ) -> Strategy:
-    """Editable params for the chosen preset, plus Save / Delete. Returns a
-    Strategy reflecting the live-edited param values for this session."""
+    """Edit the session preview without silently changing the alert assignment."""
     logic = strat_registry.LOGICS[logic_key]
     edited: dict = {}
     with st.expander("⚙ Strategy parameters", expanded=False):
@@ -1131,18 +1164,18 @@ def _render_strategy_editor(
             nm = new_name.strip()
             if nm:
                 strat_registry.save_strategy(Strategy(nm, logic_key, edited))
-                strat_registry.save_assignment(ac_key, nm)
-                st.session_state[preset_widget_key] = nm  # auto-select on rerun
+                st.session_state[preset_widget_key] = nm  # keep the saved preset as a preview
                 st.rerun()
             else:
                 st.warning("Enter a preset name first.")
 
-        if not strat_registry.is_builtin(base.name):
+        if not strat_registry.is_builtin(base.name) and base.name != assigned_name:
             if st.button(f"🗑 Delete preset “{base.name}”", key=f"delpreset_{ac_key}"):
                 strat_registry.delete_strategy(base.name)
                 st.session_state.pop(preset_widget_key, None)
-                strat_registry.save_assignment(ac_key, strat_registry.DEFAULT_STRATEGY_NAME)
                 st.rerun()
+        elif base.name == assigned_name:
+            st.caption("This is the scheduled-alert preset. Stage another preset before deleting it.")
         else:
             st.caption("Built-in presets can't be deleted. Save a copy under a new name to edit.")
 
@@ -1159,10 +1192,11 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
     if key not in st.session_state.bust:
         st.session_state.bust[key] = 0
 
-    with st.expander("Strategy & market status", expanded=False, key=f"market_controls_{key}"):
+    with st.expander("Strategy configuration", expanded=False, key=f"strategy_config_{key}"):
         st.caption(ac.description)
 
-        # --- Strategy (logic) + Preset selection, persisted per asset class ---
+        # Strategy selection changes the Radar for this session. Staging it is a
+        # separate, explicit action because only a repo commit changes alerts.
         all_strategies = strat_registry.load_strategies()
         assigned_name = strat_registry.get_assignment(key)
         assigned_strat = all_strategies.get(assigned_name)
@@ -1172,10 +1206,7 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         logic_keys = [k for k, _ in logics]
         logic_labels = dict(logics)
 
-        # TradingView-style toolbar: the existing selectors and actions share one row.
-        c0, c1, c2, c3, r1, r2 = st.columns(
-            [2.4, 2.4, 1.5, 2.3, 1, 1], gap="small", vertical_alignment="bottom"
-        )
+        c0, c1 = st.columns(2, gap="small")
         logic_idx = logic_keys.index(assigned_logic) if assigned_logic in logic_keys else 0
         chosen_logic = c0.selectbox(
             "Strategy", logic_keys, index=logic_idx,
@@ -1188,10 +1219,26 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         preset_widget_key = f"preset_{key}_{chosen_logic}"
         preset_idx = preset_names.index(assigned_name) if assigned_name in preset_names else 0
         chosen_preset = c1.selectbox("Preset", preset_names, index=preset_idx, key=preset_widget_key)
-        if chosen_preset != assigned_name:
-            strat_registry.save_assignment(key, chosen_preset)
 
-        interval_label = c2.selectbox(
+        # Param editor (returns the strategy with live-edited params for this session)
+        strategy = _render_strategy_editor(
+            key, chosen_logic, presets[chosen_preset], preset_widget_key, assigned_name,
+        )
+
+        if chosen_preset == assigned_name:
+            st.caption("Scheduled-alert strategy: this assigned preset. Parameter changes here are preview-only until saved as a new preset, staged, and committed.")
+        else:
+            st.info("Preview only — this preset changes the Radar in this browser session. It does not change scheduled alerts or survive an app restart.")
+            if st.button("Stage this preset for scheduled alerts", key=f"stage_alert_strategy_{key}"):
+                strat_registry.save_assignment(key, chosen_preset)
+                if _gh_token and _gh_repo:
+                    st.success("Staged locally. Use **Commit presets to repo** in the sidebar to make it permanent and available to scheduled alerts.")
+                else:
+                    st.warning("Staged only on this app instance. Add GitHub credentials and commit it before treating it as the scheduled-alert strategy.")
+
+    with st.expander("Scan controls", expanded=False, key=f"scan_controls_{key}"):
+        c0, c1, r1, r2 = st.columns([1.6, 2.3, 1, 1], gap="small", vertical_alignment="bottom")
+        interval_label = c0.selectbox(
             "Timeframe", options=ac.interval_options,
             format_func=lambda x: x[0],
             index=ac.default_interval_idx if ac.ui_default_interval_idx is None else ac.ui_default_interval_idx,
@@ -1199,123 +1246,120 @@ def render_radar(ac: AssetClass, focus_symbol: str | None = None) -> None:
         )
         interval_minutes = interval_label[1]
         sort_options = list(SORT_MAP.keys())
-        # Stocks and low-float both default to the newest long position first.
-        # Benzinga's rank remains available as an explicit sort option.
         default_sort = (
             "Bars in state (newest first)" if key in {"stocks", "low_float"}
             else sort_options[0]
         )
-        sort_by = c3.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
-
+        sort_by = c1.selectbox("Sort by", sort_options, index=sort_options.index(default_sort), key=f"sort_{key}")
         soft_refresh = r1.button("Refresh", key=f"refresh_{key}", type="primary")
-        hard_refresh = r2.button("Force", key=f"force_{key}", help="Ignore disk cache")
+        hard_refresh = r2.button("Force refresh", key=f"force_{key}", help="Ignore cached market data for this refresh.")
+        st.caption("These controls affect this Radar view only. They do not change strategy assignments or scheduled alerts.")
 
-        # Assignment hint: this tab uses (logic, preset); how to make it permanent.
-        if _gh_token and _gh_repo:
-            _persist = "Sidebar → **⬆ Commit presets to repo** saves this choice permanently (and for alerts)."
-        else:
-            _persist = "Add a GitHub token in secrets to enable permanent saving (sidebar)."
+    if soft_refresh or hard_refresh:
+        st.session_state.bust[key] += 1
+        st.cache_data.clear()
+    force_refetch = hard_refresh
+
+    if ac.is_24_7:
+        _now, _bar_open, _bar_next = _bar_cycle(interval_minutes)
         st.caption(
-            f"**{ac.label}** uses **{logic_labels[chosen_logic]}** · preset "
-            f"**{chosen_preset}**. {_persist}"
+            f"⏱ Current {interval_label[0]} bar: **{_bar_open.strftime('%H:%M UTC')} → "
+            f"{_bar_next.strftime('%H:%M UTC')}** · "
+            f"{_fmt_hm(_now - _bar_open)} in, **{_fmt_hm(_bar_next - _now)} to next rollover** · "
+            "caches refresh at the rollover."
+        )
+    else:
+        st.caption("Non-24/7 market — data updates when the underlying exchange publishes a new close.")
+
+    with st.spinner(f"Loading {ac.label.lower()} data…"):
+        ok_rows, skipped_rows = load_universe_data(
+            key, interval_minutes, st.session_state.bust[key], force_refetch
         )
 
-        # Param editor (returns the strategy with live-edited params for this session)
-        strategy = _render_strategy_editor(key, chosen_logic, presets[chosen_preset], preset_widget_key)
-
-        if soft_refresh or hard_refresh:
-            st.session_state.bust[key] += 1
-            st.cache_data.clear()
-        force_refetch = hard_refresh
-
-        # Bar cycle context (only meaningful for 24/7 markets)
-        if ac.is_24_7:
-            _now, _bar_open, _bar_next = _bar_cycle(interval_minutes)
+    if key == "low_float":
+        scan_status = benzinga_universe.last_status()
+        source_count = scan_status.get("source_count")
+        cache_state = scan_status.get("cache_state")
+        from_date = scan_status.get("from_date")
+        to_date = scan_status.get("to_date")
+        if source_count is not None:
             st.caption(
-                f"⏱ Current {interval_label[0]} bar: **{_bar_open.strftime('%H:%M UTC')} → "
-                f"{_bar_next.strftime('%H:%M UTC')}** · "
-                f"{_fmt_hm(_now - _bar_open)} in, **{_fmt_hm(_bar_next - _now)} to next rollover** · "
-                f"caches refresh at the rollover."
+                f"Benzinga REGULAR movers · {source_count} source rows · volume re-checked locally · {cache_state or 'loaded'}"
+                + (f" · {from_date} to {to_date}" if from_date and to_date else "")
             )
-        else:
-            st.caption(
-                "Non-24/7 market — data updates when the underlying exchange publishes a new close. "
-                "Run during your local market hours for fresh prices."
-            )
+        if scan_status.get("saturated"):
+            st.warning("Benzinga returned its 500-row ceiling. This list may be incomplete until the movers set falls below that ceiling.")
+        if scan_status.get("error"):
+            st.warning(f"Benzinga refresh issue — using the last available candidate list. {scan_status['error']}")
 
-        # Load
-        with st.spinner(f"Loading {ac.label.lower()} data…"):
-            ok_rows, skipped_rows = load_universe_data(
-                key, interval_minutes, st.session_state.bust[key], force_refetch
-            )
+    if not ok_rows:
+        if key == "low_float" and benzinga_universe.last_status().get("cache_state") == "unavailable":
+            st.error(benzinga_universe.last_status().get("error", "Benzinga candidates are unavailable."))
+        st.error(f"No {ac.label.lower()} symbols resolved. Check your network and try Refresh.")
+        if skipped_rows:
+            st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]])
+        return
 
-        if key == "low_float":
-            scan_status = benzinga_universe.last_status()
-            source_count = scan_status.get("source_count")
-            cache_state = scan_status.get("cache_state")
-            from_date = scan_status.get("from_date")
-            to_date = scan_status.get("to_date")
-            if source_count is not None:
-                st.caption(
-                    f"Benzinga REGULAR movers · {source_count} source rows · "
-                    f"volume re-checked locally · {cache_state or 'loaded'}"
-                    + (f" · {from_date} to {to_date}" if from_date and to_date else "")
-                )
-            if scan_status.get("saturated"):
-                st.warning(
-                    "Benzinga returned its 500-row ceiling. This list may be incomplete until the "
-                    "movers set falls below that ceiling."
-                )
-            if scan_status.get("error"):
-                st.warning(f"Benzinga refresh issue — using the last available candidate list. {scan_status['error']}")
+    signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
+    # Stock and low-float screens default to "Pos: Long" (only a subset of rows
+    # is shown), so only those need the TF✓ lookup. The checkbox value from the
+    # previous run is already in session_state; unticking it reruns and fills in
+    # the rest (fetches are cached).
+    _conf_only: set[str] | None = None
+    if key in {"stocks", "low_float"} and st.session_state.get(f"long_only_{key}", True):
+        _conf_only = {s["symbol"] for s in signals if s["state"] == "LONG"}
+        if focus_symbol:
+            _conf_only.add(focus_symbol)
+    _add_confluence(
+        signals,
+        ok_rows,
+        only_symbols=_conf_only,
+        asset_key=key,
+        strategy=strategy,
+        interval_options=ac.interval_options,
+        current_interval_minutes=interval_minutes,
+        force_refetch=force_refetch,
+    )
 
-        if not ok_rows:
-            if key == "low_float" and benzinga_universe.last_status().get("cache_state") == "unavailable":
-                st.error(benzinga_universe.last_status().get("error", "Benzinga candidates are unavailable."))
-            st.error(f"No {ac.label.lower()} symbols resolved. Check your network and try Refresh.")
-            if skipped_rows:
-                st.dataframe(pd.DataFrame(skipped_rows)[["symbol", "reason"]])
-            return
+    # Persistent signal / trust summary. These are current model-state changes,
+    # not claims that an order has executed or an alert was delivered.
+    long_count = sum(1 for s in signals if s["state"] == "LONG")
+    covered = len(signals)
+    total = len(ok_rows) + len(skipped_rows)
+    cache_hits = sum(1 for r in ok_rows if r.get("cache_status") == "cache")
+    stale_hits = sum(1 for r in ok_rows if r.get("cache_status") == "stale")
+    flips = [_current_bar_flip(s) for s in signals]
+    long_flips = sum(flip == "LONG" for flip in flips)
+    exit_flips = sum(flip == "EXIT" for flip in flips)
+    completed_bars = [_last_completed_bar(s["_df"], interval_minutes, ac.is_24_7) for s in signals]
+    completed_through = min(bar for bar, _ in completed_bars)
+    forming_bars = sum(is_forming for _, is_forming in completed_bars)
 
-        signals = [compute_signal(r, strategy, lookback_days) for r in ok_rows]
-        # Stock and low-float screens default to "Pos: Long" (only a subset of rows
-        # is shown), so only those need the TF✓ lookup. The checkbox value from the
-        # previous run is already in session_state; unticking it reruns and fills in
-        # the rest (fetches are cached).
-        _conf_only: set[str] | None = None
-        if key in {"stocks", "low_float"} and st.session_state.get(f"long_only_{key}", True):
-            _conf_only = {s["symbol"] for s in signals if s["state"] == "LONG"}
-            if focus_symbol:
-                _conf_only.add(focus_symbol)
-        _add_confluence(
-            signals,
-            ok_rows,
-            only_symbols=_conf_only,
-            asset_key=key,
-            strategy=strategy,
-            interval_options=ac.interval_options,
-            current_interval_minutes=interval_minutes,
-            force_refetch=force_refetch,
-        )
+    if skipped_rows:
+        source_health = "Partial"
+        source_detail = f"{len(skipped_rows)} unavailable · {covered}/{total} covered"
+    elif stale_hits:
+        source_health = "Delayed"
+        source_detail = f"{stale_hits} stale fallback · {covered}/{total} covered"
+    else:
+        source_health = "Fresh"
+        source_detail = f"{covered}/{total} covered · {cache_hits} cached"
+    bar_detail = (
+        f"{forming_bars}/{covered} latest bars still forming"
+        if forming_bars else f"{interval_label[0]} · all covered symbols"
+    )
 
-        # Headline strip
-        long_count = sum(1 for s in signals if s["state"] == "LONG")
-        green_filter = sum(1 for s in signals if s["filter_up"])
-        covered = len(signals)
-        total = len(ok_rows) + len(skipped_rows)
-        cache_hits = sum(1 for r in ok_rows if r.get("cache_status") == "cache")
-        stale_hits = sum(1 for r in ok_rows if r.get("cache_status") == "stale")
-
-        h1, h2, h3, h4 = st.columns(4)
-        h1.metric("Covered", f"{covered} / {total}")
-        h2.metric("In long", long_count, delta=f"{long_count / covered * 100:.0f}%")
-        h3.metric("Filter rising", green_filter, delta=f"{green_filter / covered * 100:.0f}%")
-        h4.metric("Timeframe", interval_label[0])
-
-        cache_msg = f"{cache_hits}/{covered} from cache"
-        if stale_hits:
-            cache_msg += f" · {stale_hits} stale (source errored)"
-        st.caption(cache_msg)
+    st.subheader("Signal summary")
+    h1, h2, h3, h4, h5 = st.columns(5)
+    h1.metric("New LONG flips", long_flips)
+    h2.metric("New EXIT flips", exit_flips)
+    h3.metric("Source health", source_health, help=source_detail)
+    h4.metric("Completed through", completed_through.strftime("%d %b"), help=bar_detail)
+    h5.metric("In LONG", long_count, delta=f"{long_count / covered * 100:.0f}%")
+    st.caption(
+        f"{source_detail} · {bar_detail}. Current-bar flips are model signals; "
+        "alert workflows apply their own confirmation and delivery rules."
+    )
 
     # Grid + drilldown
     df = pd.DataFrame(signals)
