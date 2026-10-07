@@ -1,0 +1,17 @@
+[
+  {
+    "ts": "2026-10-07T20:49:02+00:00",
+    "asset_class": "low_float",
+    "symbol": "QNTM",
+    "pair": "QNTM",
+    "direction": "ENTRY",
+    "price": 3.069999933242798,
+    "fill_date": "2026-10-07",
+    "entry_price": 3.069999933242798,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  }
+]
