@@ -4,6 +4,9 @@ Run: python smoke_test.py
 """
 
 import math
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -407,6 +410,45 @@ def test_benzinga_low_float_universe():
     assert metadata["source_count"] == len(gainers) and not metadata["saturated"]
     assert strategies.LOGICS["gaussian_channel_stocks_v1"].available_for("low_float")
     print("Benzinga low-float universe: ok")
+
+
+def test_yahoo_downloads_are_serialized():
+    """Parallel screen loads must not lock yfinance's SQLite cache."""
+    from unittest.mock import patch
+
+    import sources
+
+    active = 0
+    peak_active = 0
+    counter_lock = threading.Lock()
+    template = pd.DataFrame(
+        {
+            "Open": [10.0, 11.0], "High": [11.0, 12.0],
+            "Low": [9.0, 10.0], "Close": [10.5, 11.5], "Volume": [100, 200],
+        },
+        index=pd.date_range("2026-01-01", periods=2, freq="D"),
+    )
+
+    def fake_download(*_args, **_kwargs):
+        nonlocal active, peak_active
+        with counter_lock:
+            active += 1
+            peak_active = max(peak_active, active)
+        try:
+            time.sleep(0.02)
+            return template.copy()
+        finally:
+            with counter_lock:
+                active -= 1
+
+    with patch("yfinance.download", side_effect=fake_download):
+        source = sources.YahooSource()
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            frames = list(executor.map(lambda n: source.fetch_klines(f"TEST{n}", 1440), range(4)))
+
+    assert peak_active == 1, f"yfinance calls overlapped ({peak_active} active)"
+    assert all(len(frame) == 2 for frame in frames)
+    print("Yahoo download serialization: ok")
 
 
 def test_run_strategy_cached():
@@ -823,6 +865,7 @@ if __name__ == "__main__":
     test_fetch_series_staleness_and_renames()
     test_stocks_universe_ranking()
     test_benzinga_low_float_universe()
+    test_yahoo_downloads_are_serialized()
     test_run_strategy_cached()
     test_breakouts()
     test_performance_entry_exit_alignment()

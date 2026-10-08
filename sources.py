@@ -12,6 +12,7 @@ most of the gap.
 from __future__ import annotations
 
 import time
+import threading
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Iterable
@@ -20,6 +21,13 @@ import pandas as pd
 import requests
 
 DEFAULT_TIMEOUT = 15
+
+# ``yfinance`` persists its cookie/timezone cache in a SQLite database.  The
+# dashboard deliberately loads a universe in parallel, but simultaneous Yahoo
+# calls can then contend for that database and fail with "database is locked".
+# This lock is module-wide, so it also protects concurrent Streamlit sessions
+# running in the same app process.  Other market-data sources remain parallel.
+_YFINANCE_DOWNLOAD_LOCK = threading.Lock()
 
 
 class SourceError(RuntimeError):
@@ -352,13 +360,20 @@ class YahooSource(DataSource):
         if interval is None:
             raise SourceError(f"unsupported interval {interval_minutes}m for Yahoo")
         period = self.PERIOD_FOR_INTERVAL[interval]
-        df = yf.download(
-            symbol, period=period, interval=interval,
-            # Raw (unadjusted) prices, like TradingView's default chart and
-            # Signum: dividend-adjusting shifts the Gaussian filter 0.1-1% on
-            # payers and moved flip dates by up to ~8 days vs Signum.
-            auto_adjust=False, progress=False, threads=False,
-        )
+        try:
+            # ``threads=False`` only disables yfinance's *internal* batch
+            # worker.  It does not make concurrent calls from our own loader
+            # safe against yfinance's SQLite cache.
+            with _YFINANCE_DOWNLOAD_LOCK:
+                df = yf.download(
+                    symbol, period=period, interval=interval,
+                    # Raw (unadjusted) prices, like TradingView's default chart and
+                    # Signum: dividend-adjusting shifts the Gaussian filter 0.1-1% on
+                    # payers and moved flip dates by up to ~8 days vs Signum.
+                    auto_adjust=False, progress=False, threads=False,
+                )
+        except Exception as exc:
+            raise SourceError(f"Yahoo download failed for {symbol}: {exc}") from exc
         if df is None or df.empty:
             raise SourceError(f"no data for {symbol}")
         # yfinance returns multi-level columns when downloading even a single
