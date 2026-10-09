@@ -770,5 +770,9 @@
   "stocks|DLTR|1440": "FLAT",
   "stocks|SNX|1440": "LONG",
   "stocks|RL|1440": "FLAT",
-  "stocks|TROW|1440": "FLAT"
+  "stocks|TROW|1440": "FLAT",
+  "stocks|BRK-A|1440": "LONG",
+  "stocks|SKYD|1440": "LONG",
+  "stocks|NRG|1440": "FLAT",
+  "stocks|VRSK|1440": "FLAT"
 }
