@@ -103,5 +103,35 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-16T22:57:33+00:00",
+    "asset_class": "low_float",
+    "symbol": "PMI",
+    "pair": "PMI",
+    "direction": "ENTRY",
+    "price": 12.75,
+    "fill_date": "2026-10-16",
+    "entry_price": 12.75,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-16T22:57:33+00:00",
+    "asset_class": "low_float",
+    "symbol": "REBN",
+    "pair": "REBN",
+    "direction": "ENTRY",
+    "price": 1.399999976158142,
+    "fill_date": "2026-10-16",
+    "entry_price": 1.399999976158142,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
