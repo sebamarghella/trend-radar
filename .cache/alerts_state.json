@@ -289,8 +289,8 @@
   "stocks|AXP|1440": "FLAT",
   "stocks|TD|1440": "FLAT",
   "stocks|CRM|1440": "LONG",
-  "stocks|VZ|1440": "LONG",
-  "stocks|SAN|1440": "LONG",
+  "stocks|VZ|1440": "FLAT",
+  "stocks|SAN|1440": "FLAT",
   "stocks|ADI|1440": "LONG",
   "stocks|STX|1440": "FLAT",
   "stocks|TTE|1440": "LONG",
@@ -681,7 +681,7 @@
   "stocks|ECHO|1440": "FLAT",
   "stocks|MDB|1440": "LONG",
   "stocks|CCI|1440": "FLAT",
-  "stocks|WSM|1440": "FLAT",
+  "stocks|WSM|1440": "LONG",
   "stocks|RYAAY|1440": "FLAT",
   "stocks|Q|1440": "FLAT",
   "stocks|TDY|1440": "FLAT",
@@ -779,5 +779,8 @@
   "stocks|GMAB|1440": "LONG",
   "stocks|MKL|1440": "FLAT",
   "stocks|DINO|1440": "LONG",
-  "stocks|IFF|1440": "LONG"
+  "stocks|IFF|1440": "LONG",
+  "stocks|ARXS|1440": "FLAT",
+  "stocks|BRO|1440": "FLAT",
+  "stocks|GPN|1440": "FLAT"
 }

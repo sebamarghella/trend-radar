@@ -479,8 +479,8 @@
   "symbol": "BMY",
   "entry_date": "2026-09-25",
   "entry_price": 62.86000061035156,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-15",
+  "exit_price": 60.66999816894531,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -561,6 +561,18 @@
   "exit_price": null,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
+  "split_mult": 1.0
+ },
+ {
+  "key": "BRO|carried",
+  "symbol": "BRO",
+  "entry_date": "2026-09-25",
+  "entry_price": 60.81999969482422,
+  "exit_date": "2026-10-05",
+  "exit_price": 59.7400016784668,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
   "split_mult": 1.0
  },
  {
@@ -2370,8 +2382,8 @@
   "symbol": "NWG",
   "entry_date": "2026-09-25",
   "entry_price": 18.489999771118164,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-15",
+  "exit_price": 18.079999923706055,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -2700,8 +2712,8 @@
   "symbol": "RSG",
   "entry_date": "2026-09-25",
   "entry_price": 212.10000610351562,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-15",
+  "exit_price": 228.85000610351562,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -3954,6 +3966,18 @@
   "symbol": "SBS",
   "entry_date": "2026-10-14",
   "entry_price": 6.320000171661377,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "ASML|2026-10-14",
+  "symbol": "ASML",
+  "entry_date": "2026-10-15",
+  "entry_price": 1616.1400146484375,
   "exit_date": null,
   "exit_price": null,
   "carried": false,
