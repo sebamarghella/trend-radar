@@ -4388,5 +4388,50 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-19T23:55:41+00:00",
+    "asset_class": "stocks",
+    "symbol": "PWR",
+    "pair": "PWR",
+    "direction": "ENTRY",
+    "price": 618.4099731445312,
+    "fill_date": "2026-10-19",
+    "entry_price": 618.4099731445312,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-19T23:55:41+00:00",
+    "asset_class": "stocks",
+    "symbol": "ECL",
+    "pair": "ECL",
+    "direction": "ENTRY",
+    "price": 285.94000244140625,
+    "fill_date": "2026-10-19",
+    "entry_price": 285.94000244140625,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-19T23:55:41+00:00",
+    "asset_class": "stocks",
+    "symbol": "EBAY",
+    "pair": "EBAY",
+    "direction": "ENTRY",
+    "price": 120.47000122070312,
+    "fill_date": "2026-10-19",
+    "entry_price": 120.47000122070312,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

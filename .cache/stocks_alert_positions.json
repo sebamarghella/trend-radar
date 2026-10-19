@@ -382,5 +382,53 @@
         "start_year": 2018
       }
     }
+  },
+  "PWR": {
+    "entry_date": "2026-10-19",
+    "entry_price": 618.4099731445312,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "ECL": {
+    "entry_date": "2026-10-19",
+    "entry_price": 285.94000244140625,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "EBAY": {
+    "entry_date": "2026-10-19",
+    "entry_price": 120.47000122070312,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
   }
 }
