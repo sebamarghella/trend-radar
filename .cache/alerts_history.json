@@ -4433,5 +4433,35 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-20T23:21:14+00:00",
+    "asset_class": "stocks",
+    "symbol": "TXN",
+    "pair": "TXN",
+    "direction": "ENTRY",
+    "price": 277.7799987792969,
+    "fill_date": "2026-10-20",
+    "entry_price": 277.7799987792969,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-20T23:21:14+00:00",
+    "asset_class": "stocks",
+    "symbol": "MO",
+    "pair": "MO",
+    "direction": "ENTRY",
+    "price": 74.63999938964844,
+    "fill_date": "2026-10-20",
+    "entry_price": 74.63999938964844,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
