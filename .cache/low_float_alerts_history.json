@@ -148,5 +148,20 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-20T23:17:19+00:00",
+    "asset_class": "low_float",
+    "symbol": "QNTM",
+    "pair": "QNTM",
+    "direction": "EXIT",
+    "price": 2.430000066757202,
+    "fill_date": "2026-10-20",
+    "entry_price": 3.069999933242798,
+    "exit_price": 2.430000066757202,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

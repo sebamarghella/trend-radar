@@ -1,6 +1,6 @@
 {
   "__strategy__|low_float": "Gaussian Channel Stocks Trend Radar|confirmed-close-next-open-v2",
-  "low_float|QNTM|1440": "LONG",
+  "low_float|QNTM|1440": "FLAT",
   "low_float|CANG|1440": "LONG",
   "low_float|NRXS|1440": "LONG",
   "low_float|WETO|1440": "FLAT",
