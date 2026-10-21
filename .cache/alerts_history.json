@@ -4463,5 +4463,35 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-21T23:35:31+00:00",
+    "asset_class": "stocks",
+    "symbol": "CAH",
+    "pair": "CAH",
+    "direction": "ENTRY",
+    "price": 257.4599914550781,
+    "fill_date": "2026-10-21",
+    "entry_price": 257.4599914550781,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-21T23:35:31+00:00",
+    "asset_class": "stocks",
+    "symbol": "ECHO",
+    "pair": "ECHO",
+    "direction": "ENTRY",
+    "price": 92.63999938964844,
+    "fill_date": "2026-10-21",
+    "entry_price": 92.63999938964844,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
