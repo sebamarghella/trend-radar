@@ -494,5 +494,101 @@
         "start_year": 2018
       }
     }
+  },
+  "MAR": {
+    "entry_date": "2026-10-22",
+    "entry_price": 396.79998779296875,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "RSG": {
+    "entry_date": "2026-10-22",
+    "entry_price": 241.89999389648438,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "RELX": {
+    "entry_date": "2026-10-22",
+    "entry_price": 40.619998931884766,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "VST": {
+    "entry_date": "2026-10-22",
+    "entry_price": 140.8300018310547,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "CNC": {
+    "entry_date": "2026-10-22",
+    "entry_price": 71.23999786376953,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "UTHR": {
+    "entry_date": "2026-10-22",
+    "entry_price": 584.7899780273438,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
   }
 }
