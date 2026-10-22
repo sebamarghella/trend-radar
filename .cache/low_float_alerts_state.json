@@ -154,7 +154,7 @@
   "low_float|HOUR|1440": "FLAT",
   "low_float|QXL|1440": "FLAT",
   "low_float|NXB|1440": "FLAT",
-  "low_float|ENVB|1440": "LONG",
+  "low_float|ENVB|1440": "FLAT",
   "low_float|KFFB|1440": "LONG",
   "low_float|MYSE|1440": "FLAT",
   "low_float|GNPX|1440": "FLAT",

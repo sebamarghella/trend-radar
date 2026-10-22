@@ -163,5 +163,20 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-10-22T23:29:23+00:00",
+    "asset_class": "low_float",
+    "symbol": "ENVB",
+    "pair": "ENVB",
+    "direction": "EXIT",
+    "price": 1.4600000381469727,
+    "fill_date": "2026-10-22",
+    "entry_price": 1.3899999856948853,
+    "exit_price": 1.4600000381469727,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
