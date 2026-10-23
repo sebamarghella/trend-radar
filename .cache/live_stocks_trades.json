@@ -391,8 +391,8 @@
   "symbol": "BBVA",
   "entry_date": "2026-09-25",
   "entry_price": 28.8700008392334,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-22",
+  "exit_price": 25.200000762939453,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -501,8 +501,8 @@
   "symbol": "BNTX",
   "entry_date": "2026-09-25",
   "entry_price": 98.5199966430664,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-22",
+  "exit_price": 90.75,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -2411,6 +2411,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "OMC|carried",
+  "symbol": "OMC",
+  "entry_date": "2026-09-25",
+  "entry_price": 76.1500015258789,
+  "exit_date": "2026-10-05",
+  "exit_price": 74.26000213623047,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "ONC|carried",
   "symbol": "ONC",
   "entry_date": "2026-09-25",
@@ -2492,8 +2504,8 @@
   "symbol": "PFG",
   "entry_date": "2026-09-25",
   "entry_price": 114.7699966430664,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-22",
+  "exit_price": 107.58000183105469,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "split_mult": 1.0
@@ -2983,6 +2995,18 @@
   "exit_price": null,
   "carried": true,
   "strategy": "Gaussian Channel Stocks Trend Radar",
+  "split_mult": 1.0
+ },
+ {
+  "key": "STE|carried",
+  "symbol": "STE",
+  "entry_date": "2026-09-25",
+  "entry_price": 208.92999267578125,
+  "exit_date": "2026-09-30",
+  "exit_price": 210.69000244140625,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
   "split_mult": 1.0
  },
  {
@@ -4074,6 +4098,30 @@
   "symbol": "TXN",
   "entry_date": "2026-10-21",
   "entry_price": 279.30999755859375,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "CAH|2026-10-21",
+  "symbol": "CAH",
+  "entry_date": "2026-10-22",
+  "entry_price": 258.2099914550781,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "ECHO|2026-10-21",
+  "symbol": "ECHO",
+  "entry_date": "2026-10-22",
+  "entry_price": 90.8499984741211,
   "exit_date": null,
   "exit_price": null,
   "carried": false,
