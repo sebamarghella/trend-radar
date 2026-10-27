@@ -375,7 +375,7 @@
   "stocks|SPOT|1440": "LONG",
   "stocks|LOW|1440": "FLAT",
   "stocks|EQIX|1440": "FLAT",
-  "stocks|ING|1440": "LONG",
+  "stocks|ING|1440": "FLAT",
   "stocks|DDOG|1440": "LONG",
   "stocks|CDNS|1440": "FLAT",
   "stocks|SO|1440": "FLAT",
@@ -788,5 +788,6 @@
   "stocks|KEY|1440": "FLAT",
   "stocks|DOW|1440": "FLAT",
   "stocks|OMC|1440": "FLAT",
-  "stocks|STE|1440": "FLAT"
+  "stocks|STE|1440": "FLAT",
+  "stocks|PHM|1440": "FLAT"
 }
