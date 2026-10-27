@@ -2533,6 +2533,18 @@
   "split_mult": 1.0
  },
  {
+  "key": "PKG|carried",
+  "symbol": "PKG",
+  "entry_date": "2026-09-25",
+  "entry_price": 237.17999267578125,
+  "exit_date": "2026-09-30",
+  "exit_price": 233.27000427246094,
+  "carried": true,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "PLTR|carried",
   "symbol": "PLTR",
   "entry_date": "2026-09-25",
@@ -4122,8 +4134,8 @@
   "symbol": "ECHO",
   "entry_date": "2026-10-22",
   "entry_price": 90.8499984741211,
-  "exit_date": null,
-  "exit_price": null,
+  "exit_date": "2026-10-26",
+  "exit_price": 88.81999969482422,
   "carried": false,
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "fill_mode": "next_open",
@@ -4202,10 +4214,58 @@
   "split_mult": 1.0
  },
  {
+  "key": "HLT|2026-10-23",
+  "symbol": "HLT",
+  "entry_date": "2026-10-26",
+  "entry_price": 349.2099914550781,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "IHG|2026-10-23",
+  "symbol": "IHG",
+  "entry_date": "2026-10-26",
+  "entry_price": 166.58999633789062,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "KMI|2026-10-23",
+  "symbol": "KMI",
+  "entry_date": "2026-10-26",
+  "entry_price": 34.43000030517578,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
   "key": "LLY|2026-10-23",
   "symbol": "LLY",
   "entry_date": "2026-10-26",
   "entry_price": 1286.3900146484375,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
+ },
+ {
+  "key": "WRB|2026-10-23",
+  "symbol": "WRB",
+  "entry_date": "2026-10-26",
+  "entry_price": 73.5199966430664,
   "exit_date": null,
   "exit_price": null,
   "carried": false,
