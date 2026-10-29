@@ -790,5 +790,7 @@
   "stocks|OMC|1440": "FLAT",
   "stocks|STE|1440": "FLAT",
   "stocks|PHM|1440": "FLAT",
-  "stocks|PKG|1440": "FLAT"
+  "stocks|PKG|1440": "FLAT",
+  "stocks|KOF|1440": "LONG",
+  "stocks|EIX|1440": "FLAT"
 }
