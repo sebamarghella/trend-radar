@@ -351,22 +351,6 @@
       }
     }
   },
-  "PWR": {
-    "entry_date": "2026-10-19",
-    "entry_price": 618.4099731445312,
-    "strategy": {
-      "name": "Gaussian Channel Stocks Trend Radar",
-      "logic_key": "gaussian_channel_stocks_v1",
-      "params": {
-        "poles": 4,
-        "period": 144,
-        "multiplier": 1.414,
-        "reduced_lag": false,
-        "fast_response": false,
-        "start_year": 2018
-      }
-    }
-  },
   "ECL": {
     "entry_date": "2026-10-19",
     "entry_price": 285.94000244140625,
@@ -722,6 +706,86 @@
   "SUNB": {
     "entry_date": "2026-10-27",
     "entry_price": 81.83999633789062,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "LIN": {
+    "entry_date": "2026-10-30",
+    "entry_price": 514.239990234375,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "MSCI": {
+    "entry_date": "2026-10-30",
+    "entry_price": 623.3800048828125,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "ED": {
+    "entry_date": "2026-10-30",
+    "entry_price": 116.63999938964844,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "RPRX": {
+    "entry_date": "2026-10-30",
+    "entry_price": 67.18000030517578,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "CCI": {
+    "entry_date": "2026-10-30",
+    "entry_price": 88.69000244140625,
     "strategy": {
       "name": "Gaussian Channel Stocks Trend Radar",
       "logic_key": "gaussian_channel_stocks_v1",
