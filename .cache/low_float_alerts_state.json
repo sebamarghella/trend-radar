@@ -211,7 +211,7 @@
   "low_float|CULP|1440": "LONG",
   "low_float|SGC|1440": "FLAT",
   "low_float|GWRS|1440": "LONG",
-  "low_float|INAB|1440": "LONG",
+  "low_float|INAB|1440": "FLAT",
   "low_float|SBGI|1440": "FLAT",
   "low_float|BRLT|1440": "LONG",
   "low_float|SILO|1440": "FLAT",
