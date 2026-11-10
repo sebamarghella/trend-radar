@@ -814,5 +814,213 @@
         "start_year": 2018
       }
     }
+  },
+  "TJX": {
+    "entry_date": "2026-11-09",
+    "entry_price": 138.1300048828125,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "SO": {
+    "entry_date": "2026-11-09",
+    "entry_price": 93.56999969482422,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "DUK": {
+    "entry_date": "2026-11-09",
+    "entry_price": 128.10000610351562,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "INTU": {
+    "entry_date": "2026-11-09",
+    "entry_price": 338.2300109863281,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "CSX": {
+    "entry_date": "2026-11-09",
+    "entry_price": 50.47999954223633,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "BTSGU": {
+    "entry_date": "2026-11-09",
+    "entry_price": 227.63999938964844,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "PHG": {
+    "entry_date": "2026-11-09",
+    "entry_price": 30.790000915527344,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "CNP": {
+    "entry_date": "2026-11-09",
+    "entry_price": 40.810001373291016,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "PPL": {
+    "entry_date": "2026-11-09",
+    "entry_price": 35.70000076293945,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "DRI": {
+    "entry_date": "2026-11-09",
+    "entry_price": 229.77000427246094,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "DLTR": {
+    "entry_date": "2026-11-09",
+    "entry_price": 137.22999572753906,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "STZ": {
+    "entry_date": "2026-11-09",
+    "entry_price": 145.50999450683594,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
+  },
+  "MKL": {
+    "entry_date": "2026-11-09",
+    "entry_price": 1951.260009765625,
+    "strategy": {
+      "name": "Gaussian Channel Stocks Trend Radar",
+      "logic_key": "gaussian_channel_stocks_v1",
+      "params": {
+        "poles": 4,
+        "period": 144,
+        "multiplier": 1.414,
+        "reduced_lag": false,
+        "fast_response": false,
+        "start_year": 2018
+      }
+    }
   }
 }
