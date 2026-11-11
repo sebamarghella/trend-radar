@@ -5364,5 +5364,17 @@
   "strategy": "Gaussian Channel Stocks Trend Radar",
   "fill_mode": "next_open",
   "split_mult": 1.0
+ },
+ {
+  "key": "BTSGU|2026-11-09",
+  "symbol": "BTSGU",
+  "entry_date": "2026-11-10",
+  "entry_price": 227.7899932861328,
+  "exit_date": null,
+  "exit_price": null,
+  "carried": false,
+  "strategy": "Gaussian Channel Stocks Trend Radar",
+  "fill_mode": "next_open",
+  "split_mult": 1.0
  }
 ]
