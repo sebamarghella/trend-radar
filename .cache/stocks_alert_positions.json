@@ -399,22 +399,6 @@
       }
     }
   },
-  "VST": {
-    "entry_date": "2026-10-22",
-    "entry_price": 140.8300018310547,
-    "strategy": {
-      "name": "Gaussian Channel Stocks Trend Radar",
-      "logic_key": "gaussian_channel_stocks_v1",
-      "params": {
-        "poles": 4,
-        "period": 144,
-        "multiplier": 1.414,
-        "reduced_lag": false,
-        "fast_response": false,
-        "start_year": 2018
-      }
-    }
-  },
   "CNC": {
     "entry_date": "2026-10-22",
     "entry_price": 71.23999786376953,
