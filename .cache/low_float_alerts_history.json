@@ -193,5 +193,20 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-13T02:00:29+00:00",
+    "asset_class": "low_float",
+    "symbol": "CANG",
+    "pair": "CANG",
+    "direction": "EXIT",
+    "price": 1.559999942779541,
+    "fill_date": "2026-11-11",
+    "entry_price": 3.5799999237060547,
+    "exit_price": 1.559999942779541,
+    "late": true,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
