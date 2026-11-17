@@ -222,7 +222,7 @@
   "low_float|WAFU|1440": "FLAT",
   "low_float|JCAP|1440": "LONG",
   "low_float|VINP|1440": "LONG",
-  "low_float|BMR|1440": "LONG",
+  "low_float|BMR|1440": "FLAT",
   "low_float|AKTS|1440": "FLAT",
   "low_float|EDHL|1440": "LONG",
   "low_float|KPRX|1440": "LONG",
