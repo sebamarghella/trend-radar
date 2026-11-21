@@ -6113,5 +6113,50 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-21T02:44:28+00:00",
+    "asset_class": "stocks",
+    "symbol": "CRH",
+    "pair": "CRH",
+    "direction": "ENTRY",
+    "price": 88.05000305175781,
+    "fill_date": "2026-11-20",
+    "entry_price": 88.05000305175781,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-21T02:44:28+00:00",
+    "asset_class": "stocks",
+    "symbol": "RKT",
+    "pair": "RKT",
+    "direction": "ENTRY",
+    "price": 13.75,
+    "fill_date": "2026-11-20",
+    "entry_price": 13.75,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-21T02:44:28+00:00",
+    "asset_class": "stocks",
+    "symbol": "RYAAY",
+    "pair": "RYAAY",
+    "direction": "ENTRY",
+    "price": 54.13999938964844,
+    "fill_date": "2026-11-20",
+    "entry_price": 54.13999938964844,
+    "exit_price": null,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]

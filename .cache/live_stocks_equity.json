@@ -400,6 +400,16 @@
    "strategy": "Gaussian Channel Stocks Trend Radar",
    "position_fraction": 0.95,
    "fill_mode": "next_open"
+  },
+  {
+   "date": "2026-11-20",
+   "ret": -0.013331066120442067,
+   "equity": 0.9295352265140311,
+   "hodl_ret": -0.026996463425069634,
+   "n_open": 316,
+   "strategy": "Gaussian Channel Stocks Trend Radar",
+   "position_fraction": 0.95,
+   "fill_mode": "next_open"
   }
  ]
 }
