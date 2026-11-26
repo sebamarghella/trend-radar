@@ -223,5 +223,50 @@
     "strategy_name": "Gaussian Channel Stocks Trend Radar",
     "interval_minutes": 1440,
     "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-26T03:42:07+00:00",
+    "asset_class": "low_float",
+    "symbol": "NRXS",
+    "pair": "NRXS",
+    "direction": "EXIT",
+    "price": 4.989999771118164,
+    "fill_date": "2026-11-23",
+    "entry_price": 6.829999923706055,
+    "exit_price": 4.989999771118164,
+    "late": true,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-26T03:42:07+00:00",
+    "asset_class": "low_float",
+    "symbol": "REBN",
+    "pair": "REBN",
+    "direction": "EXIT",
+    "price": 0.8859999775886536,
+    "fill_date": "2026-11-25",
+    "entry_price": 1.399999976158142,
+    "exit_price": 0.8859999775886536,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
+  },
+  {
+    "ts": "2026-11-26T03:42:07+00:00",
+    "asset_class": "low_float",
+    "symbol": "SUJA",
+    "pair": "SUJA",
+    "direction": "EXIT",
+    "price": 4.849999904632568,
+    "fill_date": "2026-11-25",
+    "entry_price": 11.9399995803833,
+    "exit_price": 4.849999904632568,
+    "late": false,
+    "strategy_name": "Gaussian Channel Stocks Trend Radar",
+    "interval_minutes": 1440,
+    "exchange": "Yahoo"
   }
 ]
